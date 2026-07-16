@@ -144,50 +144,52 @@ The domain abstractions and schemas reside in the core package, ensuring identic
 classDiagram
     class BaseDiscovery {
         <<Abstract>>
-        +http_client: HttpClient
-        +keywords: list
+        +http_client: BaseHttpClient
         +max_pages: int
-        +search()*  list
-        +search_all(known_urls)* list
+        +search_all(known_urls: set) list
+        #_build_browse_url(page: int)* str
+        #_parse_search_page(html_content: str)* list
     }
     class BaseSourcing {
         <<Abstract>>
-        +http_client: HttpClient
-        +enrich_detail(job)* Job
+        +http_client: BaseHttpClient
+        +source_detail(url: str) JobDetailUpdate
+        #_parse_detail_page(html_content: str, url: str)* JobDetailUpdate
     }
     class EuraxessDiscovery {
         +SOURCE_NAME: str
-        +search_all() list
+        #_build_browse_url(page: int) str
+        #_parse_search_page(html_content: str) list
     }
     class EuraxessSourcing {
         +SOURCE_NAME: str
-        +enrich_detail() Job
+        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
     }
     class AcademicTransferDiscovery {
         +SOURCE_NAME: str
-        +search_all() list
+        #_build_browse_url(page: int) str
+        #_parse_search_page(html_content: str) list
     }
     class AcademicTransferSourcing {
         +SOURCE_NAME: str
-        +enrich_detail() Job
+        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
     }
     class BaseRefiner {
         <<Abstract>>
-        +refine(job)* Job
+        +refine(url: str, title: str, description: str, requirements: str)* RefinementResult
     }
     class LlmRefiner {
         -_system_prompt: str
         -_model_path: str
         +load_model() void
-        +refine() Job
+        +refine(url: str, title: str, description: str, requirements: str) RefinementResult
     }
     class DatabaseJobRepository {
         -_SessionLocal: sessionmaker
-        +save(jobs) void
-        +claim_next_for_refinement() Job
-        +update_details() void
-        +complete_refinement() void
-        +fail_refinement() void
+        +save(jobs: list) void
+        +claim_next_for_refinement(agent_name: str) Job
+        +complete_refinement(url: str, required_skills: list, education_level: str) void
+        +fail_refinement(url: str) void
     }
     class Job {
         +title: str
@@ -208,7 +210,7 @@ classDiagram
     BaseSourcing <|-- AcademicTransferSourcing
     BaseRefiner <|-- LlmRefiner
     DatabaseJobRepository ..> Job : Manages
-    EuraxessSourcing ..> Job : Enriches
-    AcademicTransferSourcing ..> Job : Enriches
+    EuraxessSourcing ..> Job : Sources Details
+    AcademicTransferSourcing ..> Job : Sources Details
     LlmRefiner ..> Job : Refines
 ```
