@@ -60,7 +60,14 @@ class LlmRefiner(BaseRefiner):
         self._tokenizer = og.Tokenizer(self._model)
         print("Model loaded successfully!")
 
-    def refine(self, url: str, title: str, description: str | None, requirements: str | None) -> RefinementResult:
+    def refine(
+        self,
+        url: str,
+        title: str,
+        location: str | None,
+        description: str | None,
+        requirements: str | None,
+    ) -> RefinementResult:
         if self._model is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
@@ -69,24 +76,36 @@ class LlmRefiner(BaseRefiner):
                 url=url,
                 required_skills=[],
                 education_level=None,
+                city=None,
+                country=None,
             )
 
-        extracted = self._run_inference(title, description, requirements)
+        extracted = self._run_inference(title, location, description, requirements)
 
         required_skills = extracted.get("required_skills", [])
         education_level = extracted.get("education_level")
+        city = extracted.get("city")
+        country = extracted.get("country")
 
         return RefinementResult(
             url=url,
             required_skills=required_skills,
             education_level=education_level,
+            city=city,
+            country=country,
         )
 
-    def _run_inference(self, title: str, description: str | None, requirements: str | None) -> dict:
+    def _run_inference(
+        self,
+        title: str,
+        location: str | None,
+        description: str | None,
+        requirements: str | None,
+    ) -> dict:
         import onnxruntime_genai as og
 
-        text = self._build_input_text(title, description, requirements)
-        prompt = f"<|system|>\n{self._system_prompt}<|end|>\n<|user|>\n{text}<|end|>\n<|assistant|>\n"
+        text = self._build_input_text(title, location, description, requirements)
+        prompt = f"<|system|>\n{self._system_prompt}<|end|>\n<|user|>\n{text} <|end|>\n<|assistant|>\n"
 
         try:
             tokens = self._tokenizer.encode(prompt)
@@ -108,16 +127,38 @@ class LlmRefiner(BaseRefiner):
             print(f"  [Warning] LLM inference failed: {e}", file=sys.stderr)
             return {}
 
-    def _build_input_text(self, title: str, description: str | None, requirements: str | None) -> str:
+    def _build_input_text(
+        self,
+        title: str,
+        location: str | None,
+        description: str | None,
+        requirements: str | None,
+    ) -> str:
         title_block = f"Title: {title}\n"
-        req_block = f"\nRequirements:\n{requirements}" if requirements else ""
-        desc_block = f"Description:\n{description}" if description else ""
-
-        budget = self._max_text_chars - len(title_block) - len(req_block)
-        if budget > 0 and desc_block:
-            desc_block = desc_block[:budget]
-
-        return title_block + desc_block + req_block
+        loc_block = f"Location: {location}\n" if location else ""
+        
+        # Calculate available budget for desc and req
+        avail_budget = self._max_text_chars - len(title_block) - len(loc_block) - 100
+        if avail_budget < 500:
+            avail_budget = 500
+            
+        desc_str = description or ""
+        req_str = requirements or ""
+        
+        if len(desc_str) + len(req_str) > avail_budget:
+            half_budget = avail_budget // 2
+            if len(desc_str) <= half_budget:
+                req_str = req_str[:avail_budget - len(desc_str)]
+            elif len(req_str) <= half_budget:
+                desc_str = desc_str[:avail_budget - len(req_str)]
+            else:
+                desc_str = desc_str[:half_budget]
+                req_str = req_str[:half_budget]
+                
+        desc_block = f"Description:\n{desc_str}\n" if desc_str else ""
+        req_block = f"Requirements:\n{req_str}\n" if req_str else ""
+        
+        return title_block + loc_block + desc_block + req_block
 
     @staticmethod
     def _parse_json_response(raw: str) -> dict:
