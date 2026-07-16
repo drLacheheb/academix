@@ -34,9 +34,10 @@ class DatabaseJobRepository(BaseJobRepository):
             session.close()
 
     def save(self, jobs: list[Job]) -> None:
+        unique_jobs = {job.url: job for job in jobs}.values()
         session = self._SessionLocal()
         try:
-            for job in jobs:
+            for job in unique_jobs:
                 self._upsert_in_session(session, job)
             session.commit()
         except Exception:
