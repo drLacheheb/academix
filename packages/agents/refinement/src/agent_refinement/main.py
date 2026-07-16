@@ -4,7 +4,6 @@ import time
 import httpx
 from dotenv import load_dotenv
 
-from core.models.job import Job
 from core.logging import get_logger
 from agent_refinement.llm_refiner import LlmRefiner
 
@@ -82,8 +81,12 @@ def run():
                 logger.info("No pending jobs available. Refinement batch completed. Exiting.")
                 break
 
-            job = Job.from_dict(job_data)
-            logger.info(f"Successfully claimed job: {job.title} ({job.url})")
+            job_title = job_data.get("title")
+            job_url = job_data.get("url")
+            job_description = job_data.get("description")
+            job_requirements = job_data.get("requirements")
+
+            logger.info(f"Successfully claimed job: {job_title} ({job_url})")
 
             if not model_loaded:
                 logger.info("First job claimed. Loading ONNX model into memory...")
@@ -95,18 +98,18 @@ def run():
                     sys.exit(1)
 
             try:
-                refiner.refine(job)
+                result = refiner.refine(
+                    url=job_url,
+                    title=job_title,
+                    description=job_description,
+                    requirements=job_requirements,
+                )
 
-                logger.info(f"Refinement completed for {job.title}")
-                logger.info(f"  -> Skills: {job.required_skills}")
-                logger.info(f"  -> Education: {job.education_level}")
+                logger.info(f"Refinement completed for {job_title}")
+                logger.info(f"  -> Skills: {result.required_skills}")
+                logger.info(f"  -> Education: {result.education_level}")
 
-                submit_data = {
-                    "url": job.url,
-                    "required_skills": job.required_skills or [],
-                    "education_level": job.education_level,
-                }
-                submit_resp = api.put("/jobs/refine", json=submit_data)
+                submit_resp = api.put("/jobs/refine", json=result.model_dump())
                 submit_resp.raise_for_status()
                 logger.info("Successfully uploaded refinement results")
 

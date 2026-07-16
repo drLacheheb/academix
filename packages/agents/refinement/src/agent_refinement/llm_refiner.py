@@ -3,7 +3,7 @@ import os
 import sys
 
 from core.refiners.base import BaseRefiner
-from core.models.job import Job
+from core.models.schemas import RefinementResult
 
 
 class LlmRefiner(BaseRefiner):
@@ -60,26 +60,32 @@ class LlmRefiner(BaseRefiner):
         self._tokenizer = og.Tokenizer(self._model)
         print("Model loaded successfully!")
 
-    def refine(self, job: Job) -> Job:
+    def refine(self, url: str, title: str, description: str | None, requirements: str | None) -> RefinementResult:
         if self._model is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
-        if not job.description and not job.requirements:
-            job.required_skills = []
-            job.education_level = None
-            return job
+        if not description and not requirements:
+            return RefinementResult(
+                url=url,
+                required_skills=[],
+                education_level=None,
+            )
 
-        extracted = self._run_inference(job)
+        extracted = self._run_inference(title, description, requirements)
 
-        job.required_skills = extracted.get("required_skills", [])
-        job.education_level = extracted.get("education_level")
+        required_skills = extracted.get("required_skills", [])
+        education_level = extracted.get("education_level")
 
-        return job
+        return RefinementResult(
+            url=url,
+            required_skills=required_skills,
+            education_level=education_level,
+        )
 
-    def _run_inference(self, job: Job) -> dict:
+    def _run_inference(self, title: str, description: str | None, requirements: str | None) -> dict:
         import onnxruntime_genai as og
 
-        text = self._build_input_text(job)
+        text = self._build_input_text(title, description, requirements)
         prompt = f"<|system|>\n{self._system_prompt}<|end|>\n<|user|>\n{text}<|end|>\n<|assistant|>\n"
 
         try:
@@ -102,10 +108,10 @@ class LlmRefiner(BaseRefiner):
             print(f"  [Warning] LLM inference failed: {e}", file=sys.stderr)
             return {}
 
-    def _build_input_text(self, job: Job) -> str:
-        title_block = f"Title: {job.title}\n"
-        req_block = f"\nRequirements:\n{job.requirements}" if job.requirements else ""
-        desc_block = f"Description:\n{job.description}" if job.description else ""
+    def _build_input_text(self, title: str, description: str | None, requirements: str | None) -> str:
+        title_block = f"Title: {title}\n"
+        req_block = f"\nRequirements:\n{requirements}" if requirements else ""
+        desc_block = f"Description:\n{description}" if description else ""
 
         budget = self._max_text_chars - len(title_block) - len(req_block)
         if budget > 0 and desc_block:
