@@ -25,7 +25,6 @@ class RefinementResult(BaseModel):
     country: Optional[str] = None
 
 
-
 class ClaimRequest(BaseModel):
     agent_name: str
 
@@ -43,4 +42,3 @@ class TranslationResult(BaseModel):
     url: str
     description_en: Optional[str] = None
     requirements_en: Optional[str] = None
-

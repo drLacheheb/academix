@@ -1,19 +1,17 @@
 import html
 import re
-from abc import ABC, abstractmethod
 
-from core.models.job import Job
-from core.models.schemas import JobDetailUpdate
-from core.http_client import BaseHttpClient
+from core.domain.models.job import Job
+from core.domain.models.schemas import JobDetailUpdate
+from core.domain.interfaces.scrapers import BaseDiscovery, BaseSourcing
+from core.domain.interfaces.http import BaseHttpClient
 
 
 def clean_html(raw_html: str) -> str:
     text = re.sub(
         r"<script[^>]*>.*?</script>", "", raw_html, flags=re.DOTALL | re.IGNORECASE
     )
-    text = re.sub(
-        r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE
-    )
+    text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r"<.*?>", "\n", text)
     text = re.sub(r"\n+", "\n", text)
     return html.unescape(text.strip())
@@ -117,9 +115,7 @@ def extract_requirements_from_text(text: str) -> str | None:
     return "\n".join(extracted).strip() or None
 
 
-class BaseDiscovery(ABC):
-    SOURCE_NAME: str = ""
-
+class ConcreteDiscovery(BaseDiscovery):
     def __init__(self, http_client: BaseHttpClient, max_pages: int = 5):
         self._http = http_client
         self._max_pages_val = max_pages
@@ -149,23 +145,19 @@ class BaseDiscovery(ABC):
             all_jobs.extend(new_jobs)
 
             seen_count = len(jobs_on_page) - len(new_jobs)
-            print(f"  -> Page {page}: Found {len(jobs_on_page)} listings ({len(new_jobs)} new, {seen_count} seen)")
+            print(
+                f"  -> Page {page}: Found {len(jobs_on_page)} listings ({len(new_jobs)} new, {seen_count} seen)"
+            )
 
             if seen_count == len(jobs_on_page):
-                print(f"  -> Page {page}: All jobs on this page have been seen. Stopping pagination.")
+                print(
+                    f"  -> Page {page}: All jobs on this page have been seen. Stopping pagination."
+                )
                 break
 
             page += 1
 
         return all_jobs
-
-    @abstractmethod
-    def _build_browse_url(self, page: int) -> str:
-        ...
-
-    @abstractmethod
-    def _parse_search_page(self, html_content: str) -> list[Job]:
-        ...
 
     def _start_page(self) -> int:
         return 1
@@ -174,9 +166,7 @@ class BaseDiscovery(ABC):
         return self._max_pages_val
 
 
-class BaseSourcing(ABC):
-    SOURCE_NAME: str = ""
-
+class ConcreteSourcing(BaseSourcing):
     def __init__(self, http_client: BaseHttpClient):
         self._http = http_client
 
@@ -187,7 +177,3 @@ class BaseSourcing(ABC):
 
         html_str = raw.decode("utf-8", errors="ignore")
         return self._parse_detail_page(html_str, url)
-
-    @abstractmethod
-    def _parse_detail_page(self, html_content: str, url: str) -> JobDetailUpdate:
-        ...

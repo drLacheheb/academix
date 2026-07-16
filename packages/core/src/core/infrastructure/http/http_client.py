@@ -1,19 +1,7 @@
 import sys
 import time
-from abc import ABC, abstractmethod
 from curl_cffi import requests as cffi_requests
-
-
-class BaseHttpClient(ABC):
-
-    @abstractmethod
-    def fetch(self, url: str) -> bytes | None:
-        ...
-
-    @abstractmethod
-    def close(self) -> None:
-        ...
-
+from core.domain.interfaces.http import BaseHttpClient
 
 class HttpClient(BaseHttpClient):
     def __init__(
