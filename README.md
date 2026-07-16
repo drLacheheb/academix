@@ -142,6 +142,15 @@ The domain abstractions and schemas reside in the core package, ensuring identic
 
 ```mermaid
 classDiagram
+    class BaseHttpClient {
+        <<Interface>>
+        +fetch(url: str)* bytes
+        +close()* void
+    }
+    class HttpClient {
+        +fetch(url: str) bytes
+        +close() void
+    }
     class BaseDiscovery {
         <<Abstract>>
         +http_client: BaseHttpClient
@@ -204,6 +213,9 @@ classDiagram
         +education_level: str
     }
 
+    BaseHttpClient <|-- HttpClient
+    BaseDiscovery ..> BaseHttpClient : Uses
+    BaseSourcing ..> BaseHttpClient : Uses
     BaseDiscovery <|-- EuraxessDiscovery
     BaseDiscovery <|-- AcademicTransferDiscovery
     BaseSourcing <|-- EuraxessSourcing
