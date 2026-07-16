@@ -25,7 +25,7 @@ class EuraxessDiscovery(BaseDiscovery):
             link = "https://euraxess.ec.europa.eu" + m.group(1)
             title = html.unescape(m.group(2).strip())
             jobs.append(
-                Job(title=title, url=link, source=self.SOURCE_NAME, keywords=[])
+                Job(title=title, url=link, source=self.SOURCE_NAME)
             )
 
         print(f"  -> Found {len(jobs)} listings")

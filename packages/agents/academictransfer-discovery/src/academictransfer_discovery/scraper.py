@@ -22,7 +22,7 @@ class AcademicTransferDiscovery(BaseDiscovery):
             link = "https://www.academictransfer.com" + m.group(1)
             title = html.unescape(m.group(2).strip())
             jobs.append(
-                Job(title=title, url=link, source=self.SOURCE_NAME, keywords=[])
+                Job(title=title, url=link, source=self.SOURCE_NAME)
             )
 
         print(f"  -> Found {len(jobs)} listings")

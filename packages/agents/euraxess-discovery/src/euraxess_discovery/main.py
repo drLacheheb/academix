@@ -51,7 +51,7 @@ def run():
 
             if truly_new:
                 stubs = [
-                    {"title": j.title, "url": j.url, "source": j.source, "keywords": j.keywords}
+                    {"title": j.title, "url": j.url, "source": j.source}
                     for j in truly_new
                 ]
                 resp = api.post("/jobs", json=stubs)
