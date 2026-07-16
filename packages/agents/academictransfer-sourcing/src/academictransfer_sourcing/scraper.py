@@ -99,6 +99,22 @@ class AcademicTransferSourcing(BaseSourcing):
         if not requirements and description:
             requirements = extract_requirements_from_text(description)
 
+        # Extract sidebar metadata
+        metadata = []
+        for field in ["Education level", "Weekly hours", "Research fields", "Job types"]:
+            pattern = rf'{field}</p>\s*(?:<!--.*?-->)?\s*<p[^>]*>(.*?)</p>'
+            m = re.search(pattern, html_content, re.DOTALL | re.IGNORECASE)
+            if m:
+                val = re.sub(r'<[^>]+>', '', m.group(1)).strip()
+                metadata.append(f"{field}: {val}")
+
+        if metadata:
+            metadata_text = "\n".join(metadata)
+            if requirements:
+                requirements = requirements + "\n\n[Metadata]\n" + metadata_text
+            else:
+                requirements = "[Metadata]\n" + metadata_text
+
         return JobDetailUpdate(
             url=url,
             description=description,
