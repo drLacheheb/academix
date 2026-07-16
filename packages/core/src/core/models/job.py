@@ -9,7 +9,6 @@ class Job:
     title: str
     url: str
     source: str
-    keywords: list[str] = field(default_factory=list)
 
     deadline: Optional[str] = None
     employer: Optional[str] = None

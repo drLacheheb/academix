@@ -6,7 +6,6 @@ class JobStubCreate(BaseModel):
     title: str
     url: str
     source: str
-    keywords: List[str] = []
 
 
 class JobDetailUpdate(BaseModel):
