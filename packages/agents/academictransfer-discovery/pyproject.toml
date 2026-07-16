@@ -1,0 +1,20 @@
+[project]
+name = "academictransfer-discovery"
+version = "0.1.0"
+description = "Autonomous AcademicTransfer discovery agent: paginates search results and registers stubs"
+requires-python = ">=3.11"
+dependencies = [
+    "core",
+    "httpx>=0.28.0",
+    "python-dotenv>=1.2.2",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/academictransfer_discovery"]
