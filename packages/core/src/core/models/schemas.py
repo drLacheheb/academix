@@ -21,6 +21,9 @@ class RefinementResult(BaseModel):
     url: str
     required_skills: List[str]
     education_level: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+
 
 
 class ClaimRequest(BaseModel):

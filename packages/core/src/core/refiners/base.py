@@ -8,5 +8,13 @@ from core.models.schemas import RefinementResult
 class BaseRefiner(ABC):
 
     @abstractmethod
-    def refine(self, url: str, title: str, description: str | None, requirements: str | None) -> RefinementResult:
+    def refine(
+        self,
+        url: str,
+        title: str,
+        location: str | None,
+        description: str | None,
+        requirements: str | None,
+    ) -> RefinementResult:
         ...
+

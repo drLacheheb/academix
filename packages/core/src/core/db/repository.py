@@ -41,6 +41,8 @@ class JobModel(Base):
     requirements = Column(Text, nullable=True)
     required_skills = Column(Text, nullable=True)
     education_level = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    country = Column(String, nullable=True)
 
     refinement_status = Column(String, nullable=False, default=STATUS_PENDING, index=True)
     claimed_by = Column(String, nullable=True)
@@ -68,6 +70,8 @@ class JobModel(Base):
             requirements=self.requirements,
             required_skills=skills_list,
             education_level=self.education_level,
+            city=self.city,
+            country=self.country,
         )
 
     @classmethod
@@ -92,6 +96,8 @@ class JobModel(Base):
             requirements=job.requirements,
             required_skills=skills_str,
             education_level=job.education_level,
+            city=job.city,
+            country=job.country,
             refinement_status=status,
         )
 
@@ -169,6 +175,8 @@ class DatabaseJobRepository:
             existing.requirements = job.requirements
             existing.required_skills = skills_str
             existing.education_level = job.education_level
+            existing.city = job.city
+            existing.country = job.country
             if job.required_skills is not None:
                 existing.refinement_status = STATUS_COMPLETED
         else:
@@ -251,7 +259,14 @@ class DatabaseJobRepository:
         finally:
             session.close()
 
-    def complete_refinement(self, url: str, required_skills: list[str], education_level: str | None) -> None:
+    def complete_refinement(
+        self,
+        url: str,
+        required_skills: list[str],
+        education_level: str | None,
+        city: str | None = None,
+        country: str | None = None,
+    ) -> None:
         session = self._SessionLocal()
         try:
             skills_str = json.dumps(required_skills) if required_skills is not None else None
@@ -261,6 +276,8 @@ class DatabaseJobRepository:
                 .values(
                     required_skills=skills_str,
                     education_level=education_level,
+                    city=city,
+                    country=country,
                     refinement_status=STATUS_COMPLETED,
                     claimed_by=None,
                     claimed_at=None,

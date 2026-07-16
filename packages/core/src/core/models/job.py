@@ -18,6 +18,9 @@ class Job:
 
     required_skills: Optional[list[str]] = None
     education_level: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+
 
     def is_detail_scraped(self) -> bool:
         return self.description is not None
