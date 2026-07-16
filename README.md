@@ -15,6 +15,8 @@ A Python workspace to fetch, parse, and refine academic job listings from EURAXE
 │       ├── euraxess-sourcing/             # EURAXESS page details fetcher
 │       ├── academictransfer-discovery/    # AcademicTransfer search pagination worker
 │       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher
+│       ├── lang-detection/                # Standalone local language detection worker
+│       ├── translation/                   # Standalone local NLLB-200 translation worker
 │       └── refinement/                    # Local ONNX model metadata refiner
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
@@ -28,7 +30,9 @@ A Python workspace to fetch, parse, and refine academic job listings from EURAXE
 
 *   **Python**: `>= 3.11`
 *   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (recommended)
-*   **Hardware (Refinement Agent)**: ~3GB RAM / VRAM to load the `phi-4-mini` ONNX model.
+*   **Hardware requirements**:
+    *   **Refinement Agent**: ~3GB RAM / VRAM to load the `phi-4-mini` ONNX model.
+    *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
 *   **Database**: SQLite (default local file `jobs.db`) or PostgreSQL (e.g., Neon).
 
 ---
@@ -59,6 +63,7 @@ uv run --package api fastapi run packages/api/src/api/main.py --port 8000
 ## 4. Running Workspace Agents
 
 All agents are run from the workspace root. Settings are loaded automatically from the `.env` file.
+The agents are fully decoupled and communicate only with the central API gateway.
 
 ### Agents Catalog
 
@@ -68,7 +73,9 @@ All agents are run from the workspace root. Settings are loaded automatically fr
 | `academictransfer-discovery` | `academictransfer_discovery.main` | Discovery | AcademicTransfer |
 | `euraxess-sourcing` | `euraxess_sourcing.main` | Sourcing | EURAXESS |
 | `academictransfer-sourcing` | `academictransfer_sourcing.main` | Sourcing | AcademicTransfer |
-| `refinement` | `agent_refinement.main` | Refinement | (All Sources) |
+| `lang-detection` | `agent_lang_detection.main` | Language Detection | (All Sources) |
+| `translation` | `agent_translation.main` | Local Translation | (All Sources) |
+| `refinement` | `agent_refinement.main` | Metadata Extraction | (All Sources) |
 
 ### Command Syntax
 Run any agent by specifying its package and module:
@@ -78,7 +85,7 @@ uv run --package <Agent Package> python -m <Main Module>
 
 *Example:*
 ```bash
-uv run --package euraxess-discovery python -m euraxess_discovery.main
+uv run --package lang-detection python -m agent_lang_detection.main
 ```
 
 ---
@@ -105,7 +112,7 @@ Settings configured via the `.env` file:
 ## 6. System Architecture & Diagrams
 
 ### Data Flow
-Discovery, sourcing, and refinement agents communicate only with the API server.
+Discovery, sourcing, detection, translation, and refinement agents communicate only with the API server.
 
 ```mermaid
 graph TD
@@ -124,6 +131,12 @@ graph TD
         DB[(Database SQLite/PostgreSQL)]
     end
 
+    subgraph Language Processing
+        LD[lang-detection]
+        Trans[translation]
+        NLLB[NLLB-200 Local Model]
+    end
+
     subgraph Refinement Nodes
         Refine[refinement]
         ONNX[Phi-4-mini ONNX Local Model]
@@ -136,6 +149,13 @@ graph TD
     ATS -->|GET /jobs/pending-details| API
     ES -->|PUT /jobs/details| API
     ATS -->|PUT /jobs/details| API
+
+    LD -->|POST /jobs/claim-detect| API
+    LD -->|PUT /jobs/detect| API
+
+    Trans -->|POST /jobs/claim-translate| API
+    Trans -->|PUT /jobs/translate| API
+    Trans -->|Inference request| NLLB
 
     Refine -->|POST /jobs/claim-refine CAS lease| API
     Refine -->|PUT /jobs/refine upload| API
