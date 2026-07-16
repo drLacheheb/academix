@@ -1,10 +1,21 @@
 import sys
 import time
-
+from abc import ABC, abstractmethod
 from curl_cffi import requests as cffi_requests
 
 
-class HttpClient:
+class BaseHttpClient(ABC):
+
+    @abstractmethod
+    def fetch(self, url: str) -> bytes | None:
+        ...
+
+    @abstractmethod
+    def close(self) -> None:
+        ...
+
+
+class HttpClient(BaseHttpClient):
     def __init__(
         self,
         base_delay: float = 2.0,
