@@ -44,6 +44,7 @@ def run():
             logger.info("All EURAXESS jobs are fully scraped. Nothing to do.")
         else:
             logger.info(f"Fetching details for {len(pending_jobs)} jobs...")
+            updates = []
             for idx, job_data in enumerate(pending_jobs, 1):
                 job_title = job_data.get("title")
                 job_url = job_data.get("url")
@@ -52,8 +53,12 @@ def run():
                 detail_update = scraper.source_detail(job_url)
 
                 if detail_update.description:
-                    resp = api.put("/jobs/details", json=[detail_update.model_dump()])
-                    resp.raise_for_status()
+                    updates.append(detail_update.model_dump())
+
+            if updates:
+                logger.info(f"Uploading {len(updates)} updates to API...")
+                resp = api.put("/jobs/details", json=updates)
+                resp.raise_for_status()
 
         logger.info("EURAXESS crawler sourcing agent finished successfully")
 
