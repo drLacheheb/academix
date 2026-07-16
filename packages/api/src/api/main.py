@@ -73,7 +73,7 @@ async def create_jobs(
     repo: DatabaseJobRepository = Depends(get_repo),
 ):
     jobs = [
-        Job(title=s.title, url=s.url, source=s.source, keywords=s.keywords)
+        Job(title=s.title, url=s.url, source=s.source)
         for s in stubs
     ]
     repo.save(jobs)
@@ -153,15 +153,4 @@ async def submit_refinement(
     return {"status": "completed", "url": result.url}
 
 
-@app.get("/jobs/query", dependencies=[Depends(verify_token)])
-@limiter.limit("60/minute")
-async def query_jobs(
-    request: Request,
-    keywords: str = "",
-    repo: DatabaseJobRepository = Depends(get_repo),
-):
-    if not keywords.strip():
-        return []
-    keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
-    results = repo.search_by_keywords(keyword_list)
-    return [j.to_dict() for j in results]
+
