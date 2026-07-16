@@ -24,19 +24,30 @@ A decoupled, cloud-ready multi-agent workspace monorepo utilizing **`uv` workspa
 
 ---
 
-## 2. Quick Start
+## 2. System Requirements
+
+*   **Python**: Version `>= 3.11`
+*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (strongly recommended for fast, frozen workspace synchronization)
+*   **Hardware (Local LLM Refinement)**:
+    *   Minimum **3GB RAM / VRAM** allocated to run the quantized `phi-4-mini` ONNX model.
+    *   An SSD is strongly recommended to reduce model loading time on startup.
+*   **Database**: SQLite (default local file `jobs.db`), or PostgreSQL (Neon Serverless Postgres recommended for staging/production).
+
+---
+
+## 3. Quick Start
 
 ### A. Setup Environment Configuration
 Create a local `.env` file from the example template:
 ```bash
 cp .env.example .env
 ```
-Open `.env` and configure your credentials and database configurations.
+Configure your credentials, database connection strings, and model parameters inside the newly created `.env` file.
 
 ### B. Resolve Dependencies
-Make sure you have `uv` installed, then synchronize the workspace:
+Synchronize the monorepo workspace dependencies:
 ```bash
-uv sync
+uv sync --all-packages
 ```
 
 ### C. Start the Central API Gateway
@@ -45,39 +56,36 @@ Run the FastAPI production-grade server:
 uv run --package api fastapi run packages/api/src/api/main.py --port 8000
 ```
 
-### D. Run Discovery Agents
-Discovery agents paginate search result pages and register new job stubs to the API:
+---
+
+## 4. Running Workspace Agents
+
+All agents reside in the `packages/agents/` folder and run using the same unified command syntax. The local `.env` configuration file is automatically loaded at runtime.
+
+### Workspace Agents Catalog
+
+| Agent Package | Main Module | Agent Role | Target Source |
+| :--- | :--- | :--- | :--- |
+| `euraxess-discovery` | `euraxess_discovery.main` | Discovery (Listing Search) | EURAXESS |
+| `academictransfer-discovery` | `academictransfer_discovery.main` | Discovery (Listing Search) | AcademicTransfer |
+| `euraxess-sourcing` | `euraxess_sourcing.main` | Sourcing (Detail Pages) | EURAXESS |
+| `academictransfer-sourcing` | `academictransfer_sourcing.main` | Sourcing (Detail Pages) | AcademicTransfer |
+| `refinement` | `agent_refinement.main` | Refinement (Metadata Extraction) | (All Sources) |
+
+### Generic Running Syntax
+To execute any agent from the workspace root:
 ```bash
-# Discover EURAXESS listings
+uv run --package <Agent Package> python -m <Main Module>
+```
+
+*Example for running the EURAXESS Listing Discovery agent:*
+```bash
 uv run --package euraxess-discovery python -m euraxess_discovery.main
-
-# Discover AcademicTransfer listings
-uv run --package academictransfer-discovery python -m academictransfer_discovery.main
-```
-
-### E. Run Detail Sourcing Agents
-Sourcing agents claim pending stubs, fetch full detail pages, and upload descriptions:
-```bash
-# Source EURAXESS details
-uv run --package euraxess-sourcing python -m euraxess_sourcing.main
-
-# Source AcademicTransfer details
-uv run --package academictransfer-sourcing python -m academictransfer_sourcing.main
-```
-
-### F. Run Parallel Refinement Agents
-Refinement agents claim jobs atomically using Compare-and-Swap (CAS), run local Phi-4-mini ONNX model inferences, and upload results. You can spin up multiple parallel instances:
-```bash
-# Run worker 1
-uv run --package refinement python -m agent_refinement.main --name worker_1
-
-# Run worker 2
-uv run --package refinement python -m agent_refinement.main --name worker_2
 ```
 
 ---
 
-## 3. Configuration Parameters
+## 5. Configuration Parameters
 
 The components are configured via `.env` file variables:
 
@@ -96,7 +104,7 @@ The components are configured via `.env` file variables:
 
 ---
 
-## 4. Architecture & System Diagrams
+## 6. Architecture & System Diagrams
 
 ### System Architecture
 The pipeline is designed as an API-first distributed monorepo. Discovery, sourcing, and refinement agents are fully decoupled and communicate solely through the FastAPI gateway server.
