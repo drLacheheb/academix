@@ -1,20 +1,21 @@
 import re
 
-from core.models.job import Job
+from core.models.schemas import JobDetailUpdate
 from core.scrapers.base import BaseSourcing, clean_html, extract_requirements_from_text
 
 
 class EuraxessSourcing(BaseSourcing):
     SOURCE_NAME = "EURAXESS"
 
-    def _parse_detail_page(self, html_content: str, job: Job) -> Job:
+    def _parse_detail_page(self, html_content: str, url: str) -> JobDetailUpdate:
+        deadline = None
         deadline_match = re.search(
             r"<dt[^>]*>Application Deadline</dt>\s*<dd[^>]*>.*?<time\s+datetime=\"([^\"]+)\"",
             html_content,
             re.DOTALL | re.IGNORECASE,
         )
         if deadline_match:
-            job.deadline = deadline_match.group(1).split("T")[0]
+            deadline = deadline_match.group(1).split("T")[0]
         else:
             fallback = re.search(
                 r"<dt[^>]*>Application Deadline</dt>\s*<dd[^>]*>(.*?)</dd>",
@@ -22,8 +23,9 @@ class EuraxessSourcing(BaseSourcing):
                 re.DOTALL | re.IGNORECASE,
             )
             if fallback:
-                job.deadline = clean_html(fallback.group(1))
+                deadline = clean_html(fallback.group(1))
 
+        employer = None
         employer_match = re.search(
             r"<dt[^>]*>Organisation/Company</dt>\s*<dd[^>]*>\s*<div>(.*?)</div>",
             html_content,
@@ -36,7 +38,7 @@ class EuraxessSourcing(BaseSourcing):
                 re.DOTALL | re.IGNORECASE,
             )
         if employer_match:
-            job.employer = clean_html(employer_match.group(1))
+            employer = clean_html(employer_match.group(1))
 
         country_match = re.search(
             r"<dt[^>]*>Country</dt>\s*<dd[^>]*>(.*?)</dd>",
@@ -52,12 +54,13 @@ class EuraxessSourcing(BaseSourcing):
         country = clean_html(country_match.group(1)) if country_match else None
         city = clean_html(city_match.group(1)) if city_match else None
 
+        location = None
         if city and country:
-            job.location = f"{city}, {country}"
+            location = f"{city}, {country}"
         elif country:
-            job.location = country
+            location = country
         elif city:
-            job.location = city
+            location = city
 
         def extract_section(start_id: str, end_ids: list[str]) -> str | None:
             start = re.search(
@@ -79,7 +82,7 @@ class EuraxessSourcing(BaseSourcing):
                     end_pos = min(end_pos, end.start())
             return clean_html(html_content[start_pos:end_pos])
 
-        job.description = extract_section(
+        description = extract_section(
             "offer-description",
             [
                 "where-to-apply",
@@ -88,11 +91,18 @@ class EuraxessSourcing(BaseSourcing):
                 "work-locations",
             ],
         )
-        job.requirements = extract_section(
+        requirements = extract_section(
             "requirements", ["additional-information", "work-locations", "contact"]
         )
 
-        if not job.requirements and job.description:
-            job.requirements = extract_requirements_from_text(job.description)
+        if not requirements and description:
+            requirements = extract_requirements_from_text(description)
 
-        return job
+        return JobDetailUpdate(
+            url=url,
+            description=description,
+            requirements=requirements,
+            deadline=deadline,
+            employer=employer,
+            location=location,
+        )

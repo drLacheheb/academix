@@ -45,22 +45,14 @@ def run():
         else:
             logger.info(f"Fetching details for {len(pending_jobs)} jobs...")
             for idx, job_data in enumerate(pending_jobs, 1):
-                from core.models.job import Job
-                job = Job.from_dict(job_data)
-                logger.info(f"[{idx}/{len(pending_jobs)}] Fetching: {job.title}")
+                job_title = job_data.get("title")
+                job_url = job_data.get("url")
+                logger.info(f"[{idx}/{len(pending_jobs)}] Fetching: {job_title}")
 
-                scraper.enrich_detail(job)
+                detail_update = scraper.source_detail(job_url)
 
-                if job.description:
-                    detail_update = {
-                        "url": job.url,
-                        "description": job.description,
-                        "requirements": job.requirements,
-                        "deadline": job.deadline,
-                        "employer": job.employer,
-                        "location": job.location,
-                    }
-                    resp = api.put("/jobs/details", json=[detail_update])
+                if detail_update.description:
+                    resp = api.put("/jobs/details", json=[detail_update.model_dump()])
                     resp.raise_for_status()
 
         logger.info("EURAXESS crawler sourcing agent finished successfully")

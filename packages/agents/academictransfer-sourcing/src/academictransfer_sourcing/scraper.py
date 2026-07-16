@@ -1,14 +1,14 @@
 import json
 import re
 
-from core.models.job import Job
+from core.models.schemas import JobDetailUpdate
 from core.scrapers.base import BaseSourcing, clean_html, extract_requirements_from_text
 
 
 class AcademicTransferSourcing(BaseSourcing):
     SOURCE_NAME = "AcademicTransfer"
 
-    def _parse_detail_page(self, html_content: str, job: Job) -> Job:
+    def _parse_detail_page(self, html_content: str, url: str) -> JobDetailUpdate:
         h2_matches = list(
             re.finditer(r"<h2[^>]*>(.*?)</h2>", html_content, re.DOTALL | re.IGNORECASE)
         )
@@ -28,7 +28,7 @@ class AcademicTransferSourcing(BaseSourcing):
                     return content
             return None
 
-        job.description = find_section(
+        description = find_section(
             [
                 "job description",
                 "description",
@@ -36,7 +36,7 @@ class AcademicTransferSourcing(BaseSourcing):
                 "omschrijving",
             ]
         )
-        job.requirements = find_section(
+        requirements = find_section(
             [
                 "requirements",
                 "functie-eisen",
@@ -46,6 +46,10 @@ class AcademicTransferSourcing(BaseSourcing):
                 "what you bring",
             ]
         )
+
+        deadline = None
+        employer = None
+        location = None
 
         json_ld_blocks = re.findall(
             r'<script type="application/ld\+json">(.*?)</script>',
@@ -62,13 +66,13 @@ class AcademicTransferSourcing(BaseSourcing):
                     posting = data["mainEntity"]
 
                 if posting:
-                    deadline = posting.get("validThrough")
-                    if deadline:
-                        job.deadline = deadline.split("T")[0]
+                    dl = posting.get("validThrough")
+                    if dl:
+                        deadline = dl.split("T")[0]
 
                     org = posting.get("hiringOrganization")
                     if org:
-                        job.employer = org.get("name")
+                        employer = org.get("name")
 
                     loc = posting.get("jobLocation", {})
                     addr = loc.get("address", {})
@@ -78,21 +82,28 @@ class AcademicTransferSourcing(BaseSourcing):
                         if isinstance(country, dict):
                             country = country.get("name")
                         if city and country:
-                            job.location = f"{city}, {country}"
+                            location = f"{city}, {country}"
                         elif country:
-                            job.location = country
+                            location = country
                         elif city:
-                            job.location = city
+                            location = city
 
-                    if not job.description:
+                    if not description:
                         desc = posting.get("description")
                         if desc:
-                            job.description = clean_html(desc)
+                            description = clean_html(desc)
                     break
             except Exception:
                 continue
 
-        if not job.requirements and job.description:
-            job.requirements = extract_requirements_from_text(job.description)
+        if not requirements and description:
+            requirements = extract_requirements_from_text(description)
 
-        return job
+        return JobDetailUpdate(
+            url=url,
+            description=description,
+            requirements=requirements,
+            deadline=deadline,
+            employer=employer,
+            location=location,
+        )
