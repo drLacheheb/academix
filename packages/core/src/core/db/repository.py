@@ -34,7 +34,6 @@ class JobModel(Base):
     url = Column(String, unique=True, nullable=False, index=True)
     title = Column(String, nullable=False)
     source = Column(String, nullable=False)
-    keywords = Column(Text, nullable=True)
     deadline = Column(String, nullable=True)
     employer = Column(String, nullable=True)
     location = Column(String, nullable=True)
@@ -52,11 +51,6 @@ class JobModel(Base):
 
     def to_domain(self) -> Job:
         try:
-            kw_list = json.loads(self.keywords) if self.keywords else []
-        except Exception:
-            kw_list = []
-
-        try:
             skills_list = (
                 json.loads(self.required_skills) if self.required_skills else None
             )
@@ -67,7 +61,6 @@ class JobModel(Base):
             title=self.title,
             url=self.url,
             source=self.source,
-            keywords=kw_list,
             deadline=self.deadline,
             employer=self.employer,
             location=self.location,
@@ -79,7 +72,6 @@ class JobModel(Base):
 
     @classmethod
     def from_domain(cls, job: Job) -> "JobModel":
-        kw_str = json.dumps(job.keywords) if job.keywords else None
         skills_str = (
             json.dumps(job.required_skills) if job.required_skills is not None else None
         )
@@ -93,7 +85,6 @@ class JobModel(Base):
             title=job.title,
             url=job.url,
             source=job.source,
-            keywords=kw_str,
             deadline=job.deadline,
             employer=job.employer,
             location=job.location,
@@ -137,8 +128,6 @@ class DatabaseJobRepository:
             seen_in_batch = {}
             for job in jobs:
                 if job.url in seen_in_batch:
-                    existing = seen_in_batch[job.url]
-                    existing.keywords = list(set(existing.keywords + job.keywords))
                     continue
                 seen_in_batch[job.url] = job
 
@@ -166,7 +155,6 @@ class DatabaseJobRepository:
 
     def _upsert_in_session(self, session, job: Job) -> None:
         existing = session.query(JobModel).filter(JobModel.url == job.url).first()
-        kw_str = json.dumps(job.keywords) if job.keywords else None
         skills_str = (
             json.dumps(job.required_skills) if job.required_skills is not None else None
         )
@@ -174,7 +162,6 @@ class DatabaseJobRepository:
         if existing:
             existing.title = job.title
             existing.source = job.source
-            existing.keywords = kw_str
             existing.deadline = job.deadline
             existing.employer = job.employer
             existing.location = job.location
@@ -323,22 +310,7 @@ class DatabaseJobRepository:
             print(f"Recovered {result.rowcount} stale refinement claims.", file=sys.stderr)
         return result.rowcount
 
-    def search_by_keywords(self, keywords: list[str]) -> list[Job]:
-        if not keywords:
-            return []
-        session = self._SessionLocal()
-        try:
-            conditions = []
-            for kw in keywords:
-                pattern = f"%{kw}%"
-                conditions.append(JobModel.title.ilike(pattern))
-                conditions.append(JobModel.description.ilike(pattern))
-                conditions.append(JobModel.requirements.ilike(pattern))
 
-            models = session.query(JobModel).filter(or_(*conditions)).all()
-            return [m.to_domain() for m in models]
-        finally:
-            session.close()
 
     def get_status(self) -> dict:
         session = self._SessionLocal()
