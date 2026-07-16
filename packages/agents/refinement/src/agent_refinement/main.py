@@ -84,8 +84,8 @@ def run():
             job_title = job_data.get("title")
             job_url = job_data.get("url")
             job_location = job_data.get("location")
-            job_description = job_data.get("description")
-            job_requirements = job_data.get("requirements")
+            job_description = job_data.get("description_en") or job_data.get("description")
+            job_requirements = job_data.get("requirements_en") or job_data.get("requirements")
 
             logger.info(f"Successfully claimed job: {job_title} ({job_url})")
 
