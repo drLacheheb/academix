@@ -105,7 +105,10 @@ class LlmRefiner(BaseRefiner):
         import onnxruntime_genai as og
 
         text = self._build_input_text(title, location, description, requirements)
-        prompt = f"<|system|>\n{self._system_prompt}<|end|>\n<|user|>\n{text} <|end|>\n<|assistant|>\n"
+        if "gemma" in self._model_path.lower():
+            prompt = f"<start_of_turn>system\n{self._system_prompt}<end_of_turn>\n<start_of_turn>user\n{text}<end_of_turn>\n<start_of_turn>model\n"
+        else:
+            prompt = f"<|system|>\n{self._system_prompt}<|end|>\n<|user|>\n{text} <|end|>\n<|assistant|>\n"
 
         try:
             tokens = self._tokenizer.encode(prompt)
