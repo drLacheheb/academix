@@ -1,0 +1,8 @@
+[project]
+name = "money"
+version = "0.1.0"
+description = "Distributed academic job sourcing & refinement system"
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["packages/core", "packages/api", "packages/agents/*"]
