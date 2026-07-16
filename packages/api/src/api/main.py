@@ -14,6 +14,8 @@ from core.models import (
     RefinementResult,
     ClaimRequest,
     KnownUrlsRequest,
+    DetectionResult,
+    TranslationResult,
 )
 from core.db.repository import DatabaseJobRepository, JobModel
 from api.config import get_database_url, get_api_secret
@@ -123,6 +125,61 @@ async def update_job_details(
         finally:
             session.close()
     return {"updated": len(details)}
+
+
+@app.post("/jobs/claim-detect", dependencies=[Depends(verify_token)])
+@limiter.limit("60/minute")
+async def claim_detection_job(
+    request: Request,
+    body: ClaimRequest,
+    repo: DatabaseJobRepository = Depends(get_repo),
+):
+    job = repo.claim_next_for_detection(body.agent_name)
+    if job is None:
+        return {"job": None, "message": "No pending jobs available"}
+    return {"job": job.to_dict()}
+
+
+@app.put("/jobs/detect", dependencies=[Depends(verify_token)])
+@limiter.limit("60/minute")
+async def submit_detection(
+    request: Request,
+    result: DetectionResult,
+    repo: DatabaseJobRepository = Depends(get_repo),
+):
+    repo.complete_detection(
+        url=result.url,
+        language_code=result.language_code,
+    )
+    return {"status": "completed", "url": result.url}
+
+
+@app.post("/jobs/claim-translate", dependencies=[Depends(verify_token)])
+@limiter.limit("60/minute")
+async def claim_translation_job(
+    request: Request,
+    body: ClaimRequest,
+    repo: DatabaseJobRepository = Depends(get_repo),
+):
+    job = repo.claim_next_for_translation(body.agent_name)
+    if job is None:
+        return {"job": None, "message": "No pending jobs available"}
+    return {"job": job.to_dict()}
+
+
+@app.put("/jobs/translate", dependencies=[Depends(verify_token)])
+@limiter.limit("60/minute")
+async def submit_translation(
+    request: Request,
+    result: TranslationResult,
+    repo: DatabaseJobRepository = Depends(get_repo),
+):
+    repo.complete_translation(
+        url=result.url,
+        description_en=result.description_en,
+        requirements_en=result.requirements_en,
+    )
+    return {"status": "completed", "url": result.url}
 
 
 @app.post("/jobs/claim-refine", dependencies=[Depends(verify_token)])
