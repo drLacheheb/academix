@@ -149,6 +149,8 @@ async def submit_refinement(
         url=result.url,
         required_skills=result.required_skills,
         education_level=result.education_level,
+        city=result.city,
+        country=result.country,
     )
     return {"status": "completed", "url": result.url}
 
