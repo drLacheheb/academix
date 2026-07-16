@@ -5,6 +5,8 @@ from core.models.schemas import (
     RefinementResult,
     ClaimRequest,
     KnownUrlsRequest,
+    DetectionResult,
+    TranslationResult,
 )
 
 __all__ = [
@@ -14,4 +16,6 @@ __all__ = [
     "RefinementResult",
     "ClaimRequest",
     "KnownUrlsRequest",
+    "DetectionResult",
+    "TranslationResult",
 ]

@@ -32,3 +32,15 @@ class ClaimRequest(BaseModel):
 
 class KnownUrlsRequest(BaseModel):
     urls: List[str]
+
+
+class DetectionResult(BaseModel):
+    url: str
+    language_code: str
+
+
+class TranslationResult(BaseModel):
+    url: str
+    description_en: Optional[str] = None
+    requirements_en: Optional[str] = None
+

@@ -10,7 +10,6 @@ from sqlalchemy import (
     Text,
     DateTime,
     func,
-    or_,
     update,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -23,6 +22,7 @@ STATUS_PENDING = "PENDING"
 STATUS_CLAIMED = "CLAIMED"
 STATUS_COMPLETED = "COMPLETED"
 STATUS_FAILED = "FAILED"
+STATUS_SKIPPED = "SKIPPED"
 
 STALE_CLAIM_TIMEOUT_MINUTES = 10
 
@@ -44,7 +44,25 @@ class JobModel(Base):
     city = Column(String, nullable=True)
     country = Column(String, nullable=True)
 
-    refinement_status = Column(String, nullable=False, default=STATUS_PENDING, index=True)
+    language_code = Column(String, nullable=True)
+    description_en = Column(Text, nullable=True)
+    requirements_en = Column(Text, nullable=True)
+
+    detection_status = Column(
+        String, nullable=False, default=STATUS_PENDING, index=True
+    )
+    detection_claimed_by = Column(String, nullable=True)
+    detection_claimed_at = Column(DateTime, nullable=True)
+
+    translation_status = Column(
+        String, nullable=False, default=STATUS_PENDING, index=True
+    )
+    translation_claimed_by = Column(String, nullable=True)
+    translation_claimed_at = Column(DateTime, nullable=True)
+
+    refinement_status = Column(
+        String, nullable=False, default=STATUS_PENDING, index=True
+    )
     claimed_by = Column(String, nullable=True)
     claimed_at = Column(DateTime, nullable=True)
 
@@ -72,6 +90,9 @@ class JobModel(Base):
             education_level=self.education_level,
             city=self.city,
             country=self.country,
+            language_code=self.language_code,
+            description_en=self.description_en,
+            requirements_en=self.requirements_en,
         )
 
     @classmethod
@@ -99,11 +120,13 @@ class JobModel(Base):
             city=job.city,
             country=job.country,
             refinement_status=status,
+            language_code=job.language_code,
+            description_en=job.description_en,
+            requirements_en=job.requirements_en,
         )
 
 
 class DatabaseJobRepository:
-
     def __init__(self, database_url: str):
         self._database_url = database_url
         if database_url.startswith("sqlite"):
@@ -177,6 +200,9 @@ class DatabaseJobRepository:
             existing.education_level = job.education_level
             existing.city = job.city
             existing.country = job.country
+            existing.language_code = job.language_code
+            existing.description_en = job.description_en
+            existing.requirements_en = job.requirements_en
             if job.required_skills is not None:
                 existing.refinement_status = STATUS_COMPLETED
         else:
@@ -219,6 +245,173 @@ class DatabaseJobRepository:
         finally:
             session.close()
 
+    def claim_next_for_detection(self, agent_name: str) -> Job | None:
+        session = self._SessionLocal()
+        try:
+            self._recover_stale_claims(session)
+
+            candidate = (
+                session.query(JobModel)
+                .filter(
+                    JobModel.description.isnot(None),
+                    JobModel.detection_status == STATUS_PENDING,
+                )
+                .first()
+            )
+            if not candidate:
+                session.commit()
+                return None
+
+            result = session.execute(
+                update(JobModel)
+                .where(
+                    JobModel.id == candidate.id,
+                    JobModel.detection_status == STATUS_PENDING,
+                )
+                .values(
+                    detection_status=STATUS_CLAIMED,
+                    detection_claimed_by=agent_name,
+                    detection_claimed_at=datetime.utcnow(),
+                )
+            )
+            session.commit()
+
+            if result.rowcount == 1:
+                return candidate.to_domain()
+            return None
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def complete_detection(self, url: str, language_code: str) -> None:
+        session = self._SessionLocal()
+        try:
+            translation_status = (
+                STATUS_SKIPPED if language_code == "en" else STATUS_PENDING
+            )
+            session.execute(
+                update(JobModel)
+                .where(JobModel.url == url)
+                .values(
+                    language_code=language_code,
+                    detection_status=STATUS_COMPLETED,
+                    detection_claimed_by=None,
+                    detection_claimed_at=None,
+                    translation_status=translation_status,
+                )
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def fail_detection(self, url: str) -> None:
+        session = self._SessionLocal()
+        try:
+            session.execute(
+                update(JobModel)
+                .where(JobModel.url == url)
+                .values(
+                    detection_status=STATUS_FAILED,
+                    detection_claimed_by=None,
+                    detection_claimed_at=None,
+                )
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def claim_next_for_translation(self, agent_name: str) -> Job | None:
+        session = self._SessionLocal()
+        try:
+            self._recover_stale_claims(session)
+
+            candidate = (
+                session.query(JobModel)
+                .filter(
+                    JobModel.translation_status == STATUS_PENDING,
+                )
+                .first()
+            )
+            if not candidate:
+                session.commit()
+                return None
+
+            result = session.execute(
+                update(JobModel)
+                .where(
+                    JobModel.id == candidate.id,
+                    JobModel.translation_status == STATUS_PENDING,
+                )
+                .values(
+                    translation_status=STATUS_CLAIMED,
+                    translation_claimed_by=agent_name,
+                    translation_claimed_at=datetime.utcnow(),
+                )
+            )
+            session.commit()
+
+            if result.rowcount == 1:
+                return candidate.to_domain()
+            return None
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def complete_translation(
+        self,
+        url: str,
+        description_en: str | None,
+        requirements_en: str | None,
+    ) -> None:
+        session = self._SessionLocal()
+        try:
+            session.execute(
+                update(JobModel)
+                .where(JobModel.url == url)
+                .values(
+                    description_en=description_en,
+                    requirements_en=requirements_en,
+                    translation_status=STATUS_COMPLETED,
+                    translation_claimed_by=None,
+                    translation_claimed_at=None,
+                )
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def fail_translation(self, url: str) -> None:
+        session = self._SessionLocal()
+        try:
+            session.execute(
+                update(JobModel)
+                .where(JobModel.url == url)
+                .values(
+                    translation_status=STATUS_FAILED,
+                    translation_claimed_by=None,
+                    translation_claimed_at=None,
+                )
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def claim_next_for_refinement(self, agent_name: str) -> Job | None:
         session = self._SessionLocal()
         try:
@@ -229,6 +422,7 @@ class DatabaseJobRepository:
                 .filter(
                     JobModel.description.isnot(None),
                     JobModel.refinement_status == STATUS_PENDING,
+                    JobModel.translation_status.in_([STATUS_COMPLETED, STATUS_SKIPPED]),
                 )
                 .first()
             )
@@ -269,7 +463,9 @@ class DatabaseJobRepository:
     ) -> None:
         session = self._SessionLocal()
         try:
-            skills_str = json.dumps(required_skills) if required_skills is not None else None
+            skills_str = (
+                json.dumps(required_skills) if required_skills is not None else None
+            )
             session.execute(
                 update(JobModel)
                 .where(JobModel.url == url)
@@ -310,7 +506,12 @@ class DatabaseJobRepository:
             session.close()
 
     def _recover_stale_claims(self, session) -> int:
-        stale_cutoff = datetime.utcnow() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+        stale_cutoff = datetime.utcnow() - timedelta(
+            minutes=STALE_CLAIM_TIMEOUT_MINUTES
+        )
+        recovered = 0
+
+        # Refinement stale recovery
         result = session.execute(
             update(JobModel)
             .where(
@@ -323,28 +524,146 @@ class DatabaseJobRepository:
                 claimed_by=None,
             )
         )
-        if result.rowcount > 0:
-            print(f"Recovered {result.rowcount} stale refinement claims.", file=sys.stderr)
-        return result.rowcount
+        recovered += result.rowcount
 
+        # Detection stale recovery
+        result_det = session.execute(
+            update(JobModel)
+            .where(
+                JobModel.detection_status == STATUS_CLAIMED,
+                JobModel.detection_claimed_at < stale_cutoff,
+            )
+            .values(
+                detection_status=STATUS_PENDING,
+                detection_claimed_at=None,
+                detection_claimed_by=None,
+            )
+        )
+        recovered += result_det.rowcount
 
+        # Translation stale recovery
+        result_trans = session.execute(
+            update(JobModel)
+            .where(
+                JobModel.translation_status == STATUS_CLAIMED,
+                JobModel.translation_claimed_at < stale_cutoff,
+            )
+            .values(
+                translation_status=STATUS_PENDING,
+                translation_claimed_at=None,
+                translation_claimed_by=None,
+            )
+        )
+        recovered += result_trans.rowcount
+
+        if recovered > 0:
+            print(
+                f"Recovered {recovered} stale claims across all stages.",
+                file=sys.stderr,
+            )
+        return recovered
 
     def get_status(self) -> dict:
         session = self._SessionLocal()
         try:
             total = session.query(JobModel).count()
-            pending_details = session.query(JobModel).filter(JobModel.description.is_(None)).count()
-            pending_refine = session.query(JobModel).filter(JobModel.refinement_status == STATUS_PENDING, JobModel.description.isnot(None)).count()
-            claimed = session.query(JobModel).filter(JobModel.refinement_status == STATUS_CLAIMED).count()
-            completed = session.query(JobModel).filter(JobModel.refinement_status == STATUS_COMPLETED).count()
-            failed = session.query(JobModel).filter(JobModel.refinement_status == STATUS_FAILED).count()
+            pending_details = (
+                session.query(JobModel).filter(JobModel.description.is_(None)).count()
+            )
+
+            # Detection stats
+            pending_detect = (
+                session.query(JobModel)
+                .filter(
+                    JobModel.description.isnot(None),
+                    JobModel.detection_status == STATUS_PENDING,
+                )
+                .count()
+            )
+            claimed_detect = (
+                session.query(JobModel)
+                .filter(JobModel.detection_status == STATUS_CLAIMED)
+                .count()
+            )
+            completed_detect = (
+                session.query(JobModel)
+                .filter(JobModel.detection_status == STATUS_COMPLETED)
+                .count()
+            )
+            failed_detect = (
+                session.query(JobModel)
+                .filter(JobModel.detection_status == STATUS_FAILED)
+                .count()
+            )
+
+            # Translation stats
+            pending_translate = (
+                session.query(JobModel)
+                .filter(JobModel.translation_status == STATUS_PENDING)
+                .count()
+            )
+            claimed_translate = (
+                session.query(JobModel)
+                .filter(JobModel.translation_status == STATUS_CLAIMED)
+                .count()
+            )
+            completed_translate = (
+                session.query(JobModel)
+                .filter(JobModel.translation_status == STATUS_COMPLETED)
+                .count()
+            )
+            skipped_translate = (
+                session.query(JobModel)
+                .filter(JobModel.translation_status == STATUS_SKIPPED)
+                .count()
+            )
+            failed_translate = (
+                session.query(JobModel)
+                .filter(JobModel.translation_status == STATUS_FAILED)
+                .count()
+            )
+
+            # Refinement stats
+            pending_refine = (
+                session.query(JobModel)
+                .filter(
+                    JobModel.refinement_status == STATUS_PENDING,
+                    JobModel.translation_status.in_([STATUS_COMPLETED, STATUS_SKIPPED]),
+                )
+                .count()
+            )
+            claimed_refine = (
+                session.query(JobModel)
+                .filter(JobModel.refinement_status == STATUS_CLAIMED)
+                .count()
+            )
+            completed_refine = (
+                session.query(JobModel)
+                .filter(JobModel.refinement_status == STATUS_COMPLETED)
+                .count()
+            )
+            failed_refine = (
+                session.query(JobModel)
+                .filter(JobModel.refinement_status == STATUS_FAILED)
+                .count()
+            )
+
             return {
                 "total_jobs": total,
                 "pending_details": pending_details,
+                "pending_detection": pending_detect,
+                "claimed_detection": claimed_detect,
+                "completed_detection": completed_detect,
+                "failed_detection": failed_detect,
+                "pending_translation": pending_translate,
+                "claimed_translation": claimed_translate,
+                "completed_translation": completed_translate,
+                "skipped_translation": skipped_translate,
+                "failed_translation": failed_translate,
                 "pending_refinement": pending_refine,
-                "claimed_refinement": claimed,
-                "completed_refinement": completed,
-                "failed_refinement": failed,
+                "claimed_refinement": claimed_refine,
+                "completed_refinement": completed_refine,
+                "failed_refinement": failed_refine,
             }
         finally:
             session.close()

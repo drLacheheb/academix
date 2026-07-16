@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from typing import Optional
 
 
@@ -21,6 +21,9 @@ class Job:
     city: Optional[str] = None
     country: Optional[str] = None
 
+    language_code: Optional[str] = None
+    description_en: Optional[str] = None
+    requirements_en: Optional[str] = None
 
     def is_detail_scraped(self) -> bool:
         return self.description is not None
