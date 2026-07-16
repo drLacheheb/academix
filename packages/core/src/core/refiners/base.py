@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from core.models.job import Job
+from core.models.schemas import RefinementResult
 
 
 class BaseRefiner(ABC):
 
     @abstractmethod
-    def refine(self, job: Job) -> Job:
+    def refine(self, url: str, title: str, description: str | None, requirements: str | None) -> RefinementResult:
         ...

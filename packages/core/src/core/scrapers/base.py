@@ -3,7 +3,8 @@ import re
 from abc import ABC, abstractmethod
 
 from core.models.job import Job
-from core.http_client import HttpClient
+from core.models.schemas import JobDetailUpdate
+from core.http_client import BaseHttpClient
 
 
 def clean_html(raw_html: str) -> str:
@@ -119,7 +120,7 @@ def extract_requirements_from_text(text: str) -> str | None:
 class BaseDiscovery(ABC):
     SOURCE_NAME: str = ""
 
-    def __init__(self, http_client: HttpClient, max_pages: int = 5):
+    def __init__(self, http_client: BaseHttpClient, max_pages: int = 5):
         self._http = http_client
         self._max_pages_val = max_pages
 
@@ -176,17 +177,17 @@ class BaseDiscovery(ABC):
 class BaseSourcing(ABC):
     SOURCE_NAME: str = ""
 
-    def __init__(self, http_client: HttpClient):
+    def __init__(self, http_client: BaseHttpClient):
         self._http = http_client
 
-    def enrich_detail(self, job: Job) -> Job:
-        raw = self._http.fetch(job.url)
+    def source_detail(self, url: str) -> JobDetailUpdate:
+        raw = self._http.fetch(url)
         if not raw:
-            return job
+            return JobDetailUpdate(url=url)
 
         html_str = raw.decode("utf-8", errors="ignore")
-        return self._parse_detail_page(html_str, job)
+        return self._parse_detail_page(html_str, url)
 
     @abstractmethod
-    def _parse_detail_page(self, html_content: str, job: Job) -> Job:
+    def _parse_detail_page(self, html_content: str, url: str) -> JobDetailUpdate:
         ...
