@@ -1,57 +1,55 @@
-# Distributed Job Sourcing & Refinement Pipeline
+# Academic Job Sourcing & Refinement
 
-A decoupled, cloud-ready multi-agent workspace monorepo utilizing **`uv` workspaces**, **FastAPI**, and **ONNX local LLM models** to source, index, and refine academic listings.
+A Python workspace to fetch, parse, and refine academic job listings from EURAXESS and AcademicTransfer.
 
 ---
 
-## 1. Project Directory Structure
+## 1. Project Structure
 
 ```text
 ├── packages/
-│   ├── core/                          # Database, models, and shared utilities
-│   ├── api/                           # FastAPI gateway application
-│   └── agents/                        # Folder containing all agent packages
-│       ├── euraxess-discovery/            # EURAXESS listing discovery worker
-│       ├── euraxess-sourcing/             # EURAXESS detail sourcing worker
-│       ├── academictransfer-discovery/    # AcademicTransfer listing discovery worker
-│       ├── academictransfer-sourcing/     # AcademicTransfer detail sourcing worker
-│       └── refinement/                    # Local ONNX metadata refinement worker
-├── pyproject.toml                     # Root workspace settings
-├── uv.lock                           # Resolved monorepo lockfile
-├── .env.example                       # Configuration variable template
-└── Dockerfile                         # Unified container entrypoint
+│   ├── core/                          # Shared models, repository, and HTTP client
+│   ├── api/                           # FastAPI gateway server
+│   └── agents/                        # Isolated worker packages
+│       ├── euraxess-discovery/            # EURAXESS search pagination worker
+│       ├── euraxess-sourcing/             # EURAXESS page details fetcher
+│       ├── academictransfer-discovery/    # AcademicTransfer search pagination worker
+│       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher
+│       └── refinement/                    # Local ONNX model metadata refiner
+├── pyproject.toml                     # Root workspace configuration
+├── uv.lock                           # Workspace dependency lockfile
+├── .env.example                       # Settings template file
+└── Dockerfile                         # API gateway Dockerfile
 ```
 
 ---
 
-## 2. System Requirements
+## 2. Requirements
 
-*   **Python**: Version `>= 3.11`
-*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (strongly recommended for fast, frozen workspace synchronization)
-*   **Hardware (Local LLM Refinement)**:
-    *   Minimum **3GB RAM / VRAM** allocated to run the quantized `phi-4-mini` ONNX model.
-    *   An SSD is strongly recommended to reduce model loading time on startup.
-*   **Database**: SQLite (default local file `jobs.db`), or PostgreSQL (Neon Serverless Postgres recommended for staging/production).
+*   **Python**: `>= 3.11`
+*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (recommended)
+*   **Hardware (Refinement Agent)**: ~3GB RAM / VRAM to load the `phi-4-mini` ONNX model.
+*   **Database**: SQLite (default local file `jobs.db`) or PostgreSQL (e.g., Neon).
 
 ---
 
 ## 3. Quick Start
 
-### A. Setup Environment Configuration
-Create a local `.env` file from the example template:
+### A. Configure Environment
+Create a local `.env` file from the template:
 ```bash
 cp .env.example .env
 ```
-Configure your credentials, database connection strings, and model parameters inside the newly created `.env` file.
+Edit the `.env` file to configure your credentials and database connection string.
 
-### B. Resolve Dependencies
-Synchronize the monorepo workspace dependencies:
+### B. Install Dependencies
+Synchronize the workspace:
 ```bash
 uv sync --all-packages
 ```
 
-### C. Start the Central API Gateway
-Run the FastAPI production-grade server:
+### C. Start API Server
+Run the FastAPI gateway server:
 ```bash
 uv run --package api fastapi run packages/api/src/api/main.py --port 8000
 ```
@@ -60,34 +58,34 @@ uv run --package api fastapi run packages/api/src/api/main.py --port 8000
 
 ## 4. Running Workspace Agents
 
-All agents reside in the `packages/agents/` folder and run using the same unified command syntax. The local `.env` configuration file is automatically loaded at runtime.
+All agents are run from the workspace root. Settings are loaded automatically from the `.env` file.
 
-### Workspace Agents Catalog
+### Agents Catalog
 
 | Agent Package | Main Module | Agent Role | Target Source |
 | :--- | :--- | :--- | :--- |
-| `euraxess-discovery` | `euraxess_discovery.main` | Discovery (Listing Search) | EURAXESS |
-| `academictransfer-discovery` | `academictransfer_discovery.main` | Discovery (Listing Search) | AcademicTransfer |
-| `euraxess-sourcing` | `euraxess_sourcing.main` | Sourcing (Detail Pages) | EURAXESS |
-| `academictransfer-sourcing` | `academictransfer_sourcing.main` | Sourcing (Detail Pages) | AcademicTransfer |
-| `refinement` | `agent_refinement.main` | Refinement (Metadata Extraction) | (All Sources) |
+| `euraxess-discovery` | `euraxess_discovery.main` | Discovery | EURAXESS |
+| `academictransfer-discovery` | `academictransfer_discovery.main` | Discovery | AcademicTransfer |
+| `euraxess-sourcing` | `euraxess_sourcing.main` | Sourcing | EURAXESS |
+| `academictransfer-sourcing` | `academictransfer_sourcing.main` | Sourcing | AcademicTransfer |
+| `refinement` | `agent_refinement.main` | Refinement | (All Sources) |
 
-### Generic Running Syntax
-To execute any agent from the workspace root:
+### Command Syntax
+Run any agent by specifying its package and module:
 ```bash
 uv run --package <Agent Package> python -m <Main Module>
 ```
 
-*Example for running the EURAXESS Listing Discovery agent:*
+*Example:*
 ```bash
 uv run --package euraxess-discovery python -m euraxess_discovery.main
 ```
 
 ---
 
-## 5. Configuration Parameters
+## 5. Configuration Settings
 
-The components are configured via `.env` file variables:
+Settings configured via the `.env` file:
 
 | Environment Variable | Default Value | Description |
 |---|---|---|
@@ -104,10 +102,10 @@ The components are configured via `.env` file variables:
 
 ---
 
-## 6. Architecture & System Diagrams
+## 6. System Architecture & Diagrams
 
-### System Architecture
-The pipeline is designed as an API-first distributed monorepo. Discovery, sourcing, and refinement agents are fully decoupled and communicate solely through the FastAPI gateway server.
+### Data Flow
+Discovery, sourcing, and refinement agents communicate only with the API server.
 
 ```mermaid
 graph TD
@@ -146,7 +144,7 @@ graph TD
 ```
 
 ### Class Structures
-The domain abstractions and schemas reside in the core package, ensuring identical validation boundaries across the API and external agents.
+Shared models and interfaces reside in the core package.
 
 ```mermaid
 classDiagram
