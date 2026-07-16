@@ -5,10 +5,9 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import update as sa_update
 
-from core.models import (
-    Job,
+from core.domain.models.job import Job
+from core.domain.models.schemas import (
     JobStubCreate,
     JobDetailUpdate,
     RefinementResult,
@@ -17,7 +16,23 @@ from core.models import (
     DetectionResult,
     TranslationResult,
 )
-from core.db.repository import DatabaseJobRepository, JobModel
+from core.infrastructure.db.pipeline_repository import PipelineJobRepository
+from core.usecases import (
+    ClaimDetectionJobUseCase,
+    CompleteDetectionUseCase,
+    FailDetectionUseCase,
+    ClaimTranslationJobUseCase,
+    CompleteTranslationUseCase,
+    FailTranslationUseCase,
+    ClaimRefinementJobUseCase,
+    CompleteRefinementUseCase,
+    FailRefinementUseCase,
+    GetDatabaseStatusUseCase,
+    UpdateJobDetailsUseCase,
+    CheckKnownUrlsUseCase,
+    CreateJobsUseCase,
+    GetPendingDetailsUseCase,
+)
 from api.config import get_database_url, get_api_secret
 
 app = FastAPI(title="Job Sourcing API", version="1.0.0")
@@ -34,14 +49,99 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 
-_repo: DatabaseJobRepository | None = None
+_repo: PipelineJobRepository | None = None
 
 
-def get_repo() -> DatabaseJobRepository:
+def get_repo() -> PipelineJobRepository:
     global _repo
     if _repo is None:
-        _repo = DatabaseJobRepository(get_database_url())
+        _repo = PipelineJobRepository(get_database_url())
     return _repo
+
+
+# Dependency providers for Use Cases
+def get_detect_claim_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimDetectionJobUseCase:
+    return ClaimDetectionJobUseCase(repo.detection)
+
+
+def get_detect_complete_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteDetectionUseCase:
+    return CompleteDetectionUseCase(repo.detection)
+
+
+def get_detect_fail_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> FailDetectionUseCase:
+    return FailDetectionUseCase(repo.detection)
+
+
+def get_translate_claim_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimTranslationJobUseCase:
+    return ClaimTranslationJobUseCase(repo.translation)
+
+
+def get_translate_complete_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteTranslationUseCase:
+    return CompleteTranslationUseCase(repo.translation)
+
+
+def get_translate_fail_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> FailTranslationUseCase:
+    return FailTranslationUseCase(repo.translation)
+
+
+def get_refine_claim_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimRefinementJobUseCase:
+    return ClaimRefinementJobUseCase(repo.refinement)
+
+
+def get_refine_complete_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteRefinementUseCase:
+    return CompleteRefinementUseCase(repo.refinement)
+
+
+def get_refine_fail_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> FailRefinementUseCase:
+    return FailRefinementUseCase(repo.refinement)
+
+
+def get_status_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> GetDatabaseStatusUseCase:
+    return GetDatabaseStatusUseCase(repo.status)
+
+
+def get_update_details_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> UpdateJobDetailsUseCase:
+    return UpdateJobDetailsUseCase(repo)
+
+
+def get_check_known_urls_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CheckKnownUrlsUseCase:
+    return CheckKnownUrlsUseCase(repo)
+
+
+def get_create_jobs_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CreateJobsUseCase:
+    return CreateJobsUseCase(repo)
+
+
+def get_pending_details_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> GetPendingDetailsUseCase:
+    return GetPendingDetailsUseCase(repo)
 
 
 async def verify_token(authorization: str = Header(...)):
@@ -52,8 +152,10 @@ async def verify_token(authorization: str = Header(...)):
 
 @app.get("/status")
 @limiter.limit("120/minute")
-async def health_status(request: Request, repo: DatabaseJobRepository = Depends(get_repo)):
-    return repo.get_status()
+async def health_status(
+    request: Request, usecase: GetDatabaseStatusUseCase = Depends(get_status_usecase)
+):
+    return usecase.execute()
 
 
 @app.post("/jobs/known-urls", dependencies=[Depends(verify_token)])
@@ -61,9 +163,9 @@ async def health_status(request: Request, repo: DatabaseJobRepository = Depends(
 async def check_known_urls(
     request: Request,
     body: KnownUrlsRequest,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: CheckKnownUrlsUseCase = Depends(get_check_known_urls_usecase),
 ):
-    known = repo.get_known_urls(body.urls)
+    known = usecase.execute(body.urls)
     return {"known_urls": list(known)}
 
 
@@ -72,14 +174,10 @@ async def check_known_urls(
 async def create_jobs(
     request: Request,
     stubs: list[JobStubCreate],
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: CreateJobsUseCase = Depends(get_create_jobs_usecase),
 ):
-    jobs = [
-        Job(title=s.title, url=s.url, source=s.source)
-        for s in stubs
-    ]
-    repo.save(jobs)
-    return {"inserted": len(jobs)}
+    inserted_count = usecase.execute(stubs)
+    return {"inserted": inserted_count}
 
 
 @app.get("/jobs/pending-details", dependencies=[Depends(verify_token)])
@@ -87,9 +185,9 @@ async def create_jobs(
 async def get_pending_details(
     request: Request,
     source: Optional[str] = None,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: GetPendingDetailsUseCase = Depends(get_pending_details_usecase),
 ):
-    jobs = repo.get_unstored(source=source)
+    jobs = usecase.execute(source=source)
     return [j.to_dict() for j in jobs]
 
 
@@ -98,32 +196,9 @@ async def get_pending_details(
 async def update_job_details(
     request: Request,
     details: list[JobDetailUpdate],
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: UpdateJobDetailsUseCase = Depends(get_update_details_usecase),
 ):
-    for d in details:
-        session = repo._SessionLocal()
-        try:
-            values = {}
-            if d.description is not None:
-                values["description"] = d.description
-            if d.requirements is not None:
-                values["requirements"] = d.requirements
-            if d.deadline is not None:
-                values["deadline"] = d.deadline
-            if d.employer is not None:
-                values["employer"] = d.employer
-            if d.location is not None:
-                values["location"] = d.location
-            if values:
-                session.execute(
-                    sa_update(JobModel).where(JobModel.url == d.url).values(**values)
-                )
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+    usecase.execute(details)
     return {"updated": len(details)}
 
 
@@ -132,9 +207,9 @@ async def update_job_details(
 async def claim_detection_job(
     request: Request,
     body: ClaimRequest,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: ClaimDetectionJobUseCase = Depends(get_detect_claim_usecase),
 ):
-    job = repo.claim_next_for_detection(body.agent_name)
+    job = usecase.execute(body.agent_name)
     if job is None:
         return {"job": None, "message": "No pending jobs available"}
     return {"job": job.to_dict()}
@@ -145,9 +220,9 @@ async def claim_detection_job(
 async def submit_detection(
     request: Request,
     result: DetectionResult,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: CompleteDetectionUseCase = Depends(get_detect_complete_usecase),
 ):
-    repo.complete_detection(
+    usecase.execute(
         url=result.url,
         language_code=result.language_code,
     )
@@ -159,9 +234,9 @@ async def submit_detection(
 async def claim_translation_job(
     request: Request,
     body: ClaimRequest,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: ClaimTranslationJobUseCase = Depends(get_translate_claim_usecase),
 ):
-    job = repo.claim_next_for_translation(body.agent_name)
+    job = usecase.execute(body.agent_name)
     if job is None:
         return {"job": None, "message": "No pending jobs available"}
     return {"job": job.to_dict()}
@@ -172,9 +247,9 @@ async def claim_translation_job(
 async def submit_translation(
     request: Request,
     result: TranslationResult,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: CompleteTranslationUseCase = Depends(get_translate_complete_usecase),
 ):
-    repo.complete_translation(
+    usecase.execute(
         url=result.url,
         description_en=result.description_en,
         requirements_en=result.requirements_en,
@@ -187,9 +262,9 @@ async def submit_translation(
 async def claim_refinement_job(
     request: Request,
     body: ClaimRequest,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: ClaimRefinementJobUseCase = Depends(get_refine_claim_usecase),
 ):
-    job = repo.claim_next_for_refinement(body.agent_name)
+    job = usecase.execute(body.agent_name)
     if job is None:
         return {"job": None, "message": "No pending jobs available"}
     return {"job": job.to_dict()}
@@ -200,9 +275,9 @@ async def claim_refinement_job(
 async def submit_refinement(
     request: Request,
     result: RefinementResult,
-    repo: DatabaseJobRepository = Depends(get_repo),
+    usecase: CompleteRefinementUseCase = Depends(get_refine_complete_usecase),
 ):
-    repo.complete_refinement(
+    usecase.execute(
         url=result.url,
         required_skills=result.required_skills,
         education_level=result.education_level,
@@ -210,6 +285,3 @@ async def submit_refinement(
         country=result.country,
     )
     return {"status": "completed", "url": result.url}
-
-
-

@@ -2,8 +2,8 @@ import os
 import httpx
 from dotenv import load_dotenv
 
-from core.http_client import HttpClient
-from core.logging import get_logger
+from core.infrastructure.http.http_client import HttpClient
+from core.infrastructure.logging.logger import get_logger
 from euraxess_discovery.scraper import EuraxessDiscovery
 
 load_dotenv()

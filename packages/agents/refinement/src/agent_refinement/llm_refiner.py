@@ -2,8 +2,8 @@ import json
 import os
 import sys
 
-from core.refiners.base import BaseRefiner
-from core.models.schemas import RefinementResult
+from core.domain.interfaces.refiners import BaseRefiner
+from core.domain.models.schemas import RefinementResult
 
 
 class LlmRefiner(BaseRefiner):

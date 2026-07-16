@@ -1,10 +1,10 @@
 import re
 
-from core.models.schemas import JobDetailUpdate
-from core.scrapers.base import BaseSourcing, clean_html, extract_requirements_from_text
+from core.domain.models.schemas import JobDetailUpdate
+from core.infrastructure.scrapers.base import clean_html, extract_requirements_from_text, ConcreteSourcing
 
 
-class EuraxessSourcing(BaseSourcing):
+class EuraxessSourcing(ConcreteSourcing):
     SOURCE_NAME = "EURAXESS"
 
     def _parse_detail_page(self, html_content: str, url: str) -> JobDetailUpdate:

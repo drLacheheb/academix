@@ -4,7 +4,7 @@ import time
 import httpx
 from dotenv import load_dotenv
 
-from core.logging import get_logger
+from core.infrastructure.logging.logger import get_logger
 from agent_refinement.llm_refiner import LlmRefiner
 
 load_dotenv()

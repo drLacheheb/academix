@@ -1,11 +1,11 @@
 import html
 import re
 
-from core.models.job import Job
-from core.scrapers.base import BaseDiscovery
+from core.domain.models.job import Job
+from core.infrastructure.scrapers.base import ConcreteDiscovery
 
 
-class EuraxessDiscovery(BaseDiscovery):
+class EuraxessDiscovery(ConcreteDiscovery):
     SOURCE_NAME = "EURAXESS"
 
     def _build_browse_url(self, page: int) -> str:

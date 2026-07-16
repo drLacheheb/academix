@@ -5,7 +5,7 @@ import time
 import httpx
 from dotenv import load_dotenv
 
-from core.logging import get_logger
+from core.infrastructure.logging.logger import get_logger
 from agent_translation.translator import NllbTranslator
 
 load_dotenv()
@@ -63,7 +63,9 @@ def run():
             job_data = data.get("job")
 
             if not job_data:
-                logger.info("No pending jobs available. Translation batch completed. Exiting.")
+                logger.info(
+                    "No pending jobs available. Translation batch completed. Exiting."
+                )
                 break
 
             job_title = job_data.get("title")
@@ -72,40 +74,56 @@ def run():
             job_requirements = job_data.get("requirements")
             source_lang = job_data.get("language_code")
 
-            logger.info(f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]")
+            logger.info(
+                f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]"
+            )
 
             if translator is None:
                 model_dir = config["model_path"]
-                if not os.path.exists(model_dir) or not os.path.exists(os.path.join(model_dir, "model.bin")):
-                    logger.info("NLLB model directory not found or incomplete. Downloading model automatically from Hugging Face...")
+                if not os.path.exists(model_dir) or not os.path.exists(
+                    os.path.join(model_dir, "model.bin")
+                ):
+                    logger.info(
+                        "NLLB model directory not found or incomplete. Downloading model automatically from Hugging Face..."
+                    )
                     try:
                         from huggingface_hub import snapshot_download
+
                         snapshot_download(
                             repo_id="mijuanlo/nllb-200-distilled-600M-ct2-int8",
                             local_dir=model_dir,
                             allow_patterns=["*.json", "*.bin", "*.model"],
-                            local_dir_use_symlinks=False
+                            local_dir_use_symlinks=False,
                         )
                         logger.info("Download complete!")
                     except Exception as e:
-                        logger.error(f"Failed to automatically download NLLB model: {e}")
+                        logger.error(
+                            f"Failed to automatically download NLLB model: {e}"
+                        )
                         sys.exit(1)
-                
-                logger.info(f"First job claimed. Loading NLLB-200 model from '{model_dir}'...")
+
+                logger.info(
+                    f"First job claimed. Loading NLLB-200 model from '{model_dir}'..."
+                )
                 translator = NllbTranslator(model_dir)
                 logger.info("NLLB model loaded successfully!")
 
             try:
-                logger.info(f"Translating description and requirements for: {job_title}...")
+                logger.info(
+                    f"Translating description and requirements for: {job_title}..."
+                )
                 desc_en = translator.translate(job_description or "", source_lang)
                 req_en = translator.translate(job_requirements or "", source_lang)
 
-                logger.info(f"Finished translation. Submitting results...")
-                submit_resp = api.put("/jobs/translate", json={
-                    "url": job_url,
-                    "description_en": desc_en,
-                    "requirements_en": req_en
-                })
+                logger.info("Finished translation. Submitting results...")
+                submit_resp = api.put(
+                    "/jobs/translate",
+                    json={
+                        "url": job_url,
+                        "description_en": desc_en,
+                        "requirements_en": req_en,
+                    },
+                )
                 submit_resp.raise_for_status()
                 logger.info("Successfully uploaded translation results")
 
