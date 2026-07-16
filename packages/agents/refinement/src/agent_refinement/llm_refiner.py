@@ -29,35 +29,19 @@ class LlmRefiner(BaseRefiner):
             self._system_prompt = f.read().strip()
 
     def load_model(self) -> None:
-        if not os.path.exists(self._model_path):
-            print(
-                f"ONNX model directory not found at: {os.path.abspath(self._model_path)}"
-            )
-            print(
-                "Downloading Phi-4-mini ONNX model automatically from Hugging Face (approx. 2.2GB)..."
-            )
-            try:
-                from huggingface_hub import snapshot_download
+        import torch
+        from transformers import AutoTokenizer, AutoModelForCausalLM
 
-                local_dir = "phi-4-mini-onnx"
-                snapshot_download(
-                    repo_id="microsoft/Phi-4-mini-instruct-onnx",
-                    allow_patterns="cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4/*",
-                    local_dir=local_dir,
-                    ignore_patterns=["*.git*", "*.md"],
-                )
-                print("Download complete!")
-            except Exception as e:
-                print(f"Error downloading model: {e}", file=sys.stderr)
-                raise FileNotFoundError(
-                    f"Could not load or download ONNX model at: {os.path.abspath(self._model_path)}"
-                ) from e
-
-        import onnxruntime_genai as og
-
-        print(f"Loading ONNX model from {self._model_path}...")
-        self._model = og.Model(self._model_path)
-        self._tokenizer = og.Tokenizer(self._model)
+        print(f"Loading Hugging Face model/tokenizer from {self._model_path}...")
+        self._tokenizer = AutoTokenizer.from_pretrained(self._model_path)
+        
+        # Load in bfloat16 for CPU memory and compute efficiency
+        self._model = AutoModelForCausalLM.from_pretrained(
+            self._model_path,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+            low_cpu_mem_usage=True
+        )
         print("Model loaded successfully!")
 
     def refine(
@@ -102,7 +86,7 @@ class LlmRefiner(BaseRefiner):
         description: str | None,
         requirements: str | None,
     ) -> dict:
-        import onnxruntime_genai as og
+        import torch
 
         text = self._build_input_text(title, location, description, requirements)
         if "gemma" in self._model_path.lower():
@@ -111,19 +95,20 @@ class LlmRefiner(BaseRefiner):
             prompt = f"<|system|>\n{self._system_prompt}<|end|>\n<|user|>\n{text} <|end|>\n<|assistant|>\n"
 
         try:
-            tokens = self._tokenizer.encode(prompt)
-            params = og.GeneratorParams(self._model)
-            params.set_search_options(
-                temperature=self._temperature, max_length=self._max_length
-            )
-
-            generator = og.Generator(self._model, params)
-            generator.append_tokens(tokens)
-            while not generator.is_done():
-                generator.generate_next_token()
-
-            output_tokens = generator.get_sequence(0)
-            raw_output = self._tokenizer.decode(output_tokens[len(tokens) :]).strip()
+            inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
+            with torch.no_grad():
+                output_ids = self._model.generate(
+                    **inputs,
+                    max_new_tokens=1024,
+                    do_sample=self._temperature > 0.0,
+                    temperature=self._temperature if self._temperature > 0.0 else None,
+                    eos_token_id=self._tokenizer.eos_token_id,
+                    pad_token_id=self._tokenizer.pad_token_id if self._tokenizer.pad_token_id is not None else self._tokenizer.eos_token_id,
+                )
+            
+            # Slice only the newly generated tokens
+            generated_ids = output_ids[0][inputs.input_ids.shape[1]:]
+            raw_output = self._tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
 
             return self._parse_json_response(raw_output)
         except Exception as e:
