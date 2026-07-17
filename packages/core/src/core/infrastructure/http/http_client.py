@@ -1,8 +1,8 @@
 import logging
-import sys
 import time
 from curl_cffi import requests as cffi_requests
 from core.domain.interfaces.http import BaseHttpClient
+
 
 class HttpClient(BaseHttpClient):
     def __init__(
@@ -20,7 +20,7 @@ class HttpClient(BaseHttpClient):
         self._user_agent = user_agent
         self._impersonate = impersonate
         self.logger = logger or logging.getLogger("core.http")
-        
+
         self._session = cffi_requests.Session()
         self._session.headers.update({"User-Agent": self._user_agent})
 
@@ -51,15 +51,11 @@ class HttpClient(BaseHttpClient):
                     time.sleep(wait)
                     continue
                 else:
-                    self.logger.error(
-                        f"HTTP {response.status_code} fetching {url}"
-                    )
+                    self.logger.error(f"HTTP {response.status_code} fetching {url}")
                     break
 
             except Exception as e:
-                self.logger.error(
-                    f"Error fetching {url} (attempt {attempt + 1}): {e}"
-                )
+                self.logger.error(f"Error fetching {url} (attempt {attempt + 1}): {e}")
 
         return None
 
