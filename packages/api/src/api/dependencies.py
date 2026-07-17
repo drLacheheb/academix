@@ -15,6 +15,8 @@ from core.usecases import (
     CheckKnownUrlsUseCase,
     CreateJobsUseCase,
     GetPendingDetailsUseCase,
+    IngestCandidateProfileUseCase,
+    GetCandidateProfileUseCase,
 )
 from api.config import get_database_url, get_api_secret
 
@@ -117,3 +119,16 @@ async def verify_token(authorization: str = Header(...)):
     expected = f"Bearer {get_api_secret()}"
     if authorization != expected:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def get_ingest_profile_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> IngestCandidateProfileUseCase:
+    return IngestCandidateProfileUseCase(repo.profiles)
+
+
+def get_candidate_profile_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> GetCandidateProfileUseCase:
+    return GetCandidateProfileUseCase(repo.profiles)
+

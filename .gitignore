@@ -22,7 +22,7 @@ metadata
 # Local model folder (2.2GB - MUST NOT be checked in)
 phi-4-mini-onnx/
 nllb-200-ct2/
-models/
+/models/
 
 # Databases and Local Scraped Output
 *.db
@@ -40,6 +40,9 @@ models/
 .pydevproject
 .settings/
 
-# OS-specific
 .DS_Store
 Thumbs.db
+
+# PDF Files and Candidate CV Uploads
+*.pdf
+uploads/

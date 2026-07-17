@@ -13,7 +13,7 @@ except Exception:
     pass
 
 from api.limiter_config import limiter
-from api.routers import status, jobs, detection, translation, refinement
+from api.routers import status, jobs, detection, translation, refinement, profiles
 
 logger = logging.getLogger("api.main")
 
@@ -31,6 +31,11 @@ async def lifespan(app: FastAPI):
 
         if os.path.exists(ini_path):
             alembic_cfg = Config(ini_path)
+            # Dynamically set the absolute migrations path relative to alembic.ini location
+            ini_dir = os.path.dirname(os.path.abspath(ini_path))
+            migrations_dir = os.path.abspath(os.path.join(ini_dir, "src", "api", "migrations"))
+            alembic_cfg.set_main_option("script_location", migrations_dir)
+            
             command.upgrade(alembic_cfg, "head")
             logger.info("Database migrations completed successfully.")
         else:
@@ -60,3 +65,4 @@ app.include_router(jobs.router)
 app.include_router(detection.router)
 app.include_router(translation.router)
 app.include_router(refinement.router)
+app.include_router(profiles.router)

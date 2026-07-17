@@ -19,6 +19,11 @@ from core.usecases.check_known_urls import CheckKnownUrlsUseCase
 from core.usecases.create_jobs import CreateJobsUseCase
 from core.usecases.pending_details import GetPendingDetailsUseCase
 
+from core.usecases.profiles import (
+    IngestCandidateProfileUseCase,
+    GetCandidateProfileUseCase,
+)
+
 __all__ = [
     "ClaimDetectionJobUseCase",
     "CompleteDetectionUseCase",
@@ -34,4 +39,6 @@ __all__ = [
     "CheckKnownUrlsUseCase",
     "CreateJobsUseCase",
     "GetPendingDetailsUseCase",
+    "IngestCandidateProfileUseCase",
+    "GetCandidateProfileUseCase",
 ]
