@@ -1,6 +1,6 @@
 # Academic Job Sourcing & Refinement
 
-Automated academic job sourcing and metadata refinement pipeline. Uses local, CPU-optimized models (Gemma-4 GGUF & NLLB-200) to translate, detect languages, and extract structured skills and prerequisite degrees.
+Automated academic job sourcing and metadata refinement pipeline. Uses local, CPU-optimized models (Gemma-4 & NLLB-200) to translate, detect languages, and extract structured skills and prerequisite degrees.
 
 ---
 
