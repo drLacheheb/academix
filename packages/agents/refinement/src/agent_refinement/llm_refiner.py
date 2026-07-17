@@ -36,7 +36,7 @@ class LlmRefiner(BaseRefiner):
                 self._repo_id = "/".join(parts[:-1])
                 self._filename = parts[-1]
                 self._resolved_model_path = os.path.abspath(
-                    os.path.join(models_dir, self._filename)
+                    os.path.join(models_dir, model_path)
                 )
 
         prompt_path = os.path.join(
@@ -58,12 +58,13 @@ class LlmRefiner(BaseRefiner):
                 self.logger.info(
                     f"Model file not found locally. Downloading {self._filename} from HF repo {self._repo_id}..."
                 )
-                os.makedirs(self._models_dir, exist_ok=True)
+                target_dir = os.path.dirname(self._resolved_model_path)
+                os.makedirs(target_dir, exist_ok=True)
                 from huggingface_hub import hf_hub_download
                 hf_hub_download(
                     repo_id=self._repo_id,
                     filename=self._filename,
-                    local_dir=self._models_dir,
+                    local_dir=target_dir,
                 )
             else:
                 raise FileNotFoundError(

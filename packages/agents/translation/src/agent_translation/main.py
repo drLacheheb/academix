@@ -90,9 +90,8 @@ def run():
 
                 if "/" in model_path:
                     repo_id = model_path
-                    repo_name = model_path.split("/")[-1]
                     resolved_model_dir = os.path.abspath(
-                        os.path.join(models_dir, repo_name)
+                        os.path.join(models_dir, model_path)
                     )
                 else:
                     resolved_model_dir = os.path.abspath(
@@ -106,7 +105,7 @@ def run():
                         f"NLLB model directory '{resolved_model_dir}' not found or incomplete. Downloading model from HF repo {repo_id}..."
                     )
                     try:
-                        os.makedirs(models_dir, exist_ok=True)
+                        os.makedirs(os.path.dirname(resolved_model_dir), exist_ok=True)
                         from huggingface_hub import snapshot_download
 
                         snapshot_download(
