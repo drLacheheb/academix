@@ -1,13 +1,6 @@
 import json
 import logging
-import sys
 from datetime import datetime, timezone
-
-try:
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
 
 
 class JsonFormatter(logging.Formatter):
@@ -26,7 +19,7 @@ class JsonFormatter(logging.Formatter):
 def get_logger(agent_name: str) -> logging.Logger:
     logger = logging.getLogger(f"agent.{agent_name}")
     if not logger.handlers:
-        handler = logging.StreamHandler(sys.stdout)
+        handler = logging.FileHandler("agent.log", encoding="utf-8")
         handler.setFormatter(JsonFormatter())
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)

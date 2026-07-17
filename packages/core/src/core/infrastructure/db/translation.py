@@ -1,3 +1,4 @@
+from core.utils.text import strip_accents
 from datetime import datetime, timezone
 from sqlalchemy import update
 
@@ -62,15 +63,20 @@ class TranslationRepository(BaseTranslationRepository):
         finally:
             session.close()
 
-    def complete(self, url: str, description_en: str | None, requirements_en: str | None) -> None:
+    def complete(
+        self,
+        url: str,
+        description_en: str | None,
+        requirements_en: str | None,
+    ) -> None:
         session = self._SessionLocal()
         try:
             session.execute(
                 update(JobModel)
                 .where(JobModel.url == url)
                 .values(
-                    description_en=description_en,
-                    requirements_en=requirements_en,
+                    description_en=strip_accents(description_en),
+                    requirements_en=strip_accents(requirements_en),
                     translation_status=JobStatus.COMPLETED,
                     translation_claimed_by=None,
                     translation_claimed_at=None,

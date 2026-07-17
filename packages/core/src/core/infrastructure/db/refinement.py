@@ -1,4 +1,5 @@
 import json
+from core.utils.text import strip_accents
 from datetime import datetime, timezone
 from sqlalchemy import update
 
@@ -76,16 +77,18 @@ class RefinementRepository(BaseRefinementRepository):
         session = self._SessionLocal()
         try:
             skills_str = (
-                json.dumps(required_skills) if required_skills is not None else None
+                json.dumps([strip_accents(s) for s in required_skills if s])
+                if required_skills is not None
+                else None
             )
             session.execute(
                 update(JobModel)
                 .where(JobModel.url == url)
                 .values(
                     required_skills=skills_str,
-                    education_level=education_level,
-                    city=city,
-                    country=country,
+                    education_level=strip_accents(education_level),
+                    city=strip_accents(city),
+                    country=strip_accents(country),
                     refinement_status=JobStatus.COMPLETED,
                     claimed_by=None,
                     claimed_at=None,

@@ -1,4 +1,5 @@
 import json
+from core.utils.text import strip_accents
 from sqlalchemy import (
     Column,
     Integer,
@@ -86,7 +87,9 @@ class JobModel(Base):
     @classmethod
     def from_domain(cls, job: Job) -> "JobModel":
         skills_str = (
-            json.dumps(job.required_skills) if job.required_skills is not None else None
+            json.dumps([strip_accents(s) for s in job.required_skills if s])
+            if job.required_skills is not None
+            else None
         )
 
         if job.required_skills is not None:
@@ -95,20 +98,20 @@ class JobModel(Base):
             status = JobStatus.PENDING
 
         return cls(
-            title=job.title,
+            title=strip_accents(job.title),
             url=job.url,
             source=job.source,
-            deadline=job.deadline,
-            employer=job.employer,
-            location=job.location,
-            description=job.description,
-            requirements=job.requirements,
+            deadline=strip_accents(job.deadline),
+            employer=strip_accents(job.employer),
+            location=strip_accents(job.location),
+            description=strip_accents(job.description),
+            requirements=strip_accents(job.requirements),
             required_skills=skills_str,
-            education_level=job.education_level,
-            city=job.city,
-            country=job.country,
+            education_level=strip_accents(job.education_level),
+            city=strip_accents(job.city),
+            country=strip_accents(job.country),
             refinement_status=status,
             language_code=job.language_code,
-            description_en=job.description_en,
-            requirements_en=job.requirements_en,
+            description_en=strip_accents(job.description_en),
+            requirements_en=strip_accents(job.requirements_en),
         )

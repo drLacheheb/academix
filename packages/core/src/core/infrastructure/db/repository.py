@@ -1,4 +1,5 @@
 import json
+from core.utils.text import strip_accents
 from sqlalchemy import create_engine, update as sa_update
 from sqlalchemy.orm import sessionmaker
 
@@ -6,7 +7,7 @@ from core.domain.interfaces.db import BaseJobRepository
 from core.domain.models.job import Job
 from core.domain.models.schemas import JobDetailUpdate
 from core.domain.constants import JobStatus
-from core.infrastructure.db.models import Base, JobModel
+from core.infrastructure.db.models import JobModel
 
 
 class DatabaseJobRepository(BaseJobRepository):
@@ -60,33 +61,34 @@ class DatabaseJobRepository(BaseJobRepository):
     def _upsert_in_session(self, session, job: Job) -> None:
         existing = session.query(JobModel).filter(JobModel.url == job.url).first()
         if existing:
-            existing.title = job.title
+            existing.title = strip_accents(job.title)
             existing.source = job.source
             if job.deadline is not None:
-                existing.deadline = job.deadline
+                existing.deadline = strip_accents(job.deadline)
             if job.employer is not None:
-                existing.employer = job.employer
+                existing.employer = strip_accents(job.employer)
             if job.location is not None:
-                existing.location = job.location
+                existing.location = strip_accents(job.location)
             if job.description is not None:
-                existing.description = job.description
+                existing.description = strip_accents(job.description)
             if job.requirements is not None:
-                existing.requirements = job.requirements
+                existing.requirements = strip_accents(job.requirements)
             if job.required_skills is not None:
-                existing.required_skills = json.dumps(job.required_skills)
+                clean_skills = [strip_accents(s) for s in job.required_skills if s]
+                existing.required_skills = json.dumps(clean_skills)
                 existing.refinement_status = JobStatus.COMPLETED
             if job.education_level is not None:
-                existing.education_level = job.education_level
+                existing.education_level = strip_accents(job.education_level)
             if job.city is not None:
-                existing.city = job.city
+                existing.city = strip_accents(job.city)
             if job.country is not None:
-                existing.country = job.country
+                existing.country = strip_accents(job.country)
             if job.language_code is not None:
                 existing.language_code = job.language_code
             if job.description_en is not None:
-                existing.description_en = job.description_en
+                existing.description_en = strip_accents(job.description_en)
             if job.requirements_en is not None:
-                existing.requirements_en = job.requirements_en
+                existing.requirements_en = strip_accents(job.requirements_en)
         else:
             session.add(JobModel.from_domain(job))
 
@@ -132,18 +134,20 @@ class DatabaseJobRepository(BaseJobRepository):
             for d in details:
                 values = {}
                 if d.description is not None:
-                    values["description"] = d.description
+                    values["description"] = strip_accents(d.description)
                 if d.requirements is not None:
-                    values["requirements"] = d.requirements
+                    values["requirements"] = strip_accents(d.requirements)
                 if d.deadline is not None:
-                    values["deadline"] = d.deadline
+                    values["deadline"] = strip_accents(d.deadline)
                 if d.employer is not None:
-                    values["employer"] = d.employer
+                    values["employer"] = strip_accents(d.employer)
                 if d.location is not None:
-                    values["location"] = d.location
+                    values["location"] = strip_accents(d.location)
                 if values:
                     session.execute(
-                        sa_update(JobModel).where(JobModel.url == d.url).values(**values)
+                        sa_update(JobModel)
+                        .where(JobModel.url == d.url)
+                        .values(**values)
                     )
             session.commit()
         except Exception:
