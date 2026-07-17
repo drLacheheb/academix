@@ -4,8 +4,8 @@ Schema:
 {"required_skills": ["string"], "education_level": "string or null", "city": "string or null", "country": "string or null"}
 
 Rules:
-- required_skills: specific tools, techniques, programming languages, lab methods, research expertise. Do NOT include spoken languages (French, English, German), soft skills (teamwork, communication), or generic responsibilities.
-- education_level: use exactly one of: Bachelor, Master, PhD, Postdoc, or null.
+- required_skills: specific tools, techniques, programming languages, lab methods, or specialized academic/research domains (e.g., "Linguistics", "Cultural History", "Mass Spectrometry"). For spoken languages, represent them as a skill (e.g., "French language proficiency" instead of just "French"). Do NOT extract generic terms like "Research", "Teaching", "Science", "Academic writing", "Project management", or soft skills.
+- education_level: the minimum academic degree required to apply. Use exactly one of: Bachelor, Master, PhD, or null. (Note: Postdoc positions require a "PhD" to apply; PhD candidate positions require a "Master" to apply).
 - city: normalize to Title Case (ANGERS → Angers, LYON → Lyon).
 - country: full English name in Title Case (NL → Netherlands, FR → France, DE → Germany, UK → United Kingdom).
 - Start with { and end with }. No markdown, no explanation.

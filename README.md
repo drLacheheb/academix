@@ -31,7 +31,7 @@ A Python workspace to fetch, parse, and refine academic job listings from EURAXE
 *   **Python**: `>= 3.11`
 *   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (recommended)
 *   **Hardware requirements**:
-    *   **Refinement Agent**: ~3GB RAM / VRAM to load the `phi-4-mini` ONNX model.
+    *   **Refinement Agent**: ~6GB RAM to load the `gemma-4-E2B-it` PyTorch model with `torchao` INT8 weight-only CPU quantization.
     *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
 *   **Database**: SQLite (default local file `jobs.db`) or PostgreSQL (e.g., Neon).
 
@@ -75,7 +75,7 @@ The agents are fully decoupled and communicate only with the central API gateway
 | `academictransfer-sourcing` | `academictransfer_sourcing.main` | Sourcing | AcademicTransfer |
 | `lang-detection` | `agent_lang_detection.main` | Language Detection | (All Sources) |
 | `translation` | `agent_translation.main` | Local Translation | (All Sources) |
-| `refinement` | `agent_refinement.main` | Metadata Extraction | (All Sources) |
+| `refinement` | `agent_refinement.main` | Local Metadata Extraction (Gemma-4) | (All Sources) |
 
 ### Command Syntax
 Run any agent by specifying its package and module:
@@ -101,7 +101,7 @@ Settings configured via the `.env` file:
 | `API_SECRET_KEY` | *None* | Shared validation key (API Server only) |
 | `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
 | `MAX_PAGES` | `5` | Pagination crawl depth |
-| `MODEL_PATH` | `phi-4-mini-onnx/...` | Relative path to local ONNX model directory |
+| `MODEL_PATH` | `xaitalk/gemma-4-E2B-it-mirror` | Hugging Face model repository or local directory path |
 | `MAX_LENGTH` | `4096` | LLM maximum generation length |
 | `TEMPERATURE` | `0.0` | Model generation temperature |
 | `MAX_TEXT_CHARS` | `3000` | Max characters sent to context window |
@@ -139,7 +139,7 @@ graph TD
 
     subgraph Refinement Nodes
         Refine[refinement]
-        ONNX[Phi-4-mini ONNX Local Model]
+        PyTorch[Gemma-4 PyTorch Local Model with torchao INT8]
     end
 
     ED -->|POST /jobs stubs| API
@@ -159,7 +159,7 @@ graph TD
 
     Refine -->|POST /jobs/claim-refine CAS lease| API
     Refine -->|PUT /jobs/refine upload| API
-    Refine -->|Inference request| ONNX
+    Refine -->|Inference request| PyTorch
     API <-->|SQLAlchemy ORM| DB
 ```
 

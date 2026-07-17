@@ -22,6 +22,7 @@ metadata
 # Local model folder (2.2GB - MUST NOT be checked in)
 phi-4-mini-onnx/
 nllb-200-ct2/
+models/
 
 # Databases and Local Scraped Output
 *.db
