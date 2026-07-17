@@ -10,6 +10,7 @@ from core.infrastructure.db.detection import LanguageDetectionRepository
 from core.infrastructure.db.translation import TranslationRepository
 from core.infrastructure.db.refinement import RefinementRepository
 from core.infrastructure.db.status import StatusQueryRepository
+from core.infrastructure.db.profile_repository import DatabaseCandidateProfileRepository
 
 
 class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
@@ -19,6 +20,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         self.translation = TranslationRepository(self._SessionLocal)
         self.refinement = RefinementRepository(self._SessionLocal)
         self.status = StatusQueryRepository(self._SessionLocal)
+        self.profiles = DatabaseCandidateProfileRepository(self._SessionLocal)
 
     def claim_next_for_detection(self, agent_name: str) -> Job | None:
         cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)

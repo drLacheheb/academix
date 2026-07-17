@@ -11,6 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base
 
 from core.domain.models.job import Job
+from core.domain.models.profile import CandidateProfile
 from core.domain.constants import JobStatus
 
 Base = declarative_base()
@@ -115,3 +116,61 @@ class JobModel(Base):
             description_en=strip_accents(job.description_en),
             requirements_en=strip_accents(job.requirements_en),
         )
+
+
+class CandidateProfileModel(Base):
+    __tablename__ = "candidate_profiles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    cv_file_path = Column(String, nullable=True)
+    raw_text = Column(Text, nullable=True)
+    highest_degree = Column(String, nullable=True)
+    skills = Column(Text, nullable=True)  # JSON array of strings
+    languages = Column(Text, nullable=True)  # JSON array of dicts: [{"language": "...", "proficiency": "..."}]
+    experience = Column(Text, nullable=True)  # JSON array of dicts: [{"role": "...", "organization": "...", "from_date": "...", "to_date": "...", "description": "..."}]
+    preferred_locations = Column(Text, nullable=True)  # JSON array of strings
+    research_interests = Column(Text, nullable=True)  # JSON array of strings
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+    def to_domain(self) -> CandidateProfile:
+        return CandidateProfile(
+            id=self.id,
+            name=self.name,
+            email=self.email,
+            cv_file_path=self.cv_file_path,
+            raw_text=self.raw_text,
+            highest_degree=self.highest_degree,
+            skills=json.loads(self.skills) if self.skills else [],
+            languages=json.loads(self.languages) if self.languages else [],
+            experience=json.loads(self.experience) if self.experience else [],
+            preferred_locations=json.loads(self.preferred_locations) if self.preferred_locations else [],
+            research_interests=json.loads(self.research_interests) if self.research_interests else [],
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
+
+    @classmethod
+    def from_domain(cls, profile: CandidateProfile) -> "CandidateProfileModel":
+        return cls(
+            id=profile.id,
+            name=strip_accents(profile.name),
+            email=profile.email,
+            cv_file_path=profile.cv_file_path,
+            raw_text=profile.raw_text,
+            highest_degree=strip_accents(profile.highest_degree),
+            skills=json.dumps([strip_accents(s) for s in profile.skills if s]) if profile.skills is not None else None,
+            languages=json.dumps([{"language": strip_accents(l.get("language")), "proficiency": strip_accents(l.get("proficiency"))} for l in profile.languages if l]) if profile.languages is not None else None,
+            experience=json.dumps([{
+                "role": strip_accents(exp.get("role")),
+                "organization": strip_accents(exp.get("organization")),
+                "from_date": strip_accents(exp.get("from_date")),
+                "to_date": strip_accents(exp.get("to_date")),
+                "description": strip_accents(exp.get("description"))
+            } for exp in profile.experience if exp]) if profile.experience is not None else None,
+            preferred_locations=json.dumps([strip_accents(loc) for loc in profile.preferred_locations if loc]) if profile.preferred_locations is not None else None,
+            research_interests=json.dumps([strip_accents(ri) for ri in profile.research_interests if ri]) if profile.research_interests is not None else None,
+        )
+

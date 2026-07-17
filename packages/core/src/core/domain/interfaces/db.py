@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from core.domain.models.job import Job
+from core.domain.models.profile import CandidateProfile
 from core.domain.models.schemas import JobDetailUpdate
 
 class BaseJobRepository(ABC):
@@ -94,3 +95,18 @@ class BaseStatusQueryRepository(ABC):
     @abstractmethod
     def get_status(self) -> dict:
         pass
+
+
+class BaseCandidateProfileRepository(ABC):
+    @abstractmethod
+    def save(self, profile: CandidateProfile) -> CandidateProfile:
+        pass
+
+    @abstractmethod
+    def get_by_id(self, profile_id: int) -> CandidateProfile | None:
+        pass
+
+    @abstractmethod
+    def get_by_email(self, email: str) -> CandidateProfile | None:
+        pass
+
