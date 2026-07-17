@@ -1,3 +1,4 @@
+import logging
 import sys
 import time
 from curl_cffi import requests as cffi_requests
@@ -11,12 +12,14 @@ class HttpClient(BaseHttpClient):
         timeout: int = 15,
         user_agent: str = "Mozilla/5.0",
         impersonate: str = "chrome",
+        logger: logging.Logger | None = None,
     ):
         self._base_delay = base_delay
         self._max_retries = max_retries
         self._timeout = timeout
         self._user_agent = user_agent
         self._impersonate = impersonate
+        self.logger = logger or logging.getLogger("core.http")
         
         self._session = cffi_requests.Session()
         self._session.headers.update({"User-Agent": self._user_agent})
@@ -42,22 +45,20 @@ class HttpClient(BaseHttpClient):
                         if retry_after and retry_after.isdigit()
                         else (20 * (attempt + 1))
                     )
-                    print(
-                        f"[Rate Limit 429] {url} — waiting {wait}s before retry...",
-                        file=sys.stderr,
+                    self.logger.warning(
+                        f"[Rate Limit 429] {url} — waiting {wait}s before retry..."
                     )
                     time.sleep(wait)
                     continue
                 else:
-                    print(
-                        f"HTTP {response.status_code} fetching {url}", file=sys.stderr
+                    self.logger.error(
+                        f"HTTP {response.status_code} fetching {url}"
                     )
                     break
 
             except Exception as e:
-                print(
-                    f"Error fetching {url} (attempt {attempt + 1}): {e}",
-                    file=sys.stderr,
+                self.logger.error(
+                    f"Error fetching {url} (attempt {attempt + 1}): {e}"
                 )
 
         return None

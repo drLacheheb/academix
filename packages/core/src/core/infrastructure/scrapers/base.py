@@ -1,4 +1,5 @@
 import html
+import logging
 import re
 
 from core.domain.models.job import Job
@@ -119,38 +120,39 @@ class ConcreteDiscovery(BaseDiscovery):
     def __init__(self, http_client: BaseHttpClient, max_pages: int = 5):
         self._http = http_client
         self._max_pages_val = max_pages
+        self.logger = logging.getLogger(f"agent.{self.SOURCE_NAME.lower().replace(' ', '-')}-discovery")
 
     def search_all(self, known_urls: set[str]) -> list[Job]:
         all_jobs: list[Job] = []
         page = self._start_page()
         max_pages = self._max_pages()
 
-        print(f"Starting broad search on {self.SOURCE_NAME} (sorting: newest first)...")
+        self.logger.info(f"Starting broad search on {self.SOURCE_NAME} (sorting: newest first)...")
 
         while page < max_pages:
             url = self._build_browse_url(page)
             raw = self._http.fetch(url)
             if not raw:
-                print(f"  -> Finished: Fetch failed on page {page}.")
+                self.logger.info(f"  -> Finished: Fetch failed on page {page}.")
                 break
 
             content = raw.decode("utf-8", errors="ignore")
             jobs_on_page = self._parse_search_page(content)
 
             if not jobs_on_page:
-                print(f"  -> Finished: No more listings found on page {page}.")
+                self.logger.info(f"  -> Finished: No more listings found on page {page}.")
                 break
 
             new_jobs = [j for j in jobs_on_page if j.url not in known_urls]
             all_jobs.extend(new_jobs)
 
             seen_count = len(jobs_on_page) - len(new_jobs)
-            print(
+            self.logger.info(
                 f"  -> Page {page}: Found {len(jobs_on_page)} listings ({len(new_jobs)} new, {seen_count} seen)"
             )
 
             if seen_count == len(jobs_on_page):
-                print(
+                self.logger.info(
                     f"  -> Page {page}: All jobs on this page have been seen. Stopping pagination."
                 )
                 break

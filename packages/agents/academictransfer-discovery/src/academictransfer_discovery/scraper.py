@@ -25,6 +25,6 @@ class AcademicTransferDiscovery(ConcreteDiscovery):
                 Job(title=title, url=link, source=self.SOURCE_NAME)
             )
 
-        print(f"  -> Found {len(jobs)} listings")
+        self.logger.info(f"  -> Found {len(jobs)} listings")
         return jobs
 
