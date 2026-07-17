@@ -17,7 +17,7 @@ A Python workspace to fetch, parse, and refine academic job listings from EURAXE
 │       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher
 │       ├── lang-detection/                # Standalone local language detection worker
 │       ├── translation/                   # Standalone local NLLB-200 translation worker
-│       └── refinement/                    # Local ONNX model metadata refiner
+│       └── refinement/                    # Local GGUF model metadata refiner (Gemma-4 E2B)
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
@@ -31,7 +31,7 @@ A Python workspace to fetch, parse, and refine academic job listings from EURAXE
 *   **Python**: `>= 3.11`
 *   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (recommended)
 *   **Hardware requirements**:
-    *   **Refinement Agent**: ~6GB RAM to load the `gemma-4-E2B-it` PyTorch model with `torchao` INT8 weight-only CPU quantization.
+    *   **Refinement Agent**: ~2.8GB RAM to load the `gemma-4-E2B-it-Q4_K_M` GGUF model via llama-cpp-python (idle RAM drops to ~40MB with auto-unload).
     *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
 *   **Database**: SQLite (default local file `jobs.db`) or PostgreSQL (e.g., Neon).
 
@@ -101,7 +101,9 @@ Settings configured via the `.env` file:
 | `API_SECRET_KEY` | *None* | Shared validation key (API Server only) |
 | `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
 | `MAX_PAGES` | `5` | Pagination crawl depth |
-| `MODEL_PATH` | `xaitalk/gemma-4-E2B-it-mirror` | Hugging Face model repository or local directory path |
+| `MODEL_PATH` | `unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf` | Hugging Face model file path or local file path relative to MODELS_DIR |
+| `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Hugging Face NLLB repository path or local directory path relative to MODELS_DIR |
+| `MODELS_DIR` | `models` | Global folder name to store all Hugging Face downloaded models |
 | `MAX_LENGTH` | `4096` | LLM maximum generation length |
 | `TEMPERATURE` | `0.0` | Model generation temperature |
 | `MAX_TEXT_CHARS` | `3000` | Max characters sent to context window |
@@ -139,7 +141,7 @@ graph TD
 
     subgraph Refinement Nodes
         Refine[refinement]
-        PyTorch[Gemma-4 PyTorch Local Model with torchao INT8]
+        GGUF[Gemma-4 GGUF Local Model via llama-cpp-python]
     end
 
     ED -->|POST /jobs stubs| API
@@ -159,7 +161,7 @@ graph TD
 
     Refine -->|POST /jobs/claim-refine CAS lease| API
     Refine -->|PUT /jobs/refine upload| API
-    Refine -->|Inference request| PyTorch
+    Refine -->|Inference request| GGUF
     API <-->|SQLAlchemy ORM| DB
 ```
 
@@ -222,9 +224,9 @@ classDiagram
     class DatabaseJobRepository {
         -_SessionLocal: sessionmaker
         +save(jobs: list) void
-        +claim_next_for_refinement(agent_name: str) Job
-        +complete_refinement(url: str, required_skills: list, education_level: str) void
-        +fail_refinement(url: str) void
+        +claim_next(agent_name: str, stale_cutoff: datetime) Job
+        +complete(url: str, required_skills: list, education_level: str, city: str, country: str) void
+        +fail(url: str) void
     }
     class Job {
         +title: str
