@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import update
 
 from core.domain.interfaces.db import BaseRefinementRepository
@@ -51,7 +51,7 @@ class RefinementRepository(BaseRefinementRepository):
                 .values(
                     refinement_status=JobStatus.CLAIMED,
                     claimed_by=agent_name,
-                    claimed_at=datetime.utcnow(),
+                    claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
                 )
             )
             session.commit()

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import update
 
 from core.domain.interfaces.db import BaseTranslationRepository
@@ -48,7 +48,7 @@ class TranslationRepository(BaseTranslationRepository):
                 .values(
                     translation_status=JobStatus.CLAIMED,
                     translation_claimed_by=agent_name,
-                    translation_claimed_at=datetime.utcnow(),
+                    translation_claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
                 )
             )
             session.commit()

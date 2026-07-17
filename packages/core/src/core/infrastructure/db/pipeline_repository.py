@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from core.domain.interfaces.db import BaseStatusQueryRepository
 from core.domain.models.job import Job
@@ -21,7 +21,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         self.status = StatusQueryRepository(self._SessionLocal)
 
     def claim_next_for_detection(self, agent_name: str) -> Job | None:
-        cutoff = datetime.utcnow() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
         return self.detection.claim_next(agent_name, cutoff)
 
     def complete_detection(self, url: str, language_code: str) -> None:
@@ -31,7 +31,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.detection.fail(url)
 
     def claim_next_for_translation(self, agent_name: str) -> Job | None:
-        cutoff = datetime.utcnow() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
         return self.translation.claim_next(agent_name, cutoff)
 
     def complete_translation(
@@ -46,7 +46,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.translation.fail(url)
 
     def claim_next_for_refinement(self, agent_name: str) -> Job | None:
-        cutoff = datetime.utcnow() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
         return self.refinement.claim_next(agent_name, cutoff)
 
     def complete_refinement(
@@ -65,7 +65,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.refinement.fail(url)
 
     def _recover_stale_claims(self, session) -> int:
-        stale_cutoff = datetime.utcnow() - timedelta(
+        stale_cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
             minutes=STALE_CLAIM_TIMEOUT_MINUTES
         )
         recovered = 0

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import update
 
 from core.domain.interfaces.db import BaseDetectionRepository
@@ -49,7 +49,7 @@ class LanguageDetectionRepository(BaseDetectionRepository):
                 .values(
                     detection_status=JobStatus.CLAIMED,
                     detection_claimed_by=agent_name,
-                    detection_claimed_at=datetime.utcnow(),
+                    detection_claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
                 )
             )
             session.commit()

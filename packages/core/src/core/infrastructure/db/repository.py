@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from core.domain.interfaces.db import BaseJobRepository
 from core.domain.models.job import Job
 from core.domain.models.schemas import JobDetailUpdate
+from core.domain.constants import JobStatus
 from core.infrastructure.db.models import Base, JobModel
 
 
@@ -20,10 +21,9 @@ class DatabaseJobRepository(BaseJobRepository):
         self._SessionLocal = sessionmaker(
             autocommit=False, autoflush=False, bind=self._engine
         )
-        self.init_db()
 
     def init_db(self) -> None:
-        Base.metadata.create_all(self._engine)
+        pass
 
     def load(self) -> list[Job]:
         session = self._SessionLocal()
@@ -74,6 +74,7 @@ class DatabaseJobRepository(BaseJobRepository):
                 existing.requirements = job.requirements
             if job.required_skills is not None:
                 existing.required_skills = json.dumps(job.required_skills)
+                existing.refinement_status = JobStatus.COMPLETED
             if job.education_level is not None:
                 existing.education_level = job.education_level
             if job.city is not None:
