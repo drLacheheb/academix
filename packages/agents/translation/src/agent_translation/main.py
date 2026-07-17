@@ -14,11 +14,16 @@ load_dotenv()
 def get_config() -> dict:
     api_url = os.environ.get("API_URL", "http://localhost:8000")
     api_token = os.environ.get("API_TOKEN", "")
-    model_path = os.environ.get("NLLB_MODEL_PATH", "nllb-200-ct2")
+    model_path = os.environ.get(
+        "NLLB_MODEL_PATH",
+        "mijuanlo/nllb-200-distilled-600M-ct2-int8",
+    )
+    models_dir = os.environ.get("MODELS_DIR", "models")
     return {
         "api_url": api_url,
         "api_token": api_token,
         "model_path": model_path,
+        "models_dir": models_dir,
     }
 
 
@@ -79,19 +84,34 @@ def run():
             )
 
             if translator is None:
-                model_dir = config["model_path"]
-                if not os.path.exists(model_dir) or not os.path.exists(
-                    os.path.join(model_dir, "model.bin")
+                model_path = config["model_path"]
+                models_dir = config["models_dir"]
+                repo_id = "mijuanlo/nllb-200-distilled-600M-ct2-int8"
+
+                if "/" in model_path:
+                    repo_id = model_path
+                    repo_name = model_path.split("/")[-1]
+                    resolved_model_dir = os.path.abspath(
+                        os.path.join(models_dir, repo_name)
+                    )
+                else:
+                    resolved_model_dir = os.path.abspath(
+                        os.path.join(models_dir, model_path)
+                    )
+
+                if not os.path.exists(resolved_model_dir) or not os.path.exists(
+                    os.path.join(resolved_model_dir, "model.bin")
                 ):
                     logger.info(
-                        "NLLB model directory not found or incomplete. Downloading model automatically from Hugging Face..."
+                        f"NLLB model directory '{resolved_model_dir}' not found or incomplete. Downloading model from HF repo {repo_id}..."
                     )
                     try:
+                        os.makedirs(models_dir, exist_ok=True)
                         from huggingface_hub import snapshot_download
 
                         snapshot_download(
-                            repo_id="mijuanlo/nllb-200-distilled-600M-ct2-int8",
-                            local_dir=model_dir,
+                            repo_id=repo_id,
+                            local_dir=resolved_model_dir,
                             allow_patterns=["*.json", "*.bin", "*.model"],
                             local_dir_use_symlinks=False,
                         )
@@ -103,9 +123,9 @@ def run():
                         sys.exit(1)
 
                 logger.info(
-                    f"First job claimed. Loading NLLB-200 model from '{model_dir}'..."
+                    f"First job claimed. Loading NLLB-200 model from '{resolved_model_dir}'..."
                 )
-                translator = NllbTranslator(model_dir)
+                translator = NllbTranslator(resolved_model_dir)
                 logger.info("NLLB model loaded successfully!")
 
             try:
