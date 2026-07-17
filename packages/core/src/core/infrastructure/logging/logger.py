@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 from datetime import datetime, timezone
@@ -19,7 +20,8 @@ class JsonFormatter(logging.Formatter):
 def get_logger(agent_name: str) -> logging.Logger:
     logger = logging.getLogger(f"agent.{agent_name}")
     if not logger.handlers:
-        handler = logging.FileHandler("agent.log", encoding="utf-8")
+        log_file = os.getenv("LOG_FILE", "agent.log")
+        handler = logging.FileHandler(log_file, encoding="utf-8")
         handler.setFormatter(JsonFormatter())
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)

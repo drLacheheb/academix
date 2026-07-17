@@ -29,6 +29,7 @@ models/
 *.db-journal
 *.db-wal
 *.db-shm
+*.log
 
 # IDE / Editor Settings
 .idea/
