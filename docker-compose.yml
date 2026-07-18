@@ -7,6 +7,7 @@ services:
       - ./uploads:/app/uploads
       - ./models:/app/models
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - PYTHONUNBUFFERED=1
       - HF_HOME=/app/models
@@ -38,6 +39,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - LOG_FILE=/app/logs/crawler-euraxess-discovery.log
       - API_URL=http://api:8000
@@ -57,6 +59,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - LOG_FILE=/app/logs/crawler-academictransfer-discovery.log
       - API_URL=http://api:8000
@@ -76,6 +79,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - LOG_FILE=/app/logs/crawler-euraxess-sourcing.log
       - API_URL=http://api:8000
@@ -93,6 +97,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - LOG_FILE=/app/logs/crawler-academictransfer-sourcing.log
       - API_URL=http://api:8000
@@ -110,6 +115,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - LOG_FILE=/app/logs/lang-detection-worker.log
       - API_URL=http://api:8000
@@ -127,6 +133,7 @@ services:
     volumes:
       - ./models:/app/models
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - HF_HOME=/app/models
       - LOG_FILE=/app/logs/translation-worker.log
@@ -147,6 +154,7 @@ services:
     volumes:
       - ./models:/app/models
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - HF_HOME=/app/models
       - LOG_FILE=/app/logs/refinement-worker.log
@@ -186,6 +194,7 @@ services:
       - ./models:/app/models
       - ./uploads:/app/uploads
       - ./logs:/app/logs
+      - ./packages:/app/packages
     environment:
       - HF_HOME=/app/models
       - LOG_FILE=/app/logs/cv-parsing-worker.log
