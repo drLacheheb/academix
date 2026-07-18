@@ -27,7 +27,7 @@ def run():
 
     logger.info("Starting AcademicTransfer crawler discovery agent")
 
-    try:
+    def cycle():
         logger.info("Fetching recent known URLs and checkpoint to optimize pagination...")
         known_resp = api.get(f"/jobs/urls?source={scraper.SOURCE_NAME}&limit=500")
         known_resp.raise_for_status()
@@ -64,8 +64,14 @@ def run():
                 update_resp.raise_for_status()
                 logger.info(f"Updated crawler checkpoint to: {new_jobs[0].url}")
 
-        logger.info("AcademicTransfer crawler discovery agent finished successfully")
-
+    try:
+        crawl_once = os.environ.get("CRAWL_ONCE", "false").lower() == "true"
+        if crawl_once:
+            cycle()
+        else:
+            from core.utils.agent import run_agent_loop
+            crawl_interval = float(os.environ.get("CRAWL_INTERVAL", "21600.0"))
+            run_agent_loop(cycle, default_interval=crawl_interval)
     except Exception as e:
         logger.error(f"Agent error: {e}")
         raise

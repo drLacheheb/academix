@@ -1,3 +1,4 @@
+import os
 from dotenv import load_dotenv
 
 from core.infrastructure.http.http_client import HttpClient
@@ -18,7 +19,7 @@ def run():
 
     logger.info("Starting AcademicTransfer crawler sourcing agent")
 
-    try:
+    def cycle() -> bool:
         logger.info("Checking for jobs needing detail scraping...")
         pending_resp = api.get(f"/jobs/pending-details?source={scraper.SOURCE_NAME}")
         pending_resp.raise_for_status()
@@ -26,26 +27,34 @@ def run():
 
         if not pending_jobs:
             logger.info("All AcademicTransfer jobs are fully scraped. Nothing to do.")
+            return False
+
+        logger.info(f"Fetching details for {len(pending_jobs)} jobs...")
+        updates = []
+        for idx, job_data in enumerate(pending_jobs, 1):
+            job_title = job_data.get("title")
+            job_url = job_data.get("url")
+            logger.info(f"[{idx}/{len(pending_jobs)}] Fetching: {job_title}")
+
+            detail_update = scraper.source_detail(job_url)
+
+            if detail_update.description:
+                updates.append(detail_update.model_dump())
+
+        if updates:
+            logger.info(f"Uploading {len(updates)} updates to API...")
+            resp = api.put("/jobs/details", json=updates)
+            resp.raise_for_status()
+        return True
+
+    try:
+        crawl_once = os.environ.get("CRAWL_ONCE", "false").lower() == "true"
+        if crawl_once:
+            cycle()
         else:
-            logger.info(f"Fetching details for {len(pending_jobs)} jobs...")
-            updates = []
-            for idx, job_data in enumerate(pending_jobs, 1):
-                job_title = job_data.get("title")
-                job_url = job_data.get("url")
-                logger.info(f"[{idx}/{len(pending_jobs)}] Fetching: {job_title}")
-
-                detail_update = scraper.source_detail(job_url)
-
-                if detail_update.description:
-                    updates.append(detail_update.model_dump())
-
-            if updates:
-                logger.info(f"Uploading {len(updates)} updates to API...")
-                resp = api.put("/jobs/details", json=updates)
-                resp.raise_for_status()
-
-        logger.info("AcademicTransfer crawler sourcing agent finished successfully")
-
+            from core.utils.agent import run_agent_loop
+            crawl_interval = float(os.environ.get("CRAWL_INTERVAL", "15.0"))
+            run_agent_loop(cycle, default_interval=crawl_interval)
     except Exception as e:
         logger.error(f"Agent error: {e}")
         raise

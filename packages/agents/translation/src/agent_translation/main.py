@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-import time
 from dotenv import load_dotenv
 
 from core.infrastructure.logging.logger import get_logger
@@ -41,105 +40,100 @@ def run():
     translator = None
     api = make_api_client(timeout=60.0)
 
-    try:
-        while True:
-            logger.info("Polling for pending translation jobs...")
-            try:
-                resp = api.post("/jobs/claim-translate", json={"agent_name": args.name})
-                resp.raise_for_status()
-            except Exception as e:
-                logger.error(f"Error polling API: {e}")
-                time.sleep(10)
-                continue
+    from core.utils.agent import run_agent_loop
 
-            data = resp.json()
-            job_data = data.get("job")
+    def cycle() -> bool:
+        nonlocal translator, api, config, logger
+        logger.info("Polling for pending translation jobs...")
+        try:
+            resp = api.post("/jobs/claim-translate", json={"agent_name": args.name})
+            resp.raise_for_status()
+        except Exception as e:
+            logger.error(f"Error polling API: {e}")
+            return False
 
-            if not job_data:
-                logger.info(
-                    "No pending jobs available. Translation batch completed. Exiting."
+        data = resp.json()
+        job_data = data.get("job")
+
+        if not job_data:
+            logger.info("No pending jobs available for translation.")
+            return False
+
+        job_title = job_data.get("title")
+        job_url = job_data.get("url")
+        job_description = job_data.get("description")
+        job_requirements = job_data.get("requirements")
+        source_lang = job_data.get("language_code")
+
+        logger.info(
+            f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]"
+        )
+
+        if translator is None:
+            model_path = config["model_path"]
+            models_dir = config["models_dir"]
+            repo_id = "mijuanlo/nllb-200-distilled-600M-ct2-int8"
+
+            if "/" in model_path:
+                repo_id = model_path
+                resolved_model_dir = os.path.abspath(
+                    os.path.join(models_dir, model_path)
                 )
-                break
+            else:
+                resolved_model_dir = os.path.abspath(
+                    os.path.join(models_dir, model_path)
+                )
 
-            job_title = job_data.get("title")
-            job_url = job_data.get("url")
-            job_description = job_data.get("description")
-            job_requirements = job_data.get("requirements")
-            source_lang = job_data.get("language_code")
+            if not os.path.exists(resolved_model_dir) or not os.path.exists(
+                os.path.join(resolved_model_dir, "model.bin")
+            ):
+                logger.info(
+                    f"NLLB model directory '{resolved_model_dir}' not found or incomplete. Downloading model from HF repo {repo_id}..."
+                )
+                try:
+                    os.makedirs(os.path.dirname(resolved_model_dir), exist_ok=True)
+                    from huggingface_hub import snapshot_download
+
+                    snapshot_download(
+                        repo_id=repo_id,
+                        local_dir=resolved_model_dir,
+                        allow_patterns=["*.json", "*.bin", "*.model"],
+                        local_dir_use_symlinks=False,
+                    )
+                    logger.info("Download complete!")
+                except Exception as e:
+                    logger.error(f"Failed to automatically download NLLB model: {e}")
+                    sys.exit(1)
 
             logger.info(
-                f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]"
+                f"First job claimed. Loading NLLB-200 model from '{resolved_model_dir}'..."
             )
+            translator = NllbTranslator(resolved_model_dir)
+            logger.info("NLLB model loaded successfully!")
 
-            if translator is None:
-                model_path = config["model_path"]
-                models_dir = config["models_dir"]
-                repo_id = "mijuanlo/nllb-200-distilled-600M-ct2-int8"
+        try:
+            logger.info(f"Translating description and requirements for: {job_title}...")
+            desc_en = translator.translate(job_description or "", source_lang)
+            req_en = translator.translate(job_requirements or "", source_lang)
 
-                if "/" in model_path:
-                    repo_id = model_path
-                    resolved_model_dir = os.path.abspath(
-                        os.path.join(models_dir, model_path)
-                    )
-                else:
-                    resolved_model_dir = os.path.abspath(
-                        os.path.join(models_dir, model_path)
-                    )
+            logger.info("Finished translation. Submitting results...")
+            submit_resp = api.put(
+                "/jobs/translate",
+                json={
+                    "url": job_url,
+                    "description_en": desc_en,
+                    "requirements_en": req_en,
+                },
+            )
+            submit_resp.raise_for_status()
+            logger.info("Successfully uploaded translation results")
 
-                if not os.path.exists(resolved_model_dir) or not os.path.exists(
-                    os.path.join(resolved_model_dir, "model.bin")
-                ):
-                    logger.info(
-                        f"NLLB model directory '{resolved_model_dir}' not found or incomplete. Downloading model from HF repo {repo_id}..."
-                    )
-                    try:
-                        os.makedirs(os.path.dirname(resolved_model_dir), exist_ok=True)
-                        from huggingface_hub import snapshot_download
+        except Exception as e:
+            logger.error(f"Error during translation processing or upload: {e}")
+        return True
 
-                        snapshot_download(
-                            repo_id=repo_id,
-                            local_dir=resolved_model_dir,
-                            allow_patterns=["*.json", "*.bin", "*.model"],
-                            local_dir_use_symlinks=False,
-                        )
-                        logger.info("Download complete!")
-                    except Exception as e:
-                        logger.error(
-                            f"Failed to automatically download NLLB model: {e}"
-                        )
-                        sys.exit(1)
-
-                logger.info(
-                    f"First job claimed. Loading NLLB-200 model from '{resolved_model_dir}'..."
-                )
-                translator = NllbTranslator(resolved_model_dir)
-                logger.info("NLLB model loaded successfully!")
-
-            try:
-                logger.info(
-                    f"Translating description and requirements for: {job_title}..."
-                )
-                desc_en = translator.translate(job_description or "", source_lang)
-                req_en = translator.translate(job_requirements or "", source_lang)
-
-                logger.info("Finished translation. Submitting results...")
-                submit_resp = api.put(
-                    "/jobs/translate",
-                    json={
-                        "url": job_url,
-                        "description_en": desc_en,
-                        "requirements_en": req_en,
-                    },
-                )
-                submit_resp.raise_for_status()
-                logger.info("Successfully uploaded translation results")
-
-            except Exception as e:
-                logger.error(f"Error during translation processing or upload: {e}")
-                time.sleep(5)
-
-    except KeyboardInterrupt:
-        logger.info("Agent shutting down due to KeyboardInterrupt")
+    try:
+        run_agent_loop(cycle, default_interval=10.0)
     finally:
         api.close()
 

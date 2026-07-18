@@ -1,0 +1,141 @@
+services:
+  # 1. FastAPI Gateway & Database Orchestrator
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./jobs.db:/app/jobs.db
+      - ./uploads:/app/uploads
+    environment:
+      - DATABASE_URL=sqlite:///app/jobs.db
+      - API_SECRET_KEY=dev_secret_key
+      - EMBEDDING_MODEL=nomic-ai/nomic-embed-text-v1.5
+      - MODELS_DIR=/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # 2. Euraxess Discovery Scraper (Continuous schedule)
+  crawler-euraxess-discovery:
+    build: .
+    command: ["uv", "run", "--package", "euraxess-discovery", "python", "-m", "euraxess_discovery.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - MAX_PAGES=5
+      - CRAWL_ONCE=false
+      - CRAWL_INTERVAL=3600
+    restart: unless-stopped
+
+  # 3. AcademicTransfer Discovery Scraper (Continuous schedule)
+  crawler-academictransfer-discovery:
+    build: .
+    command: ["uv", "run", "--package", "academictransfer-discovery", "python", "-m", "academictransfer_discovery.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - MAX_PAGES=5
+      - CRAWL_ONCE=false
+      - CRAWL_INTERVAL=3600
+    restart: unless-stopped
+
+  # 4. Euraxess Sourcing Scraper (Continuous polling queue)
+  crawler-euraxess-sourcing:
+    build: .
+    command: ["uv", "run", "--package", "euraxess-sourcing", "python", "-m", "euraxess_sourcing.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - CRAWL_ONCE=false
+      - CRAWL_INTERVAL=15
+    restart: unless-stopped
+
+  # 5. AcademicTransfer Sourcing Scraper (Continuous polling queue)
+  crawler-academictransfer-sourcing:
+    build: .
+    command: ["uv", "run", "--package", "academictransfer-sourcing", "python", "-m", "academictransfer_sourcing.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - CRAWL_ONCE=false
+      - CRAWL_INTERVAL=15
+    restart: unless-stopped
+
+  # 6. Language Detection worker
+  lang-detection-worker:
+    build: .
+    command: ["uv", "run", "--package", "lang-detection", "python", "-m", "agent_lang_detection.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - AGENT_POLL_INTERVAL=10
+    restart: unless-stopped
+
+  # 7. Local NLLB Translation worker
+  translation-worker:
+    build: .
+    command: ["uv", "run", "--package", "translation", "python", "-m", "agent_translation.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./models:/app/models
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - MODELS_DIR=/app/models
+      - NLLB_MODEL_PATH=mijuanlo/nllb-200-distilled-600M-ct2-int8
+      - AGENT_POLL_INTERVAL=10
+    restart: unless-stopped
+
+  # 8. Gemma-4 Metadata Refinement worker
+  refinement-worker:
+    build: .
+    command: ["uv", "run", "--package", "refinement", "python", "-m", "agent_refinement.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./models:/app/models
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - MODELS_DIR=/app/models
+      - MODEL_PATH=unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf
+      - AGENT_POLL_INTERVAL=10
+    restart: unless-stopped
+
+  # 9. Matching and Explanations worker
+  matching-worker:
+    build: .
+    command: ["uv", "run", "--package", "matching", "python", "-m", "agent_matching.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./models:/app/models
+    environment:
+      - API_URL=http://api:8000
+      - API_TOKEN=dev_token
+      - MODELS_DIR=/app/models
+      - AGENT_POLL_INTERVAL=15
+    restart: unless-stopped
