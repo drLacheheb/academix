@@ -1,6 +1,6 @@
 # Academic Job Sourcing & Refinement
 
-Automated academic job sourcing and metadata refinement pipeline. Uses local, CPU-optimized models (Gemma-4 & NLLB-200) to translate, detect languages, and extract structured skills and prerequisite degrees.
+Automated academic job sourcing, metadata refinement, and CV matching pipeline. Uses local, CPU-optimized models (Gemma-4, SentenceTransformers, and NLLB-200) to translate, detect languages, extract structured skills, prerequisite degrees, and match candidates against positions.
 
 ---
 
@@ -8,84 +8,104 @@ Automated academic job sourcing and metadata refinement pipeline. Uses local, CP
 
 ```text
 ├── packages/
-│   ├── core/                          # Shared models, repository, and HTTP client
-│   ├── api/                           # FastAPI gateway server
-│   └── agents/                        # Isolated worker packages
-│       ├── euraxess-discovery/            # EURAXESS search pagination worker
-│       ├── euraxess-sourcing/             # EURAXESS page details fetcher
-│       ├── academictransfer-discovery/    # AcademicTransfer search pagination worker
-│       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher
-│       ├── lang-detection/                # Standalone local language detection worker
-│       ├── translation/                   # Standalone local NLLB-200 translation worker
-│       └── refinement/                    # Local GGUF model metadata refiner (Gemma-4 E2B)
+│   ├── core/                          # Shared domain models, DB repositories, and SDK utilities
+│   │   └── src/core/utils/agent.py    # Standardized signal-aware agent loop utility
+│   ├── api/                           # FastAPI gateway server and database coordinator
+│   └── agents/                        # Isolated worker packages running in parallel
+│       ├── euraxess-discovery/            # EURAXESS search pagination discovery agent
+│       ├── euraxess-sourcing/             # EURAXESS page details fetcher agent
+│       ├── academictransfer-discovery/    # AcademicTransfer search pagination discovery agent
+│       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher agent
+│       ├── lang-detection/                # Standalone local language detection agent
+│       ├── translation/                   # Standalone local NLLB-200 translation agent
+│       ├── refinement/                    # Local Gemma-4 metadata extractor & refiner agent
+│       └── matching/                      # Candidate CV matching & LLM explanation agent
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
-└── Dockerfile                         # API gateway Dockerfile
+├── Dockerfile                         # Unified multi-purpose Dockerfile
+└── docker-compose.yml                 # Unified Docker Compose orchestration config
 ```
 
 ---
 
 ## 2. Requirements
 
-*   **Python**: `>= 3.11`
-*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (recommended)
+*   **Docker & Docker Compose** (highly recommended for unified execution)
+*   **Python**: `>= 3.12` (if running locally without containers)
+*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (for local CLI runs)
 *   **Hardware requirements**:
     *   **Refinement Agent**: ~2.8GB RAM to load the `gemma-4-E2B-it-Q4_K_M` GGUF model via llama-cpp-python (idle RAM drops to ~40MB with auto-unload).
     *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
-*   **Database**: SQLite (default local file `jobs.db`) or PostgreSQL (e.g., Neon).
+    *   **Matching Agent**: Loads the `Gemma-4` GGUF explainer model on demand and uses `nomic-embed-text-v1.5` for candidate matching.
+*   **Database**: SQLite (default local file `jobs.db` mounted in containers) or PostgreSQL.
 
 ---
 
-## 3. Quick Start
+## 3. Quick Start with Docker Compose (Recommended)
+
+Running the entire stack (API server + crawlers + NLP workers) takes a single command:
 
 ### A. Configure Environment
-Create a local `.env` file from the template:
+Create your local `.env` file from the template:
 ```bash
 cp .env.example .env
 ```
-Edit the `.env` file to configure your credentials and database connection string.
+Edit `.env` to verify your variables.
 
-### B. Install Dependencies
-Synchronize the workspace:
+### B. Boot the Stack
+Build and launch all containers in the background:
+```bash
+docker compose up --build -d
+```
+Docker Compose will automatically:
+1. Boot the **FastAPI gateway (`api`)** and run database schema initializations.
+2. Run automated health checks until the API is healthy.
+3. Start the background **scrapers** (Euraxess and AcademicTransfer) and the **NLP processing agents** concurrently.
+
+### C. Graceful Terminations
+To stop the stack cleanly:
+```bash
+docker compose down
+```
+All containers intercept the `SIGTERM` signal, executing graceful SDK cleanup steps (releasing database locks, deallocating LLM models) in milliseconds.
+
+---
+
+## 4. Running Locally with UV (Development Mode)
+
+If you prefer to run services manually without Docker, synchronize your dependencies first:
 ```bash
 uv sync --all-packages
 ```
 
-### C. Start API Server
+### A. Start API Server
 Run the FastAPI gateway server:
 ```bash
 uv run --package api fastapi run packages/api/src/api/main.py --port 8000
 ```
 
----
+### B. Run Workspace Agents
+All agents are run from the workspace root. Settings are loaded automatically from your `.env` file.
 
-## 4. Running Workspace Agents
+| Agent Package | Main Module | Agent Role |
+| :--- | :--- | :--- |
+| `euraxess-discovery` | `euraxess_discovery.main` | Pagination crawl discovery (EURAXESS) |
+| `academictransfer-discovery` | `academictransfer_discovery.main` | Pagination crawl discovery (AcademicTransfer) |
+| `euraxess-sourcing` | `euraxess_sourcing.main` | Page details fetcher (EURAXESS) |
+| `academictransfer-sourcing` | `academictransfer_sourcing.main` | Page details fetcher (AcademicTransfer) |
+| `lang-detection` | `agent_lang_detection.main` | Language Detection (All Sources) |
+| `translation` | `agent_translation.main` | Local NLLB-200 Translation (All Sources) |
+| `refinement` | `agent_refinement.main` | Gemma-4 Skills Extraction (All Sources) |
+| `matching` | `agent_matching.main` | Candidate CV Matcher & Explainer (All Sources) |
 
-All agents are run from the workspace root. Settings are loaded automatically from the `.env` file.
-The agents are fully decoupled and communicate only with the central API gateway.
-
-### Agents Catalog
-
-| Agent Package | Main Module | Agent Role | Target Source |
-| :--- | :--- | :--- | :--- |
-| `euraxess-discovery` | `euraxess_discovery.main` | Discovery | EURAXESS |
-| `academictransfer-discovery` | `academictransfer_discovery.main` | Discovery | AcademicTransfer |
-| `euraxess-sourcing` | `euraxess_sourcing.main` | Sourcing | EURAXESS |
-| `academictransfer-sourcing` | `academictransfer_sourcing.main` | Sourcing | AcademicTransfer |
-| `lang-detection` | `agent_lang_detection.main` | Language Detection | (All Sources) |
-| `translation` | `agent_translation.main` | Local Translation | (All Sources) |
-| `refinement` | `agent_refinement.main` | Local Metadata Extraction (Gemma-4) | (All Sources) |
-
-### Command Syntax
-Run any agent by specifying its package and module:
+Run any agent using:
 ```bash
 uv run --package <Agent Package> python -m <Main Module>
 ```
-
-*Example:*
+*Example (Matching Worker):*
 ```bash
-uv run --package lang-detection python -m agent_lang_detection.main
+uv run --package matching python -m agent_matching.main
 ```
 
 ---
@@ -100,21 +120,24 @@ Settings configured via the `.env` file:
 | `API_TOKEN` | *None* | Bearer credential token |
 | `API_SECRET_KEY` | *None* | Shared validation key (API Server only) |
 | `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
+| `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model name |
+| `CRAWL_ONCE` | `false` | If `true`, crawlers execute once and stop. If `false` (default), they loop continuously. |
+| `CRAWL_INTERVAL` | `3600` | Period between crawler sweeps in seconds (e.g. `3600` = hourly) |
+| `AGENT_POLL_INTERVAL`| `10` | Frequency in seconds that NLP workers poll the API for new tasks |
 | `MAX_PAGES` | `5` | Pagination crawl depth |
-| `MODEL_PATH` | `unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf` | Hugging Face model file path or local file path relative to MODELS_DIR |
-| `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Hugging Face NLLB repository path or local directory path relative to MODELS_DIR |
-| `MODELS_DIR` | `models` | Global folder name to store all Hugging Face downloaded models |
+| `MODEL_PATH` | `unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf` | Path to Gemma-4 GGUF file relative to `MODELS_DIR` |
+| `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Path to NLLB translation model folder relative to `MODELS_DIR` |
+| `MODELS_DIR` | `models` | Global folder name to store downloaded models |
 | `MAX_LENGTH` | `4096` | LLM maximum generation length |
 | `TEMPERATURE` | `0.0` | Model generation temperature |
 | `MAX_TEXT_CHARS` | `3000` | Max characters sent to context window |
-| `AGENT_NAME` | `refinement-worker` | Custom agent identifier for locking |
 
 ---
 
 ## 6. System Architecture & Diagrams
 
 ### Data Flow
-Discovery, sourcing, detection, translation, and refinement agents communicate only with the API server.
+Discovery, sourcing, detection, translation, refinement, and matching agents run independently and communicate only with the API server.
 
 ```mermaid
 graph TD
@@ -139,9 +162,10 @@ graph TD
         NLLB[NLLB-200 Local Model]
     end
 
-    subgraph Refinement Nodes
+    subgraph Refinement & Matching
         Refine[refinement]
-        GGUF[Gemma-4 GGUF Local Model via llama-cpp-python]
+        GGUF[Gemma-4 GGUF Local Model]
+        Match[matching]
     end
 
     ED -->|POST /jobs stubs| API
@@ -162,95 +186,11 @@ graph TD
     Refine -->|POST /jobs/claim-refine CAS lease| API
     Refine -->|PUT /jobs/refine upload| API
     Refine -->|Inference request| GGUF
+
+    Match -->|POST /matches/claim| API
+    Match -->|PUT /matches/complete| API
+    Match -->|POST /matches/claim-explain| API
+    Match -->|PUT /matches/complete-explain| API
+    
     API <-->|SQLAlchemy ORM| DB
-```
-
-### Class Structures
-Shared models and interfaces reside in the core package.
-
-```mermaid
-classDiagram
-    class BaseHttpClient {
-        <<Interface>>
-        +fetch(url: str)* bytes
-        +close()* void
-    }
-    class HttpClient {
-        +fetch(url: str) bytes
-        +close() void
-    }
-    class BaseDiscovery {
-        <<Abstract>>
-        +http_client: BaseHttpClient
-        +max_pages: int
-        +search_all(known_urls: set) list
-        #_build_browse_url(page: int)* str
-        #_parse_search_page(html_content: str)* list
-    }
-    class BaseSourcing {
-        <<Abstract>>
-        +http_client: BaseHttpClient
-        +source_detail(url: str) JobDetailUpdate
-        #_parse_detail_page(html_content: str, url: str)* JobDetailUpdate
-    }
-    class EuraxessDiscovery {
-        +SOURCE_NAME: str
-        #_build_browse_url(page: int) str
-        #_parse_search_page(html_content: str) list
-    }
-    class EuraxessSourcing {
-        +SOURCE_NAME: str
-        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
-    }
-    class AcademicTransferDiscovery {
-        +SOURCE_NAME: str
-        #_build_browse_url(page: int) str
-        #_parse_search_page(html_content: str) list
-    }
-    class AcademicTransferSourcing {
-        +SOURCE_NAME: str
-        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
-    }
-    class BaseRefiner {
-        <<Abstract>>
-        +refine(url: str, title: str, description: str, requirements: str)* RefinementResult
-    }
-    class LlmRefiner {
-        -_system_prompt: str
-        -_model_path: str
-        +load_model() void
-        +refine(url: str, title: str, description: str, requirements: str) RefinementResult
-    }
-    class DatabaseJobRepository {
-        -_SessionLocal: sessionmaker
-        +save(jobs: list) void
-        +claim_next(agent_name: str, stale_cutoff: datetime) Job
-        +complete(url: str, required_skills: list, education_level: str, city: str, country: str) void
-        +fail(url: str) void
-    }
-    class Job {
-        +title: str
-        +url: str
-        +source: str
-        +deadline: str
-        +employer: str
-        +location: str
-        +description: str
-        +requirements: str
-        +required_skills: list
-        +education_level: str
-    }
-
-    BaseHttpClient <|-- HttpClient
-    BaseDiscovery ..> BaseHttpClient : Uses
-    BaseSourcing ..> BaseHttpClient : Uses
-    BaseDiscovery <|-- EuraxessDiscovery
-    BaseDiscovery <|-- AcademicTransferDiscovery
-    BaseSourcing <|-- EuraxessSourcing
-    BaseSourcing <|-- AcademicTransferSourcing
-    BaseRefiner <|-- LlmRefiner
-    DatabaseJobRepository ..> Job : Manages
-    EuraxessSourcing ..> Job : Sources Details
-    AcademicTransferSourcing ..> Job : Sources Details
-    LlmRefiner ..> Job : Refines
 ```
