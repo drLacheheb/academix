@@ -3,10 +3,11 @@ services:
   api:
     build: .
     volumes:
-      - ./jobs.db:/app/jobs.db
+      - db-data:/app/data
       - ./uploads:/app/uploads
     environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/jobs.db}
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/jobs.db}
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-ai/nomic-embed-text-v1.5}
       - MODELS_DIR=${MODELS_DIR:-/app/models}
@@ -17,7 +18,7 @@ services:
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
       - S3_REGION=${S3_REGION:-us-east-1}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -170,3 +171,6 @@ services:
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
       - S3_REGION=${S3_REGION:-us-east-1}
     restart: unless-stopped
+
+volumes:
+  db-data:
