@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, R
 from api.dependencies import (
     get_ingest_profile_usecase,
     get_candidate_profile_usecase,
+    get_list_profiles_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
@@ -33,13 +34,11 @@ async def upload_cv(
     name: Optional[str] = Form(None),
     usecase: IngestCandidateProfileUseCase = Depends(get_ingest_profile_usecase),
 ):
-    """
-    Uploads a CV PDF, parses it layout-aware via Docling, extracts structured JSON
-    using local Gemma-4 GGUF, and saves the profile to the database.
-    """
+
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
-            status_code=400, detail="Unsupported file format. Only PDF files are supported."
+            status_code=400,
+            detail="Unsupported file format. Only PDF files are supported.",
         )
 
     # 1. Save uploaded file to the uploads directory
@@ -60,7 +59,9 @@ async def upload_cv(
         saved_profile = usecase.execute(
             file_path=saved_file_path, email=email, name=name
         )
-        logger.info(f"Successfully processed and saved profile for email: {saved_profile.email}")
+        logger.info(
+            f"Successfully processed and saved profile for email: {saved_profile.email}"
+        )
 
         return saved_profile.to_dict()
 
@@ -85,12 +86,19 @@ async def get_profile(
     profile_id: int,
     usecase: GetCandidateProfileUseCase = Depends(get_candidate_profile_usecase),
 ):
-    """
-    Retrieves a candidate profile by its database ID.
-    """
     profile = usecase.execute(profile_id)
     if not profile:
         raise HTTPException(
             status_code=404, detail=f"Candidate profile with ID {profile_id} not found."
         )
     return profile.to_dict()
+
+
+@router.get("/profiles")
+@limiter.limit("60/minute")
+async def get_all_profiles(
+    request: Request,
+    usecase=Depends(get_list_profiles_usecase),
+):
+    profiles = usecase.execute()
+    return [p.to_dict() for p in profiles]

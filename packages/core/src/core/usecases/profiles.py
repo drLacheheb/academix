@@ -1,17 +1,21 @@
 from typing import Optional
-from core.domain.interfaces.db import BaseCandidateProfileRepository
+from core.domain.interfaces.db import BaseCandidateProfileRepository, BaseMatchingQueueRepository
 from core.domain.models.profile import CandidateProfile
-from core.services.cv_extractor import CvExtractor
+from core.domain.interfaces.services import BaseCvExtractor, BaseEmbeddingService
 
 
 class IngestCandidateProfileUseCase:
     def __init__(
         self,
         repo: BaseCandidateProfileRepository,
-        extractor: Optional[CvExtractor] = None,
+        queue_repo: BaseMatchingQueueRepository,
+        extractor: BaseCvExtractor,
+        embedding_service: BaseEmbeddingService,
     ):
         self._repo = repo
-        self._extractor = extractor or CvExtractor()
+        self._queue_repo = queue_repo
+        self._extractor = extractor
+        self._embedding_service = embedding_service
 
     def execute(
         self,
@@ -36,8 +40,16 @@ class IngestCandidateProfileUseCase:
                 "Could not extract email address from the CV. Please provide it explicitly in the request form."
             )
 
+        # Compute semantic embeddings for skills and research interests
+        profile.skill_embedding = self._embedding_service.encode_skills(profile.skills)
+        profile.research_embedding = self._embedding_service.encode_research(profile.research_interests)
+
         # Save to database
         saved_profile = self._repo.save(profile)
+
+        # Enqueue matching task
+        self._queue_repo.enqueue("candidate", str(saved_profile.id))
+
         return saved_profile
 
 
@@ -47,3 +59,11 @@ class GetCandidateProfileUseCase:
 
     def execute(self, profile_id: int) -> Optional[CandidateProfile]:
         return self._repo.get_by_id(profile_id)
+
+
+class ListCandidateProfilesUseCase:
+    def __init__(self, repo: BaseCandidateProfileRepository):
+        self._repo = repo
+
+    def execute(self) -> list[CandidateProfile]:
+        return self._repo.get_all()

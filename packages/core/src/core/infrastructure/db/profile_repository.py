@@ -75,3 +75,11 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
             return model.to_domain() if model else None
         finally:
             session.close()
+
+    def get_all(self) -> list[CandidateProfile]:
+        session = self._SessionLocal()
+        try:
+            models = session.query(CandidateProfileModel).all()
+            return [m.to_domain() for m in models]
+        finally:
+            session.close()
