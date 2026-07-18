@@ -8,6 +8,17 @@ from docling.document_converter import DocumentConverter
 logger = logging.getLogger(__name__)
 
 
+_converter: DocumentConverter | None = None
+
+
+def get_document_converter() -> DocumentConverter:
+    global _converter
+    if _converter is None:
+        logger.info("Initializing global Docling DocumentConverter (happens once)")
+        _converter = DocumentConverter()
+    return _converter
+
+
 def parse_pdf_to_markdown(file_path: str) -> str:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"PDF file not found: {file_path}")
@@ -16,7 +27,7 @@ def parse_pdf_to_markdown(file_path: str) -> str:
         f"Rasterizing and parsing PDF: {file_path} using visual Docling pipeline"
     )
 
-    converter = DocumentConverter()
+    converter = get_document_converter()
 
     try:
         markdown_pages = []
