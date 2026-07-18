@@ -76,6 +76,10 @@ class LocalLlmRunner(BaseLlmRunner):
     def free_model(self) -> None:
         if self.model is not None:
             logger.info("Freeing GGUF model from memory...")
+            try:
+                self.model.close()
+            except Exception:
+                pass
             del self.model
             self.model = None
             gc.collect()
