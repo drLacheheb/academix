@@ -280,10 +280,12 @@ def main():
     api_client = make_api_client()
     poll_interval = int(os.environ.get("AGENT_POLL_INTERVAL", "10"))
 
+    def cycle() -> bool:
+        return process_ingestion_task(api_client)
+
     run_agent_loop(
-        work_fn=process_ingestion_task,
-        client=api_client,
-        poll_interval=poll_interval,
+        cycle,
+        default_interval=poll_interval,
     )
 
 
