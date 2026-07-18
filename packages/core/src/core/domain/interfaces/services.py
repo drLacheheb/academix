@@ -55,3 +55,25 @@ class BaseLlmRunner(ABC):
         response_format: Optional[dict] = None,
     ) -> str:
         pass
+
+
+class BaseStorageService(ABC):
+    @abstractmethod
+    def upload(self, filename: str, content: bytes) -> str:
+        """Uploads file content and returns its URI or URL string."""
+        pass
+
+    @abstractmethod
+    def get_local_path(self, uri: str) -> tuple[str, bool]:
+        """
+        Given a file URI (local path or S3 URL), returns a local file path
+        where the content is stored (either directly or downloaded to a temp file).
+        
+        Returns a tuple of (local_path, is_temporary).
+        """
+        pass
+
+    @abstractmethod
+    def clean_up(self, local_path: str) -> None:
+        """Cleans up the local path if it was a temporary file."""
+        pass

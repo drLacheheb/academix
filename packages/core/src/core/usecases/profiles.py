@@ -1,7 +1,7 @@
 from typing import Optional
 from core.domain.interfaces.db import BaseCandidateProfileRepository, BaseMatchingQueueRepository
 from core.domain.models.profile import CandidateProfile
-from core.domain.interfaces.services import BaseCvExtractor, BaseEmbeddingService
+from core.domain.interfaces.services import BaseCvExtractor, BaseEmbeddingService, BaseStorageService
 
 
 class IngestCandidateProfileUseCase:
@@ -11,23 +11,29 @@ class IngestCandidateProfileUseCase:
         queue_repo: BaseMatchingQueueRepository,
         extractor: BaseCvExtractor,
         embedding_service: BaseEmbeddingService,
+        storage_service: BaseStorageService,
     ):
         self._repo = repo
         self._queue_repo = queue_repo
         self._extractor = extractor
         self._embedding_service = embedding_service
+        self._storage_service = storage_service
 
     def execute(
         self,
-        file_path: str,
+        file_name: str,
+        file_content: bytes,
         email: Optional[str] = None,
         name: Optional[str] = None,
     ) -> CandidateProfile:
+        # Upload the CV file using our storage abstraction layer
+        url_or_path = self._storage_service.upload(file_name, file_content)
+
         # Create a placeholder profile stub
         profile = CandidateProfile(
             name=name,
             email=email,
-            cv_file_path=file_path,
+            cv_file_path=url_or_path,
             status="INGESTING",
             status_message="CV Uploaded. Ingestion task registered.",
         )

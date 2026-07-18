@@ -16,6 +16,7 @@ from core.infrastructure.services.lang_detector import LanguageDetector
 from core.infrastructure.services.translator import NllbTranslator
 from core.infrastructure.services.embedding_service import EmbeddingService
 from core.infrastructure.services.llm_runner import LocalLlmRunner
+from core.infrastructure.services.storage import get_storage_service_from_env
 
 # Ensure stdout uses UTF-8 to prevent encoding crashes on Windows
 try:
@@ -77,15 +78,23 @@ def process_ingestion_task(client: httpx.Client) -> bool:
         f"Successfully claimed CV Ingestion Task for Profile ID: {profile_id} (File: {file_path})"
     )
 
-    if not file_path or not os.path.exists(file_path):
-        error_msg = f"CV PDF file not found at path: {file_path}"
+    local_file_path = None
+    is_temp_file = False
+
+    try:
+        storage_service = get_storage_service_from_env()
+        local_file_path, is_temp_file = storage_service.get_local_path(file_path)
+        if not local_file_path or not os.path.exists(local_file_path):
+            raise FileNotFoundError(f"Resolved file path {local_file_path} not found on disk.")
+    except Exception as e:
+        error_msg = f"Failed to retrieve CV file path for {file_path}: {e}"
         logger.error(error_msg)
         try:
             client.put(
                 f"/profiles/fail-ingest/{profile_id}", json={"error_message": error_msg}
             )
-        except Exception as e:
-            logger.error(f"Failed to submit failure status to API: {e}")
+        except Exception as api_err:
+            logger.error(f"Failed to submit failure status to API: {api_err}")
         return True
 
     try:
@@ -93,7 +102,7 @@ def process_ingestion_task(client: httpx.Client) -> bool:
         logger.info(
             f"[{profile_id}] Extracting layout and parsing PDF to markdown using Docling..."
         )
-        raw_markdown = parse_pdf_to_markdown(file_path)
+        raw_markdown = parse_pdf_to_markdown(local_file_path)
 
         # Step 2: Detect language of the resume
         logger.info(f"[{profile_id}] Detecting CV language...")
@@ -252,6 +261,12 @@ def process_ingestion_task(client: httpx.Client) -> bool:
             )
         except Exception as api_err:
             logger.error(f"Failed to notify API about parsing failure: {api_err}")
+    finally:
+        if is_temp_file and local_file_path:
+            try:
+                storage_service.clean_up(local_file_path)
+            except Exception as cleanup_err:
+                logger.warning(f"[{profile_id}] Failed to clean up temp file {local_file_path}: {cleanup_err}")
 
     return True
 

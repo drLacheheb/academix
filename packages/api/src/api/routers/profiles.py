@@ -1,6 +1,4 @@
 import os
-import shutil
-import time
 import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, Request
@@ -59,23 +57,20 @@ async def upload_cv(
             detail="Unsupported file format. Only PDF files are supported.",
         )
 
-    # 1. Save uploaded file to the uploads directory
-    timestamp = int(time.time())
-    safe_filename = f"{timestamp}_{file.filename}"
-    saved_file_path = os.path.join(UPLOADS_DIR, safe_filename)
-
+    # Read uploaded file content bytes directly
     try:
-        with open(saved_file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        logger.info(f"Saved uploaded CV to {saved_file_path}")
+        content = await file.read()
     except Exception as e:
-        logger.error(f"Failed to save uploaded file: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save uploaded file.")
+        logger.error(f"Failed to read uploaded file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read uploaded file.")
 
     # 2. Register placeholder profile and trigger ingestion task asynchronously
     try:
         saved_profile = usecase.execute(
-            file_path=saved_file_path, email=email, name=name
+            file_name=file.filename,
+            file_content=content,
+            email=email,
+            name=name,
         )
         logger.info(
             f"Successfully registered CV ingestion for profile ID: {saved_profile.id}"
@@ -83,8 +78,6 @@ async def upload_cv(
         return saved_profile.to_dict()
     except Exception as e:
         logger.error(f"Error registering CV ingestion: {e}")
-        if os.path.exists(saved_file_path):
-            os.remove(saved_file_path)
         raise HTTPException(
             status_code=500, detail=f"Failed to register CV ingestion task: {str(e)}"
         )

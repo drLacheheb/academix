@@ -19,7 +19,8 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 │       ├── lang-detection/                # Standalone local language detection agent
 │       ├── translation/                   # Standalone local NLLB-200 translation agent
 │       ├── refinement/                    # Local Gemma-4 metadata extractor & refiner agent
-│       └── matching/                      # Candidate CV matching & LLM explanation agent
+│       ├── matching/                      # Candidate CV matching & LLM explanation agent
+│       └── cv-parsing/                    # Background CV parsing, translation, and structured LLM extraction agent
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
@@ -98,6 +99,7 @@ All agents are run from the workspace root. Settings are loaded automatically fr
 | `translation` | `agent_translation.main` | Local NLLB-200 Translation (All Sources) |
 | `refinement` | `agent_refinement.main` | Gemma-4 Skills Extraction (All Sources) |
 | `matching` | `agent_matching.main` | Candidate CV Matcher & Explainer (All Sources) |
+| `cv-parsing` | `agent_cv_parsing.main` | Background CV Ingest, Layout Parsing, Translation, and Gemma-4 Structured Extraction |
 
 Run any agent using:
 ```bash
@@ -114,8 +116,8 @@ uv run --package matching python -m agent_matching.main
 
 All requests to the FastAPI Gateway require the `Authorization` header matching the `API_SECRET_KEY` configured in `.env`.
 
-### A. Ingest a Candidate CV
-Upload a candidate's CV (PDF format). The API automatically runs layout analysis (using Docling) and extracts structured skills, languages, and education history using Gemma-4:
+### A. Ingest a Candidate CV (Fully Asynchronous)
+Upload a candidate's CV (PDF format). The API saves the CV bytes to the configured storage service (local or S3/MinIO) and returns a `202 Accepted` status code immediately. The `cv-parsing` background agent then picks up the ingestion task, translates it if needed, and uses Gemma-4 to extract structured skills, prerequisite degrees, and education history:
 ```bash
 curl -X POST http://localhost:8000/profiles/upload-cv \
   -H "Authorization: Bearer dev_secret_key" \

@@ -12,6 +12,12 @@ services:
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-ai/nomic-embed-text-v1.5}
       - MODELS_DIR=${MODELS_DIR:-/app/models}
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -157,4 +163,10 @@ services:
       - MODEL_PATH=${MODEL_PATH:-unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf}
       - NLLB_MODEL_PATH=${NLLB_MODEL_PATH:-mijuanlo/nllb-200-distilled-600M-ct2-int8}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
     restart: unless-stopped
