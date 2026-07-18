@@ -15,6 +15,7 @@ from api.dependencies import (
     get_update_details_usecase,
     UpdateJobDetailsUseCase,
     get_refined_jobs_usecase,
+    get_recent_urls_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
@@ -74,3 +75,15 @@ async def get_refined_jobs(
 ):
     jobs = usecase.execute()
     return [j.to_dict() for j in jobs]
+
+
+@router.get("/jobs/urls")
+@limiter.limit("60/minute")
+async def get_recent_urls(
+    request: Request,
+    source: str,
+    limit: int = 500,
+    usecase = Depends(get_recent_urls_usecase),
+):
+    urls = usecase.execute(source=source, limit=limit)
+    return {"urls": urls}

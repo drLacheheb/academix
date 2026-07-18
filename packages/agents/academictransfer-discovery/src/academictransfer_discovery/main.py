@@ -36,8 +36,12 @@ def run():
     logger.info("Starting AcademicTransfer crawler discovery agent")
 
     try:
-        logger.info("Starting broad search (newest first)...")
-        known_urls: set[str] = set()
+        logger.info("Fetching recent known URLs to optimize pagination...")
+        known_resp = api.get(f"/jobs/urls?source={scraper.SOURCE_NAME}&limit=500")
+        known_resp.raise_for_status()
+        known_urls = set(known_resp.json().get("urls", []))
+
+        logger.info(f"Loaded {len(known_urls)} known URLs. Starting search...")
         new_jobs = scraper.search_all(known_urls)
 
         if new_jobs:

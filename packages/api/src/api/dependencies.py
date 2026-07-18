@@ -218,3 +218,10 @@ def get_refined_jobs_usecase(
     from core.usecases.jobs import GetRefinedJobsUseCase
     return GetRefinedJobsUseCase(repo.jobs)
 
+
+def get_recent_urls_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+):
+    from core.usecases.jobs import GetRecentUrlsUseCase
+    return GetRecentUrlsUseCase(repo.jobs)
+

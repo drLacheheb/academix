@@ -184,3 +184,17 @@ class DatabaseJobRepository(BaseJobRepository):
             return [m.to_domain() for m in models]
         finally:
             session.close()
+
+    def get_recent_urls(self, source: str, limit: int = 500) -> list[str]:
+        session = self._SessionLocal()
+        try:
+            results = (
+                session.query(JobModel.url)
+                .filter(JobModel.source == source)
+                .order_by(JobModel.id.desc())
+                .limit(limit)
+                .all()
+            )
+            return [r[0] for r in results]
+        finally:
+            session.close()

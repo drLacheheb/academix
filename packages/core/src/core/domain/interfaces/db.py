@@ -35,6 +35,10 @@ class BaseJobRepository(ABC):
     def get_refined_jobs(self) -> list[Job]:
         pass
 
+    @abstractmethod
+    def get_recent_urls(self, source: str, limit: int = 500) -> list[str]:
+        pass
+
 
 class BaseDetectionRepository(ABC):
     @abstractmethod
