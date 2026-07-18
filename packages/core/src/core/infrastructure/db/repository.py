@@ -198,3 +198,31 @@ class DatabaseJobRepository(BaseJobRepository):
             return [r[0] for r in results]
         finally:
             session.close()
+
+    def get_crawler_checkpoint(self, source: str) -> str | None:
+        from core.infrastructure.db.models import CrawlerCheckpointModel
+        session = self._SessionLocal()
+        try:
+            row = session.query(CrawlerCheckpointModel).filter(CrawlerCheckpointModel.source == source).first()
+            return row.last_successful_url if row else None
+        finally:
+            session.close()
+
+    def update_crawler_checkpoint(self, source: str, url: str) -> None:
+        from core.infrastructure.db.models import CrawlerCheckpointModel
+        from datetime import datetime, timezone
+        session = self._SessionLocal()
+        try:
+            row = session.query(CrawlerCheckpointModel).filter(CrawlerCheckpointModel.source == source).first()
+            if not row:
+                row = CrawlerCheckpointModel(source=source, last_successful_url=url)
+                session.add(row)
+            else:
+                row.last_successful_url = url
+                row.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()

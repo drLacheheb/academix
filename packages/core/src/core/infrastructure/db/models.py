@@ -314,3 +314,11 @@ class MatchModel(Base):
             explanation_status=self.explanation_status,
             created_at=self.created_at,
         )
+
+
+class CrawlerCheckpointModel(Base):
+    __tablename__ = "crawler_checkpoints"
+
+    source = Column(String, primary_key=True)
+    last_successful_url = Column(String, nullable=True)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

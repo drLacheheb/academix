@@ -16,3 +16,19 @@ class GetRecentUrlsUseCase:
 
     def execute(self, source: str, limit: int = 500) -> list[str]:
         return self._repo.get_recent_urls(source, limit)
+
+
+class GetCrawlerCheckpointUseCase:
+    def __init__(self, repo: BaseJobRepository):
+        self._repo = repo
+
+    def execute(self, source: str) -> str | None:
+        return self._repo.get_crawler_checkpoint(source)
+
+
+class UpdateCrawlerCheckpointUseCase:
+    def __init__(self, repo: BaseJobRepository):
+        self._repo = repo
+
+    def execute(self, source: str, url: str) -> None:
+        self._repo.update_crawler_checkpoint(source, url)

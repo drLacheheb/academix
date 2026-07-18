@@ -39,6 +39,14 @@ class BaseJobRepository(ABC):
     def get_recent_urls(self, source: str, limit: int = 500) -> list[str]:
         pass
 
+    @abstractmethod
+    def get_crawler_checkpoint(self, source: str) -> str | None:
+        pass
+
+    @abstractmethod
+    def update_crawler_checkpoint(self, source: str, url: str) -> None:
+        pass
+
 
 class BaseDetectionRepository(ABC):
     @abstractmethod
