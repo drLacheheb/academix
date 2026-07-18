@@ -140,7 +140,9 @@ def get_pending_details_usecase(
     return GetPendingDetailsUseCase(repo)
 
 
-async def verify_token(authorization: str = Header(...)):
+async def verify_token(authorization: str | None = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     expected = f"Bearer {get_api_secret()}"
     if authorization != expected:
         raise HTTPException(status_code=401, detail="Unauthorized")
