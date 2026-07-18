@@ -151,7 +151,7 @@ Settings configured via the `.env` file:
 | `CRAWL_ONCE` | `false` | If `true`, crawlers execute once and stop. If `false` (default), they loop continuously. |
 | `CRAWL_INTERVAL` | `3600` | Period between crawler sweeps in seconds (e.g. `3600` = hourly) |
 | `AGENT_POLL_INTERVAL`| `10` | Frequency in seconds that NLP workers poll the API for new tasks |
-| `MAX_PAGES` | `5` | Pagination crawl depth |
+| `MAX_PAGES` | `5` | Pagination crawl depth (set to `0` or negative for infinite crawl until no more listings are found or checkpoint is hit) |
 | `MODEL_PATH` | `unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf` | Path to Gemma-4 GGUF file relative to `MODELS_DIR` |
 | `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Path to NLLB translation model folder relative to `MODELS_DIR` |
 | `MODELS_DIR` | `models` | Global folder name to store downloaded models |

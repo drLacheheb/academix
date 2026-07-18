@@ -129,7 +129,8 @@ class ConcreteDiscovery(BaseDiscovery):
 
         self.logger.info(f"Starting broad search on {self.SOURCE_NAME} (sorting: newest first)...")
 
-        while page < max_pages:
+        infinite = (max_pages <= 0)
+        while infinite or (page < max_pages):
             url = self._build_browse_url(page)
             raw = self._http.fetch(url)
             if not raw:
