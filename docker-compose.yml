@@ -4,7 +4,7 @@ services:
     build: .
     volumes:
       - ./data:/app/data
-      - ./uploads:/app/uploads
+      - ./data/uploads:/app/uploads
       - ./models:/app/models
       - ./logs:/app/logs
       - ./packages:/app/packages
@@ -192,7 +192,7 @@ services:
         condition: service_healthy
     volumes:
       - ./models:/app/models
-      - ./uploads:/app/uploads
+      - ./data/uploads:/app/uploads
       - ./logs:/app/logs
       - ./packages:/app/packages
     environment:
