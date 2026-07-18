@@ -42,3 +42,23 @@ class TranslationResult(BaseModel):
     url: str
     description_en: Optional[str] = None
     requirements_en: Optional[str] = None
+
+
+class MatchResult(BaseModel):
+    candidate_id: int
+    job_url: str
+    score: float
+    degree_eligible: bool
+    language_eligible: bool
+    skill_score: float
+    research_score: float
+
+
+class MatchingTaskComplete(BaseModel):
+    task_id: int
+    matches: List[MatchResult]
+
+
+class MatchExplanationComplete(BaseModel):
+    match_id: int
+    explanation: str

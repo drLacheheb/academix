@@ -17,6 +17,8 @@ class CandidateProfile:
     experience: Optional[list[dict[str, Any]]] = None
     preferred_locations: Optional[list[str]] = None
     research_interests: Optional[list[str]] = None
+    skill_embedding: Optional[list[float]] = None
+    research_embedding: Optional[list[float]] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

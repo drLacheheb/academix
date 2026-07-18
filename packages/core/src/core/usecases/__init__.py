@@ -23,6 +23,15 @@ from core.usecases.profiles import (
     IngestCandidateProfileUseCase,
     GetCandidateProfileUseCase,
 )
+from core.usecases.matching import (
+    ClaimMatchingTaskUseCase,
+    SubmitTaskMatchesUseCase,
+    FailMatchingTaskUseCase,
+    GetCandidateMatchesUseCase,
+    ClaimMatchExplanationUseCase,
+    CompleteMatchExplanationUseCase,
+    FailMatchExplanationUseCase,
+)
 
 __all__ = [
     "ClaimDetectionJobUseCase",
@@ -41,4 +50,11 @@ __all__ = [
     "GetPendingDetailsUseCase",
     "IngestCandidateProfileUseCase",
     "GetCandidateProfileUseCase",
+    "ClaimMatchingTaskUseCase",
+    "SubmitTaskMatchesUseCase",
+    "FailMatchingTaskUseCase",
+    "GetCandidateMatchesUseCase",
+    "ClaimMatchExplanationUseCase",
+    "CompleteMatchExplanationUseCase",
+    "FailMatchExplanationUseCase",
 ]

@@ -25,6 +25,9 @@ class Job:
     description_en: Optional[str] = None
     requirements_en: Optional[str] = None
 
+    skill_embedding: Optional[list[float]] = None
+    research_embedding: Optional[list[float]] = None
+
     def is_detail_scraped(self) -> bool:
         return self.description is not None
 

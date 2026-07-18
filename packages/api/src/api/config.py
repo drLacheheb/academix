@@ -16,3 +16,10 @@ def get_api_secret() -> str:
             "Set it before starting the API server."
         )
     return secret
+
+
+def get_match_threshold() -> float:
+    try:
+        return float(os.environ.get("MATCH_THRESHOLD", "0.7"))
+    except ValueError:
+        return 0.7
