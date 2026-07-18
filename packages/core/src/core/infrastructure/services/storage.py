@@ -131,7 +131,6 @@ class S3StorageService(BaseStorageService):
 
 
 def get_storage_service_from_env() -> BaseStorageService:
-    """Factory helper to construct the correct storage backend from environment variables."""
     provider = os.environ.get("STORAGE_PROVIDER", "local").lower()
     if provider == "s3":
         bucket_name = os.environ.get("S3_BUCKET_NAME")

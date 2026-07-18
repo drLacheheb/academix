@@ -39,7 +39,6 @@ AGENT_NAME = os.environ.get("AGENT_NAME", "cv-parsing-worker")
 
 
 def get_llm_runner() -> LocalLlmRunner:
-    """Instantiate a local Gemma-4 GGUF LLM Runner."""
     models_dir = os.environ.get("MODELS_DIR", "models")
     model_path = os.environ.get(
         "MODEL_PATH", "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf"
@@ -58,7 +57,6 @@ def get_llm_runner() -> LocalLlmRunner:
 
 
 def process_ingestion_task(client: httpx.Client) -> bool:
-    """Claims and processes next pending CV PDF ingestion task."""
     try:
         response = client.post(
             "/profiles/claim-ingest", json={"agent_name": AGENT_NAME}
