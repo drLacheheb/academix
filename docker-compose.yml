@@ -3,10 +3,12 @@ services:
   api:
     build: .
     volumes:
-      - db-data:/app/data
+      - ./data:/app/data
       - ./uploads:/app/uploads
+      - ./models:/app/models
     environment:
       - PYTHONUNBUFFERED=1
+      - HF_HOME=/app/models
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/data/jobs.db}
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-ai/nomic-embed-text-v1.5}
@@ -108,6 +110,7 @@ services:
     volumes:
       - ./models:/app/models
     environment:
+      - HF_HOME=/app/models
       - API_URL=http://api:8000
       - API_TOKEN=${API_TOKEN:-dev_token}
       - MODELS_DIR=${MODELS_DIR:-/app/models}
@@ -125,6 +128,7 @@ services:
     volumes:
       - ./models:/app/models
     environment:
+      - HF_HOME=/app/models
       - API_URL=http://api:8000
       - API_TOKEN=${API_TOKEN:-dev_token}
       - MODELS_DIR=${MODELS_DIR:-/app/models}
@@ -159,6 +163,7 @@ services:
       - ./models:/app/models
       - ./uploads:/app/uploads
     environment:
+      - HF_HOME=/app/models
       - API_URL=http://api:8000
       - API_TOKEN=${API_TOKEN:-dev_token}
       - MODELS_DIR=${MODELS_DIR:-/app/models}
@@ -173,5 +178,4 @@ services:
       - S3_REGION=${S3_REGION:-us-east-1}
     restart: unless-stopped
 
-volumes:
-  db-data:
+# Local host directories ./data and ./models are used for storage and model persistence

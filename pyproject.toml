@@ -11,5 +11,12 @@ members = ["packages/core", "packages/api", "packages/agents/*"]
 name = "llama-cpp-python-wheels"
 url = "https://abetlen.github.io/llama-cpp-python/whl/cpu"
 
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.uv.sources]
 llama-cpp-python = { index = "llama-cpp-python-wheels" }
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
