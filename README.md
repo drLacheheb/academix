@@ -110,7 +110,34 @@ uv run --package matching python -m agent_matching.main
 
 ---
 
-## 5. Configuration Settings
+## 5. Core API & Pipeline Workflow
+
+All requests to the FastAPI Gateway require the `Authorization` header matching the `API_SECRET_KEY` configured in `.env`.
+
+### A. Ingest a Candidate CV
+Upload a candidate's CV (PDF format). The API automatically runs layout analysis (using Docling) and extracts structured skills, languages, and education history using Gemma-4:
+```bash
+curl -X POST http://localhost:8000/profiles/upload-cv \
+  -H "Authorization: Bearer dev_secret_key" \
+  -F "file=@/path/to/cv.pdf" \
+  -F "email=candidate@example.com" \
+  -F "name=John Doe"
+```
+**Response**: Returns the created profile object containing a structured list of skills, education level, and database `id`.
+
+### B. Background Processing
+Once jobs are discovered, details are sourced, language is detected, and translations (if non-English) are run. The refinement agent then extracts structured skills from job requirements. Finally, the matching agent computes similarities and drafts matching explanations. These pipeline steps run concurrently and automatically.
+
+### C. Retrieve Matched Jobs & Explanations
+Retrieve a list of qualified academic positions for a candidate (ranked by nomic embedding similarities). The payload includes skill match alignment, degree/language eligibility checks, and LLM-generated explanations:
+```bash
+curl -X GET http://localhost:8000/profiles/1/matches?limit=10 \
+  -H "Authorization: Bearer dev_secret_key"
+```
+
+---
+
+## 6. Configuration Settings
 
 Settings configured via the `.env` file:
 
@@ -134,7 +161,7 @@ Settings configured via the `.env` file:
 
 ---
 
-## 6. System Architecture & Diagrams
+## 7. System Architecture & Diagrams
 
 ### Data Flow
 Discovery, sourcing, detection, translation, refinement, and matching agents run independently and communicate only with the API server.
@@ -193,4 +220,108 @@ graph TD
     Match -->|PUT /matches/complete-explain| API
     
     API <-->|SQLAlchemy ORM| DB
+```
+
+### Class Structures
+Shared models, core interfaces, NLP services, and matching business logic reside in the core package.
+
+```mermaid
+classDiagram
+    class BaseHttpClient {
+        <<Interface>>
+        +fetch(url: str)* bytes
+        +close()* void
+    }
+    class HttpClient {
+        +fetch(url: str) bytes
+        +close() void
+    }
+    class BaseDiscovery {
+        <<Abstract>>
+        +http_client: BaseHttpClient
+        +max_pages: int
+        +search_all(known_urls: set) list
+        #_build_browse_url(page: int)* str
+        #_parse_search_page(html_content: str)* list
+    }
+    class BaseSourcing {
+        <<Abstract>>
+        +http_client: BaseHttpClient
+        +source_detail(url: str) JobDetailUpdate
+        #_parse_detail_page(html_content: str, url: str)* JobDetailUpdate
+    }
+    class EuraxessDiscovery {
+        +SOURCE_NAME: str
+        #_build_browse_url(page: int) str
+        #_parse_search_page(html_content: str) list
+    }
+    class EuraxessSourcing {
+        +SOURCE_NAME: str
+        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
+    }
+    class AcademicTransferDiscovery {
+        +SOURCE_NAME: str
+        #_build_browse_url(page: int) str
+        #_parse_search_page(html_content: str) list
+    }
+    class AcademicTransferSourcing {
+        +SOURCE_NAME: str
+        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
+    }
+    class BaseRefiner {
+        <<Abstract>>
+        +refine(url: str, title: str, description: str, requirements: str)* RefinementResult
+    }
+    class LlmRefiner {
+        -_system_prompt: str
+        -_model_path: str
+        +load_model() void
+        +refine(url: str, title: str, description: str, requirements: str) RefinementResult
+    }
+    class NllbTranslator {
+        -_model_dir: str
+        +translate(text: str, source_lang: str) str
+    }
+    class MatchScorer {
+        +score_candidate_against_job(candidate: CandidateProfile, job: Job, threshold: float) CandidateMatch
+    }
+    class LlmExplainer {
+        -_system_prompt: str
+        +generate_explanation(candidate: CandidateProfile, job: Job) str
+    }
+    class Job {
+        +title: str
+        +url: str
+        +source: str
+        +deadline: str
+        +employer: str
+        +location: str
+        +description: str
+        +requirements: str
+        +required_skills: list
+        +education_level: str
+    }
+    class CandidateProfile {
+        +id: int
+        +name: str
+        +skills: list
+        +education: str
+        +languages: list
+    }
+
+    BaseHttpClient <|-- HttpClient
+    BaseDiscovery ..> BaseHttpClient : Uses
+    BaseSourcing ..> BaseHttpClient : Uses
+    BaseDiscovery <|-- EuraxessDiscovery
+    BaseDiscovery <|-- AcademicTransferDiscovery
+    BaseSourcing <|-- EuraxessSourcing
+    BaseSourcing <|-- AcademicTransferSourcing
+    BaseRefiner <|-- LlmRefiner
+    EuraxessSourcing ..> Job : Sources Details
+    AcademicTransferSourcing ..> Job : Sources Details
+    LlmRefiner ..> Job : Refines
+    MatchScorer ..> Job : Scores
+    MatchScorer ..> CandidateProfile : Scores
+    LlmExplainer ..> Job : Explains
+    LlmExplainer ..> CandidateProfile : Explains
 ```
