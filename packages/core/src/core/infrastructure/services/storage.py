@@ -28,8 +28,15 @@ class LocalStorageService(BaseStorageService):
         return uri, False
 
     def clean_up(self, local_path: str) -> None:
-        # Local files are kept in the uploads folder permanently (no temporary file created)
+        # Local files are kept in the uploads folder permanently
         pass
+
+    def verify_connection(self) -> None:
+        logger.info("LocalStorageService: Verifying uploads directory exists and is writeable...")
+        if not os.path.exists(self._uploads_dir):
+            raise FileNotFoundError(f"Uploads directory does not exist: {self._uploads_dir}")
+        if not os.access(self._uploads_dir, os.W_OK):
+            raise PermissionError(f"Uploads directory is not writeable: {self._uploads_dir}")
 
 
 class S3StorageService(BaseStorageService):
@@ -72,14 +79,14 @@ class S3StorageService(BaseStorageService):
             ContentType="application/pdf",
         )
         
-        if self._endpoint_url:
-            # MinIO or custom local S3 endpoint url style
-            url = f"{self._endpoint_url.rstrip('/')}/{self._bucket}/{s3_key}"
-        else:
-            # Standard AWS S3 url style
-            url = f"https://{self._bucket}.s3.{self._region_name}.amazonaws.com/{s3_key}"
+        # Generate S3 Presigned URL for GET request valid for 1 hour (3600 seconds)
+        url = s3.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": self._bucket, "Key": s3_key},
+            ExpiresIn=3600,
+        )
             
-        logger.info(f"S3StorageService: Upload completed. Persistent URL: {url}")
+        logger.info("S3StorageService: Upload completed. Presigned URL generated successfully.")
         return url
 
     def get_local_path(self, uri: str) -> tuple[str, bool]:
@@ -105,6 +112,22 @@ class S3StorageService(BaseStorageService):
                 logger.info(f"S3StorageService: Cleaned up and deleted temporary file: {local_path}")
             except Exception as e:
                 logger.warning(f"S3StorageService: Failed to delete temporary file {local_path}: {e}")
+
+    def verify_connection(self) -> None:
+        import boto3
+        logger.info(f"S3StorageService: Verifying connection to S3 bucket '{self._bucket}'...")
+        
+        s3 = boto3.client(
+            "s3",
+            aws_access_key_id=self._access_key,
+            aws_secret_access_key=self._secret_key,
+            endpoint_url=self._endpoint_url,
+            region_name=self._region_name,
+        )
+        
+        # Test credentials and connection by listing up to 1 key
+        s3.list_objects_v2(Bucket=self._bucket, MaxKeys=1)
+        logger.info("S3StorageService: Connection verified successfully!")
 
 
 def get_storage_service_from_env() -> BaseStorageService:

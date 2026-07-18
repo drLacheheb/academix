@@ -36,6 +36,7 @@ services:
       - API_URL=http://api:8000
       - API_TOKEN=${API_TOKEN:-dev_token}
       - MAX_PAGES=${MAX_PAGES:-5}
+      - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
       - CRAWL_INTERVAL=${CRAWL_INTERVAL:-3600}
     restart: unless-stopped
@@ -51,6 +52,7 @@ services:
       - API_URL=http://api:8000
       - API_TOKEN=${API_TOKEN:-dev_token}
       - MAX_PAGES=${MAX_PAGES:-5}
+      - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
       - CRAWL_INTERVAL=${CRAWL_INTERVAL:-3600}
     restart: unless-stopped

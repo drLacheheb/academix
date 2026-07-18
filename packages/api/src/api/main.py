@@ -42,6 +42,17 @@ async def lifespan(app: FastAPI):
             logger.warning(f"Alembic config not found at {ini_path}, skipping migrations.")
     except Exception as e:
         logger.error(f"Failed to run database migrations: {e}")
+
+    logger.info("Verifying storage backend connection...")
+    try:
+        from api.dependencies import get_storage_service
+        storage = get_storage_service()
+        storage.verify_connection()
+        logger.info("Storage backend connection verified successfully.")
+    except Exception as e:
+        logger.critical(f"Failed to verify storage connection backend: {e}")
+        raise RuntimeError(f"FastAPI startup aborted due to storage verification failure: {e}") from e
+
     yield
 
 

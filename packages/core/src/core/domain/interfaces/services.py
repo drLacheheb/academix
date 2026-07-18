@@ -77,3 +77,8 @@ class BaseStorageService(ABC):
     def clean_up(self, local_path: str) -> None:
         """Cleans up the local path if it was a temporary file."""
         pass
+
+    @abstractmethod
+    def verify_connection(self) -> None:
+        """Validates connection to the storage provider backend."""
+        pass

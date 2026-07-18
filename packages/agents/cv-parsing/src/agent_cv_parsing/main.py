@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import gc
 import json
 import httpx
 from dotenv import load_dotenv
@@ -267,6 +268,8 @@ def process_ingestion_task(client: httpx.Client) -> bool:
                 storage_service.clean_up(local_file_path)
             except Exception as cleanup_err:
                 logger.warning(f"[{profile_id}] Failed to clean up temp file {local_file_path}: {cleanup_err}")
+        # Force garbage collection to free model weights and layouter caches immediately
+        gc.collect()
 
     return True
 

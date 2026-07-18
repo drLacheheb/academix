@@ -123,14 +123,22 @@ class ConcreteDiscovery(BaseDiscovery):
         self.logger = logging.getLogger(f"agent.{self.SOURCE_NAME.lower().replace(' ', '-')}-discovery")
 
     def search_all(self, known_urls: set[str], checkpoint_url: str | None = None) -> list[Job]:
+        import os
         all_jobs: list[Job] = []
         page = self._start_page()
         max_pages = self._max_pages()
+        max_safety_pages = int(os.environ.get("MAX_SAFETY_PAGES", "500"))
 
         self.logger.info(f"Starting broad search on {self.SOURCE_NAME} (sorting: newest first)...")
 
         infinite = (max_pages <= 0)
         while infinite or (page < max_pages):
+            if infinite and page > max_safety_pages:
+                self.logger.warning(
+                    f"Safety circuit breaker triggered: reached max depth of {max_safety_pages} pages."
+                )
+                break
+
             url = self._build_browse_url(page)
             raw = self._http.fetch(url)
             if not raw:
