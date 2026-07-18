@@ -87,7 +87,7 @@ def process_ingestion_task(client: httpx.Client) -> bool:
             raise FileNotFoundError(f"Resolved file path {local_file_path} not found on disk.")
     except Exception as e:
         error_msg = f"Failed to retrieve CV file path for {file_path}: {e}"
-        logger.error(error_msg)
+        logger.error(error_msg, exc_info=True)
         try:
             client.put(
                 f"/profiles/fail-ingest/{profile_id}", json={"error_message": error_msg}

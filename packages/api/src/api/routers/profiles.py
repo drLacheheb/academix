@@ -77,7 +77,7 @@ async def upload_cv(
         )
         return saved_profile.to_dict()
     except Exception as e:
-        logger.error(f"Error registering CV ingestion: {e}")
+        logger.error("Error registering CV ingestion", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Failed to register CV ingestion task: {str(e)}"
         )
