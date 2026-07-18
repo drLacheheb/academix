@@ -1,26 +1,35 @@
 import json
-import re
+from bs4 import BeautifulSoup
 
 from core.domain.models.schemas import JobDetailUpdate
-from core.infrastructure.scrapers.base import clean_html, extract_requirements_from_text, ConcreteSourcing
+from core.infrastructure.scrapers.base import (
+    clean_html,
+    extract_requirements_from_text,
+    ConcreteSourcing,
+)
 
 
 class AcademicTransferSourcing(ConcreteSourcing):
     SOURCE_NAME = "AcademicTransfer"
 
     def _parse_detail_page(self, html_content: str, url: str) -> JobDetailUpdate:
-        h2_matches = list(
-            re.finditer(r"<h2[^>]*>(.*?)</h2>", html_content, re.DOTALL | re.IGNORECASE)
-        )
-        sections: dict[str, str] = {}
-        for idx, m in enumerate(h2_matches):
-            heading = re.sub(r"<!--.*?-->", "", m.group(1)).strip().lower()
-            next_pos = (
-                h2_matches[idx + 1].start()
-                if idx + 1 < len(h2_matches)
-                else len(html_content)
-            )
-            sections[heading] = clean_html(html_content[m.end() : next_pos])
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # 1. Parse headings and sections
+        sections = {}
+        for h2 in soup.find_all("h2"):
+            heading = h2.get_text(strip=True).lower()
+            sibling_content = []
+            for sibling in h2.next_siblings:
+                if sibling.name == "h2":
+                    break
+                if sibling.name:
+                    sibling_content.append(sibling.get_text(strip=True))
+                elif isinstance(sibling, str):
+                    text = sibling.strip()
+                    if text:
+                        sibling_content.append(text)
+            sections[heading] = clean_html(" ".join(sibling_content))
 
         def find_section(keywords: list[str]) -> str | None:
             for heading, content in sections.items():
@@ -51,14 +60,10 @@ class AcademicTransferSourcing(ConcreteSourcing):
         employer = None
         location = None
 
-        json_ld_blocks = re.findall(
-            r'<script type="application/ld\+json">(.*?)</script>',
-            html_content,
-            re.DOTALL,
-        )
-        for block in json_ld_blocks:
+        # 2. Extract structured JSON-LD block
+        for script in soup.find_all("script", type="application/ld+json"):
             try:
-                data = json.loads(block.strip())
+                data = json.loads(script.get_text().strip())
                 posting = None
                 if data.get("@type") == "JobPosting":
                     posting = data
@@ -99,14 +104,26 @@ class AcademicTransferSourcing(ConcreteSourcing):
         if not requirements and description:
             requirements = extract_requirements_from_text(description)
 
-        # Extract sidebar metadata
+        # 3. Extract sidebar metadata using p tag sibling matches
         metadata = []
-        for field in ["Education level", "Weekly hours", "Research fields", "Job types"]:
-            pattern = rf'{field}</p>\s*(?:<!--.*?-->)?\s*<p[^>]*>(.*?)</p>'
-            m = re.search(pattern, html_content, re.DOTALL | re.IGNORECASE)
-            if m:
-                val = re.sub(r'<[^>]+>', '', m.group(1)).strip()
-                metadata.append(f"{field}: {val}")
+        for field in [
+            "Education level",
+            "Weekly hours",
+            "Research fields",
+            "Job types",
+        ]:
+            p_label = soup.find(
+                lambda tag: (
+                    tag.name == "p"
+                    and tag.get_text(strip=True).lower() == field.lower()
+                )
+            )
+            if p_label:
+                # Get next paragraph sibling
+                p_val = p_label.find_next("p")
+                if p_val:
+                    val = p_val.get_text(strip=True)
+                    metadata.append(f"{field}: {val}")
 
         if metadata:
             metadata_text = "\n".join(metadata)

@@ -1,6 +1,5 @@
-import html
 import re
-
+from bs4 import BeautifulSoup
 from core.domain.models.job import Job
 from core.infrastructure.scrapers.base import ConcreteDiscovery
 
@@ -15,19 +14,16 @@ class EuraxessDiscovery(ConcreteDiscovery):
         return 0
 
     def _parse_search_page(self, html_content: str) -> list[Job]:
+        soup = BeautifulSoup(html_content, "html.parser")
         jobs: list[Job] = []
-        matches = re.finditer(
-            r'<a\s+href="(/jobs/\d+)"[^>]*>\s*<span>(.*?)</span>\s*</a>',
-            html_content,
-            re.DOTALL,
-        )
-        for m in matches:
-            link = "https://euraxess.ec.europa.eu" + m.group(1)
-            title = html.unescape(m.group(2).strip())
-            jobs.append(
-                Job(title=title, url=link, source=self.SOURCE_NAME)
-            )
+        for a in soup.find_all("a", href=re.compile(r"^/jobs/\d+$")):
+            span = a.find("span")
+            if span:
+                title = span.get_text(strip=True)
+                link = "https://euraxess.ec.europa.eu" + a["href"]
+                jobs.append(
+                    Job(title=title, url=link, source=self.SOURCE_NAME)
+                )
 
         self.logger.info(f"  -> Found {len(jobs)} listings")
         return jobs
-

@@ -1,5 +1,4 @@
-import re
-
+from bs4 import BeautifulSoup
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.scrapers.base import clean_html, extract_requirements_from_text, ConcreteSourcing
 
@@ -8,51 +7,38 @@ class EuraxessSourcing(ConcreteSourcing):
     SOURCE_NAME = "EURAXESS"
 
     def _parse_detail_page(self, html_content: str, url: str) -> JobDetailUpdate:
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        # 1. Map all definition list elements
+        metadata = {}
+        for dt in soup.find_all("dt"):
+            dd = dt.find_next_sibling("dd")
+            if dd:
+                key = dt.get_text(strip=True).lower()
+                metadata[key] = dd
+
+        # Extract Application Deadline
         deadline = None
-        deadline_match = re.search(
-            r"<dt[^>]*>Application Deadline</dt>\s*<dd[^>]*>.*?<time\s+datetime=\"([^\"]+)\"",
-            html_content,
-            re.DOTALL | re.IGNORECASE,
-        )
-        if deadline_match:
-            deadline = deadline_match.group(1).split("T")[0]
-        else:
-            fallback = re.search(
-                r"<dt[^>]*>Application Deadline</dt>\s*<dd[^>]*>(.*?)</dd>",
-                html_content,
-                re.DOTALL | re.IGNORECASE,
-            )
-            if fallback:
-                deadline = clean_html(fallback.group(1))
+        deadline_dd = metadata.get("application deadline")
+        if deadline_dd:
+            time_tag = deadline_dd.find("time")
+            if time_tag and time_tag.get("datetime"):
+                deadline = time_tag["datetime"].split("T")[0]
+            else:
+                deadline = clean_html(deadline_dd.get_text(strip=True))
 
+        # Extract Organisation/Company
         employer = None
-        employer_match = re.search(
-            r"<dt[^>]*>Organisation/Company</dt>\s*<dd[^>]*>\s*<div>(.*?)</div>",
-            html_content,
-            re.DOTALL | re.IGNORECASE,
-        )
-        if not employer_match:
-            employer_match = re.search(
-                r"<dt[^>]*>Company/Institute</dt>\s*<dd[^>]*>(.*?)</dd>",
-                html_content,
-                re.DOTALL | re.IGNORECASE,
-            )
-        if employer_match:
-            employer = clean_html(employer_match.group(1))
+        employer_dd = metadata.get("organisation/company") or metadata.get("company/institute")
+        if employer_dd:
+            employer = clean_html(employer_dd.get_text(strip=True))
 
-        country_match = re.search(
-            r"<dt[^>]*>Country</dt>\s*<dd[^>]*>(.*?)</dd>",
-            html_content,
-            re.DOTALL | re.IGNORECASE,
-        )
-        city_match = re.search(
-            r"<dt[^>]*>City</dt>\s*<dd[^>]*>(.*?)</dd>",
-            html_content,
-            re.DOTALL | re.IGNORECASE,
-        )
+        # Extract Country and City
+        country_dd = metadata.get("country")
+        city_dd = metadata.get("city")
 
-        country = clean_html(country_match.group(1)) if country_match else None
-        city = clean_html(city_match.group(1)) if city_match else None
+        country = clean_html(country_dd.get_text(strip=True)) if country_dd else None
+        city = clean_html(city_dd.get_text(strip=True)) if city_dd else None
 
         location = None
         if city and country:
@@ -62,25 +48,22 @@ class EuraxessSourcing(ConcreteSourcing):
         elif city:
             location = city
 
+        # 2. Extract sections dynamically using H2 headers siblings
         def extract_section(start_id: str, end_ids: list[str]) -> str | None:
-            start = re.search(
-                r'<h2[^>]*id="' + re.escape(start_id) + r'"[^>]*>.*?</h2>',
-                html_content,
-                re.IGNORECASE | re.DOTALL,
-            )
-            if not start:
+            h2_start = soup.find("h2", id=start_id)
+            if not h2_start:
                 return None
-            start_pos = start.end()
-            end_pos = len(html_content)
-            for eid in end_ids:
-                end = re.search(
-                    r'<h2[^>]*id="' + re.escape(eid) + r'"[^>]*>',
-                    html_content,
-                    re.IGNORECASE | re.DOTALL,
-                )
-                if end:
-                    end_pos = min(end_pos, end.start())
-            return clean_html(html_content[start_pos:end_pos])
+            sibling_content = []
+            for sibling in h2_start.next_siblings:
+                if sibling.name == "h2" and sibling.get("id") in end_ids:
+                    break
+                if sibling.name:
+                    sibling_content.append(sibling.get_text(strip=True))
+                elif isinstance(sibling, str):
+                    text = sibling.strip()
+                    if text:
+                        sibling_content.append(text)
+            return clean_html(" ".join(sibling_content))
 
         description = extract_section(
             "offer-description",
