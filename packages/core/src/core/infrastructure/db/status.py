@@ -2,7 +2,7 @@ from sqlalchemy.orm import sessionmaker
 
 from core.domain.interfaces.db import BaseStatusQueryRepository
 from core.domain.constants import JobStatus
-from core.infrastructure.db.models import JobModel
+from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
 class StatusQueryRepository(BaseStatusQueryRepository):
@@ -20,77 +20,78 @@ class StatusQueryRepository(BaseStatusQueryRepository):
             # Detection stats
             pending_detect = (
                 session.query(JobModel)
+                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
                     JobModel.description.isnot(None),
-                    JobModel.detection_status == JobStatus.PENDING,
+                    JobOrchestrationModel.detection_status == JobStatus.PENDING,
                 )
                 .count()
             )
             claimed_detect = (
-                session.query(JobModel)
-                .filter(JobModel.detection_status == JobStatus.CLAIMED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.detection_status == JobStatus.CLAIMED)
                 .count()
             )
             completed_detect = (
-                session.query(JobModel)
-                .filter(JobModel.detection_status == JobStatus.COMPLETED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.detection_status == JobStatus.COMPLETED)
                 .count()
             )
             failed_detect = (
-                session.query(JobModel)
-                .filter(JobModel.detection_status == JobStatus.FAILED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.detection_status == JobStatus.FAILED)
                 .count()
             )
 
             # Translation stats
             pending_translate = (
-                session.query(JobModel)
-                .filter(JobModel.translation_status == JobStatus.PENDING)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.translation_status == JobStatus.PENDING)
                 .count()
             )
             claimed_translate = (
-                session.query(JobModel)
-                .filter(JobModel.translation_status == JobStatus.CLAIMED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.translation_status == JobStatus.CLAIMED)
                 .count()
             )
             completed_translate = (
-                session.query(JobModel)
-                .filter(JobModel.translation_status == JobStatus.COMPLETED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.translation_status == JobStatus.COMPLETED)
                 .count()
             )
             skipped_translate = (
-                session.query(JobModel)
-                .filter(JobModel.translation_status == JobStatus.SKIPPED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.translation_status == JobStatus.SKIPPED)
                 .count()
             )
             failed_translate = (
-                session.query(JobModel)
-                .filter(JobModel.translation_status == JobStatus.FAILED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.translation_status == JobStatus.FAILED)
                 .count()
             )
 
             # Refinement stats
             pending_refine = (
-                session.query(JobModel)
+                session.query(JobOrchestrationModel)
                 .filter(
-                    JobModel.refinement_status == JobStatus.PENDING,
-                    JobModel.translation_status.in_([JobStatus.COMPLETED, JobStatus.SKIPPED]),
+                    JobOrchestrationModel.refinement_status == JobStatus.PENDING,
+                    JobOrchestrationModel.translation_status.in_([JobStatus.COMPLETED, JobStatus.SKIPPED]),
                 )
                 .count()
             )
             claimed_refine = (
-                session.query(JobModel)
-                .filter(JobModel.refinement_status == JobStatus.CLAIMED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.refinement_status == JobStatus.CLAIMED)
                 .count()
             )
             completed_refine = (
-                session.query(JobModel)
-                .filter(JobModel.refinement_status == JobStatus.COMPLETED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.refinement_status == JobStatus.COMPLETED)
                 .count()
             )
             failed_refine = (
-                session.query(JobModel)
-                .filter(JobModel.refinement_status == JobStatus.FAILED)
+                session.query(JobOrchestrationModel)
+                .filter(JobOrchestrationModel.refinement_status == JobStatus.FAILED)
                 .count()
             )
 

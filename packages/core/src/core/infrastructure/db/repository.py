@@ -24,7 +24,8 @@ class DatabaseJobRepository(BaseJobRepository):
         )
 
     def init_db(self) -> None:
-        pass
+        from core.infrastructure.db.models import Base
+        Base.metadata.create_all(self._engine)
 
     def load(self) -> list[Job]:
         session = self._SessionLocal()
@@ -59,7 +60,21 @@ class DatabaseJobRepository(BaseJobRepository):
             session.close()
 
     def _upsert_in_session(self, session, job: Job) -> None:
+        from core.infrastructure.db.models import JobOrchestrationModel
+        
         existing = session.query(JobModel).filter(JobModel.url == job.url).first()
+        existing_orchestrator = session.query(JobOrchestrationModel).filter(JobOrchestrationModel.job_url == job.url).first()
+        
+        if not existing_orchestrator:
+            ref_status = JobStatus.COMPLETED if job.required_skills is not None else JobStatus.PENDING
+            existing_orchestrator = JobOrchestrationModel(
+                job_url=job.url,
+                detection_status=JobStatus.PENDING,
+                translation_status=JobStatus.PENDING,
+                refinement_status=ref_status
+            )
+            session.add(existing_orchestrator)
+
         if existing:
             existing.title = strip_accents(job.title)
             existing.source = job.source
@@ -76,7 +91,7 @@ class DatabaseJobRepository(BaseJobRepository):
             if job.required_skills is not None:
                 clean_skills = [strip_accents(s) for s in job.required_skills if s]
                 existing.required_skills = json.dumps(clean_skills)
-                existing.refinement_status = JobStatus.COMPLETED
+                existing_orchestrator.refinement_status = JobStatus.COMPLETED
             if job.education_level is not None:
                 existing.education_level = strip_accents(job.education_level)
             if job.city is not None:
@@ -153,5 +168,19 @@ class DatabaseJobRepository(BaseJobRepository):
         except Exception:
             session.rollback()
             raise
+        finally:
+            session.close()
+
+    def get_refined_jobs(self) -> list[Job]:
+        from core.infrastructure.db.models import JobOrchestrationModel
+        session = self._SessionLocal()
+        try:
+            models = (
+                session.query(JobModel)
+                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
+                .filter(JobOrchestrationModel.refinement_status == JobStatus.COMPLETED)
+                .all()
+            )
+            return [m.to_domain() for m in models]
         finally:
             session.close()

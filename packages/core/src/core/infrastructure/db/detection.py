@@ -4,7 +4,7 @@ from sqlalchemy import update
 from core.domain.interfaces.db import BaseDetectionRepository
 from core.domain.models.job import Job
 from core.domain.constants import JobStatus
-from core.infrastructure.db.models import JobModel
+from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
 class LanguageDetectionRepository(BaseDetectionRepository):
@@ -16,10 +16,10 @@ class LanguageDetectionRepository(BaseDetectionRepository):
         try:
             # Recover stale claims for detection specifically
             session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.detection_status == JobStatus.CLAIMED,
-                    JobModel.detection_claimed_at < stale_cutoff,
+                    JobOrchestrationModel.detection_status == JobStatus.CLAIMED,
+                    JobOrchestrationModel.detection_claimed_at < stale_cutoff,
                 )
                 .values(
                     detection_status=JobStatus.PENDING,
@@ -30,9 +30,10 @@ class LanguageDetectionRepository(BaseDetectionRepository):
 
             candidate = (
                 session.query(JobModel)
+                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
                     JobModel.description.isnot(None),
-                    JobModel.detection_status == JobStatus.PENDING,
+                    JobOrchestrationModel.detection_status == JobStatus.PENDING,
                 )
                 .first()
             )
@@ -41,10 +42,10 @@ class LanguageDetectionRepository(BaseDetectionRepository):
                 return None
 
             result = session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.id == candidate.id,
-                    JobModel.detection_status == JobStatus.PENDING,
+                    JobOrchestrationModel.job_url == candidate.url,
+                    JobOrchestrationModel.detection_status == JobStatus.PENDING,
                 )
                 .values(
                     detection_status=JobStatus.CLAIMED,
@@ -66,14 +67,20 @@ class LanguageDetectionRepository(BaseDetectionRepository):
     def complete(self, url: str, language_code: str) -> None:
         session = self._SessionLocal()
         try:
+            # Update job language code
+            session.execute(
+                update(JobModel)
+                .where(JobModel.url == url)
+                .values(language_code=language_code)
+            )
+            # Update orchestration statuses
             translation_status = (
                 JobStatus.SKIPPED if language_code == "en" else JobStatus.PENDING
             )
             session.execute(
-                update(JobModel)
-                .where(JobModel.url == url)
+                update(JobOrchestrationModel)
+                .where(JobOrchestrationModel.job_url == url)
                 .values(
-                    language_code=language_code,
                     detection_status=JobStatus.COMPLETED,
                     detection_claimed_by=None,
                     detection_claimed_at=None,
@@ -91,8 +98,8 @@ class LanguageDetectionRepository(BaseDetectionRepository):
         session = self._SessionLocal()
         try:
             session.execute(
-                update(JobModel)
-                .where(JobModel.url == url)
+                update(JobOrchestrationModel)
+                .where(JobOrchestrationModel.job_url == url)
                 .values(
                     detection_status=JobStatus.FAILED,
                     detection_claimed_by=None,
@@ -110,10 +117,10 @@ class LanguageDetectionRepository(BaseDetectionRepository):
         session = self._SessionLocal()
         try:
             result = session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.detection_status == JobStatus.CLAIMED,
-                    JobModel.detection_claimed_at < stale_cutoff,
+                    JobOrchestrationModel.detection_status == JobStatus.CLAIMED,
+                    JobOrchestrationModel.detection_claimed_at < stale_cutoff,
                 )
                 .values(
                     detection_status=JobStatus.PENDING,

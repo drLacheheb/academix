@@ -5,7 +5,7 @@ from sqlalchemy import update
 from core.domain.interfaces.db import BaseTranslationRepository
 from core.domain.models.job import Job
 from core.domain.constants import JobStatus
-from core.infrastructure.db.models import JobModel
+from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
 class TranslationRepository(BaseTranslationRepository):
@@ -17,10 +17,10 @@ class TranslationRepository(BaseTranslationRepository):
         try:
             # Recover stale claims for translation specifically
             session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.translation_status == JobStatus.CLAIMED,
-                    JobModel.translation_claimed_at < stale_cutoff,
+                    JobOrchestrationModel.translation_status == JobStatus.CLAIMED,
+                    JobOrchestrationModel.translation_claimed_at < stale_cutoff,
                 )
                 .values(
                     translation_status=JobStatus.PENDING,
@@ -31,8 +31,9 @@ class TranslationRepository(BaseTranslationRepository):
 
             candidate = (
                 session.query(JobModel)
+                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
-                    JobModel.translation_status == JobStatus.PENDING,
+                    JobOrchestrationModel.translation_status == JobStatus.PENDING,
                 )
                 .first()
             )
@@ -41,10 +42,10 @@ class TranslationRepository(BaseTranslationRepository):
                 return None
 
             result = session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.id == candidate.id,
-                    JobModel.translation_status == JobStatus.PENDING,
+                    JobOrchestrationModel.job_url == candidate.url,
+                    JobOrchestrationModel.translation_status == JobStatus.PENDING,
                 )
                 .values(
                     translation_status=JobStatus.CLAIMED,
@@ -71,12 +72,20 @@ class TranslationRepository(BaseTranslationRepository):
     ) -> None:
         session = self._SessionLocal()
         try:
+            # Update job EN text values
             session.execute(
                 update(JobModel)
                 .where(JobModel.url == url)
                 .values(
                     description_en=strip_accents(description_en),
                     requirements_en=strip_accents(requirements_en),
+                )
+            )
+            # Update translation orchestration status
+            session.execute(
+                update(JobOrchestrationModel)
+                .where(JobOrchestrationModel.job_url == url)
+                .values(
                     translation_status=JobStatus.COMPLETED,
                     translation_claimed_by=None,
                     translation_claimed_at=None,
@@ -93,8 +102,8 @@ class TranslationRepository(BaseTranslationRepository):
         session = self._SessionLocal()
         try:
             session.execute(
-                update(JobModel)
-                .where(JobModel.url == url)
+                update(JobOrchestrationModel)
+                .where(JobOrchestrationModel.job_url == url)
                 .values(
                     translation_status=JobStatus.FAILED,
                     translation_claimed_by=None,
@@ -112,10 +121,10 @@ class TranslationRepository(BaseTranslationRepository):
         session = self._SessionLocal()
         try:
             result = session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.translation_status == JobStatus.CLAIMED,
-                    JobModel.translation_claimed_at < stale_cutoff,
+                    JobOrchestrationModel.translation_status == JobStatus.CLAIMED,
+                    JobOrchestrationModel.translation_claimed_at < stale_cutoff,
                 )
                 .values(
                     translation_status=JobStatus.PENDING,

@@ -4,24 +4,26 @@ from datetime import datetime, timezone
 from sqlalchemy import update
 
 from core.domain.interfaces.db import BaseRefinementRepository
+from core.domain.interfaces.services import BaseEmbeddingService
 from core.domain.models.job import Job
 from core.domain.constants import JobStatus
-from core.infrastructure.db.models import JobModel
+from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
 class RefinementRepository(BaseRefinementRepository):
-    def __init__(self, session_factory):
+    def __init__(self, session_factory, embedding_service: BaseEmbeddingService):
         self._SessionLocal = session_factory
+        self._embedding_service = embedding_service
 
     def claim_next(self, agent_name: str, stale_cutoff: datetime) -> Job | None:
         session = self._SessionLocal()
         try:
             # Recover stale claims for refinement specifically
             session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.refinement_status == JobStatus.CLAIMED,
-                    JobModel.claimed_at < stale_cutoff,
+                    JobOrchestrationModel.refinement_status == JobStatus.CLAIMED,
+                    JobOrchestrationModel.claimed_at < stale_cutoff,
                 )
                 .values(
                     refinement_status=JobStatus.PENDING,
@@ -32,10 +34,11 @@ class RefinementRepository(BaseRefinementRepository):
 
             candidate = (
                 session.query(JobModel)
+                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
                     JobModel.description.isnot(None),
-                    JobModel.refinement_status == JobStatus.PENDING,
-                    JobModel.translation_status.in_([JobStatus.COMPLETED, JobStatus.SKIPPED]),
+                    JobOrchestrationModel.refinement_status == JobStatus.PENDING,
+                    JobOrchestrationModel.translation_status.in_([JobStatus.COMPLETED, JobStatus.SKIPPED]),
                 )
                 .first()
             )
@@ -44,10 +47,10 @@ class RefinementRepository(BaseRefinementRepository):
                 return None
 
             result = session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.id == candidate.id,
-                    JobModel.refinement_status == JobStatus.PENDING,
+                    JobOrchestrationModel.job_url == candidate.url,
+                    JobOrchestrationModel.refinement_status == JobStatus.PENDING,
                 )
                 .values(
                     refinement_status=JobStatus.CLAIMED,
@@ -76,11 +79,23 @@ class RefinementRepository(BaseRefinementRepository):
     ) -> None:
         session = self._SessionLocal()
         try:
+            job_model = session.query(JobModel).filter(JobModel.url == url).first()
+            if not job_model:
+                raise ValueError(f"Job not found for url: {url}")
+
+            # Compute embeddings using injected embedding service
+            skill_emb = self._embedding_service.encode_skills(required_skills)
+            research_emb = self._embedding_service.encode_research(
+                interests=required_skills,
+                title=job_model.title,
+            )
+
             skills_str = (
                 json.dumps([strip_accents(s) for s in required_skills if s])
                 if required_skills is not None
                 else None
             )
+            # Update job metadata
             session.execute(
                 update(JobModel)
                 .where(JobModel.url == url)
@@ -89,6 +104,15 @@ class RefinementRepository(BaseRefinementRepository):
                     education_level=strip_accents(education_level),
                     city=strip_accents(city),
                     country=strip_accents(country),
+                    skill_embedding=json.dumps(skill_emb) if skill_emb is not None else None,
+                    research_embedding=json.dumps(research_emb) if research_emb is not None else None,
+                )
+            )
+            # Update refinement orchestration statuses
+            session.execute(
+                update(JobOrchestrationModel)
+                .where(JobOrchestrationModel.job_url == url)
+                .values(
                     refinement_status=JobStatus.COMPLETED,
                     claimed_by=None,
                     claimed_at=None,
@@ -105,8 +129,8 @@ class RefinementRepository(BaseRefinementRepository):
         session = self._SessionLocal()
         try:
             session.execute(
-                update(JobModel)
-                .where(JobModel.url == url)
+                update(JobOrchestrationModel)
+                .where(JobOrchestrationModel.job_url == url)
                 .values(
                     refinement_status=JobStatus.FAILED,
                     claimed_by=None,
@@ -124,10 +148,10 @@ class RefinementRepository(BaseRefinementRepository):
         session = self._SessionLocal()
         try:
             result = session.execute(
-                update(JobModel)
+                update(JobOrchestrationModel)
                 .where(
-                    JobModel.refinement_status == JobStatus.CLAIMED,
-                    JobModel.claimed_at < stale_cutoff,
+                    JobOrchestrationModel.refinement_status == JobStatus.CLAIMED,
+                    JobOrchestrationModel.claimed_at < stale_cutoff,
                 )
                 .values(
                     refinement_status=JobStatus.PENDING,
