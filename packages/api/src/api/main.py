@@ -13,7 +13,7 @@ except Exception:
     pass
 
 from api.limiter_config import limiter
-from api.routers import status, jobs, detection, translation, refinement, profiles
+from api.routers import status, jobs, detection, translation, refinement, profiles, matching
 
 logger = logging.getLogger("api.main")
 
@@ -66,3 +66,4 @@ app.include_router(detection.router)
 app.include_router(translation.router)
 app.include_router(refinement.router)
 app.include_router(profiles.router)
+app.include_router(matching.router)
