@@ -1,30 +1,13 @@
 import argparse
 import os
 import time
-import httpx
 from dotenv import load_dotenv
 
 from core.infrastructure.logging.logger import get_logger
+from core.utils.api import make_api_client
 from agent_lang_detection.detector import LanguageDetector
 
 load_dotenv()
-
-
-def get_config() -> dict:
-    api_url = os.environ.get("API_URL", "http://localhost:8000")
-    api_token = os.environ.get("API_TOKEN", "")
-    return {
-        "api_url": api_url,
-        "api_token": api_token,
-    }
-
-
-def make_api_client(config: dict) -> httpx.Client:
-    return httpx.Client(
-        base_url=config["api_url"],
-        headers={"Authorization": f"Bearer {config['api_token']}"},
-        timeout=60.0,
-    )
 
 
 def run():
@@ -38,12 +21,11 @@ def run():
     args = parser.parse_args()
 
     logger = get_logger(args.name)
-    config = get_config()
 
     logger.info(f"Starting Language Detection Agent (name: {args.name})")
 
     detector = LanguageDetector()
-    api = make_api_client(config)
+    api = make_api_client(timeout=60.0)
 
     try:
         while True:

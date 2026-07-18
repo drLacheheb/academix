@@ -1,9 +1,9 @@
 import os
-import httpx
 from dotenv import load_dotenv
 
 from core.infrastructure.http.http_client import HttpClient
 from core.infrastructure.logging.logger import get_logger
+from core.utils.api import make_api_client
 from euraxess_discovery.scraper import EuraxessDiscovery
 
 load_dotenv()
@@ -18,17 +18,9 @@ def get_config() -> dict:
     return {"api_url": api_url, "api_token": api_token, "max_pages": max_pages}
 
 
-def make_api_client(config: dict) -> httpx.Client:
-    return httpx.Client(
-        base_url=config["api_url"],
-        headers={"Authorization": f"Bearer {config['api_token']}"},
-        timeout=30.0,
-    )
-
-
 def run():
     config = get_config()
-    api = make_api_client(config)
+    api = make_api_client(timeout=30.0)
 
     http = HttpClient()
     scraper = EuraxessDiscovery(http, max_pages=config["max_pages"])

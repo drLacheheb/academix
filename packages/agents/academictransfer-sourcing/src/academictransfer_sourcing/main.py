@@ -1,9 +1,8 @@
-import os
-import httpx
 from dotenv import load_dotenv
 
 from core.infrastructure.http.http_client import HttpClient
 from core.infrastructure.logging.logger import get_logger
+from core.utils.api import make_api_client
 from academictransfer_sourcing.scraper import AcademicTransferSourcing
 
 load_dotenv()
@@ -11,23 +10,8 @@ load_dotenv()
 logger = get_logger("academictransfer-sourcing")
 
 
-def get_config() -> dict:
-    api_url = os.environ.get("API_URL", "http://localhost:8000")
-    api_token = os.environ.get("API_TOKEN", "")
-    return {"api_url": api_url, "api_token": api_token}
-
-
-def make_api_client(config: dict) -> httpx.Client:
-    return httpx.Client(
-        base_url=config["api_url"],
-        headers={"Authorization": f"Bearer {config['api_token']}"},
-        timeout=30.0,
-    )
-
-
 def run():
-    config = get_config()
-    api = make_api_client(config)
+    api = make_api_client(timeout=30.0)
 
     http = HttpClient()
     scraper = AcademicTransferSourcing(http)

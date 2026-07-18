@@ -2,18 +2,16 @@ import argparse
 import os
 import sys
 import time
-import httpx
 from dotenv import load_dotenv
 
 from core.infrastructure.logging.logger import get_logger
+from core.utils.api import make_api_client
 from agent_refinement.llm_refiner import LlmRefiner
 
 load_dotenv()
 
 
 def get_config() -> dict:
-    api_url = os.environ.get("API_URL", "http://localhost:8000")
-    api_token = os.environ.get("API_TOKEN", "")
     model_path = os.environ.get(
         "MODEL_PATH",
         "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf",
@@ -23,22 +21,12 @@ def get_config() -> dict:
     temperature = float(os.environ.get("TEMPERATURE", "0.0"))
     max_text_chars = int(os.environ.get("MAX_TEXT_CHARS", "3000"))
     return {
-        "api_url": api_url,
-        "api_token": api_token,
         "model_path": model_path,
         "models_dir": models_dir,
         "max_length": max_length,
         "temperature": temperature,
         "max_text_chars": max_text_chars,
     }
-
-
-def make_api_client(config: dict) -> httpx.Client:
-    return httpx.Client(
-        base_url=config["api_url"],
-        headers={"Authorization": f"Bearer {config['api_token']}"},
-        timeout=60.0,
-    )
 
 
 def run():
@@ -64,7 +52,7 @@ def run():
         max_text_chars=config["max_text_chars"],
     )
 
-    api = make_api_client(config)
+    api = make_api_client(timeout=60.0)
 
     try:
         while True:
