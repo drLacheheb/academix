@@ -151,8 +151,8 @@ class CandidateProfileModel(Base):
     __tablename__ = "candidate_profiles"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=True)
+    email = Column(String, unique=True, index=True, nullable=True)
     cv_file_path = Column(String, nullable=True)
     raw_text = Column(Text, nullable=True)
     highest_degree = Column(String, nullable=True)
@@ -167,6 +167,10 @@ class CandidateProfileModel(Base):
     research_interests = Column(Text, nullable=True)  # JSON array of strings
     skill_embedding = Column(Text, nullable=True)  # JSON array of 256 floats
     research_embedding = Column(Text, nullable=True)  # JSON array of 256 floats
+    status = Column(String, nullable=False, default="INGESTING", index=True)
+    status_message = Column(String, nullable=True)
+    claimed_by = Column(String, nullable=True)
+    claimed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(
         DateTime, default=func.now(), onupdate=func.now(), nullable=False
@@ -195,6 +199,10 @@ class CandidateProfileModel(Base):
             research_embedding=json.loads(self.research_embedding)
             if self.research_embedding
             else None,
+            status=self.status,
+            status_message=self.status_message,
+            claimed_by=self.claimed_by,
+            claimed_at=self.claimed_at,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
@@ -203,11 +211,11 @@ class CandidateProfileModel(Base):
     def from_domain(cls, profile: CandidateProfile) -> "CandidateProfileModel":
         return cls(
             id=profile.id,
-            name=strip_accents(profile.name),
+            name=strip_accents(profile.name) if profile.name else None,
             email=profile.email,
             cv_file_path=profile.cv_file_path,
             raw_text=profile.raw_text,
-            highest_degree=strip_accents(profile.highest_degree),
+            highest_degree=strip_accents(profile.highest_degree) if profile.highest_degree else None,
             skills=json.dumps([strip_accents(s) for s in profile.skills if s])
             if profile.skills is not None
             else None,
@@ -254,6 +262,10 @@ class CandidateProfileModel(Base):
             research_embedding=json.dumps(profile.research_embedding)
             if profile.research_embedding is not None
             else None,
+            status=profile.status,
+            status_message=profile.status_message,
+            claimed_by=profile.claimed_by,
+            claimed_at=profile.claimed_at,
         )
 
 

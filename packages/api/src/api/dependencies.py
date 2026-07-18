@@ -17,6 +17,9 @@ from core.usecases import (
     GetPendingDetailsUseCase,
     IngestCandidateProfileUseCase,
     GetCandidateProfileUseCase,
+    ClaimIngestionUseCase,
+    CompleteIngestionUseCase,
+    FailIngestionUseCase,
     ClaimMatchingTaskUseCase,
     SubmitTaskMatchesUseCase,
     FailMatchingTaskUseCase,
@@ -240,4 +243,22 @@ def update_crawler_checkpoint_usecase(
 ):
     from core.usecases.jobs import UpdateCrawlerCheckpointUseCase
     return UpdateCrawlerCheckpointUseCase(repo.jobs)
+
+
+def get_claim_ingestion_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimIngestionUseCase:
+    return ClaimIngestionUseCase(repo.profiles)
+
+
+def get_complete_ingestion_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteIngestionUseCase:
+    return CompleteIngestionUseCase(repo.profiles, repo.matching_queue)
+
+
+def get_fail_ingestion_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> FailIngestionUseCase:
+    return FailIngestionUseCase(repo.profiles)
 

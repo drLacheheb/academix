@@ -6,9 +6,9 @@ from datetime import datetime
 
 @dataclass
 class CandidateProfile:
-    name: str
-    email: str
     id: Optional[int] = None
+    name: Optional[str] = None
+    email: Optional[str] = None
     cv_file_path: Optional[str] = None
     raw_text: Optional[str] = None
     highest_degree: Optional[str] = None
@@ -19,6 +19,10 @@ class CandidateProfile:
     research_interests: Optional[list[str]] = None
     skill_embedding: Optional[list[float]] = None
     research_embedding: Optional[list[float]] = None
+    status: str = "INGESTING"
+    status_message: Optional[str] = None
+    claimed_by: Optional[str] = None
+    claimed_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

@@ -132,6 +132,18 @@ class BaseCandidateProfileRepository(ABC):
     def get_all(self) -> list[CandidateProfile]:
         pass
 
+    @abstractmethod
+    def claim_next_for_ingestion(self, agent_name: str, stale_cutoff: datetime) -> CandidateProfile | None:
+        pass
+
+    @abstractmethod
+    def complete_ingestion(self, profile_id: int, profile: CandidateProfile) -> None:
+        pass
+
+    @abstractmethod
+    def fail_ingestion(self, profile_id: int, error_message: str) -> None:
+        pass
+
 
 class BaseMatchingQueueRepository(ABC):
     @abstractmethod
