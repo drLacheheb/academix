@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import sentencex
 from core.domain.interfaces.services import BaseTranslator
 
 
@@ -33,8 +34,11 @@ class NllbTranslator(BaseTranslator):
                 translated_paragraphs.append("")
                 continue
 
-            # Split paragraph into sentences
-            sentences = re.split(r"(?<=[.!?])\s+", paragraph)
+            # Split paragraph into sentences using SOTA sentencex (with regex fallback)
+            try:
+                sentences = sentencex.segment(source_lang, paragraph)
+            except Exception:
+                sentences = re.split(r"(?<=[.!?])\s+", paragraph)
             translated_sentences = []
             for sentence in sentences:
                 sentence = sentence.strip()

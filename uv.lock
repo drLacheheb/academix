@@ -264,6 +264,7 @@ dependencies = [
     { name = "onnxruntime" },
     { name = "pydantic" },
     { name = "sentence-transformers" },
+    { name = "sentencex" },
     { name = "sqlalchemy" },
 ]
 
@@ -274,6 +275,7 @@ requires-dist = [
     { name = "onnxruntime", specifier = ">=1.27.0" },
     { name = "pydantic", specifier = ">=2.13.0" },
     { name = "sentence-transformers", specifier = ">=3.4.0" },
+    { name = "sentencex" },
     { name = "sqlalchemy", specifier = ">=2.0.51" },
 ]
 
@@ -2130,6 +2132,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/2d/37e3da037318a70066ded0d51bc2a7f35491ae6338dd993d5eb1503fc3b5/sentencepiece-0.2.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c8a168b040bc61681293f79a949b5d911c8e25086f4260285b8d97ab5f1195da", size = 1397736, upload-time = "2026-07-12T08:38:35.771Z" },
     { url = "https://files.pythonhosted.org/packages/8d/11/753fca2e6b109be3ab7867abf357dfe48677fe726ae5a5363d0b54ca9450/sentencepiece-0.2.2-cp312-cp312-win_amd64.whl", hash = "sha256:7c6e7bf684dc12145bfa685d3060beaea55139134ba848289bee514ed42e7383", size = 1248030, upload-time = "2026-07-12T08:38:37.604Z" },
     { url = "https://files.pythonhosted.org/packages/e2/0a/70efbe861ca182d7d4b6e1a20f58e043400848fa9f2915229f082e221648/sentencepiece-0.2.2-cp312-cp312-win_arm64.whl", hash = "sha256:76ff5814db72e7462dece042d7593cdf102b8ec82c2b1cc201a2add34ee3050d", size = 1187325, upload-time = "2026-07-12T08:38:39.348Z" },
+]
+
+[[package]]
+name = "sentencex"
+version = "1.0.30"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/a4/311b2f1d4d7a5636010726734d384db0cb645097a04eb8324f0432975031/sentencex-1.0.30.tar.gz", hash = "sha256:51fac0e4a7c97ffa12bbb991d0459ade8ee04d810549c47a40779c0e20d186b8", size = 214415, upload-time = "2026-06-17T05:27:37.603Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/5c/f8e60b4cda397bce5a45f17729235575c90e854d062b9f4cfc6bda280647/sentencex-1.0.30-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:e260228aeef9278402c0c2e72960575621a3e8824c4d481b96c72742b5497bf1", size = 1145728, upload-time = "2026-06-17T05:26:41.151Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/84/d3d5ed25e28a167bd7e4f33b3ab578deedf20ca0b1029d4892971d74cb3f/sentencex-1.0.30-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:aea81df7590e2615efb4f74a475d79afe9ee4b8769bf2e2c27f694a2c7cd9700", size = 1118932, upload-time = "2026-06-17T05:26:42.785Z" },
+    { url = "https://files.pythonhosted.org/packages/29/7a/0e80a7346ad43264ccbbc5f6556b1ede8c720f2fd134ad5e56c6a89bb249/sentencex-1.0.30-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a4e88a1ebebef1d177d92a993d4ed74c53aed0f00fed7fbaa6ede0eabbb9d284", size = 1253829, upload-time = "2026-06-17T05:26:44.437Z" },
+    { url = "https://files.pythonhosted.org/packages/62/44/f288c346559372b1aad25e9aeed7207efec00c8dd42c9ae406cf3bca4e3a/sentencex-1.0.30-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a9e85df1bb363ba3d87ec29fb548349afb95ebf93384dc56d0a84a8f0d647267", size = 1255343, upload-time = "2026-06-17T05:26:45.965Z" },
+    { url = "https://files.pythonhosted.org/packages/28/58/96ca333408119606d323f344350a83a035913f517c25900ca06a86e4330e/sentencex-1.0.30-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:1167120f430736e561b9b078ae642f9980ef46001cbc60625f2092174c946f26", size = 1288298, upload-time = "2026-06-17T05:26:48.102Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/79/7905ce43e9e8bbafc33f85b48d7f957972cda3aff76a6d67e9f792d27502/sentencex-1.0.30-cp312-cp312-win_amd64.whl", hash = "sha256:4b27671a7fbd91e01870d38f7f5aa5fcffc7d8b488727fefac87b6beaca992bb", size = 960551, upload-time = "2026-06-17T05:26:49.606Z" },
 ]
 
 [[package]]
