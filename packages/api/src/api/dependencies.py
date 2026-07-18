@@ -43,6 +43,7 @@ def get_storage_service() -> BaseStorageService:
     global _storage_service
     if _storage_service is None:
         from core.infrastructure.services.storage import get_storage_service_from_env
+
         _storage_service = get_storage_service_from_env()
     return _storage_service
 
@@ -167,9 +168,6 @@ def get_ingest_profile_usecase(
 ) -> IngestCandidateProfileUseCase:
     return IngestCandidateProfileUseCase(
         repo.profiles,
-        repo.matching_queue,
-        get_cv_extractor(),
-        get_embedding_service(),
         storage,
     )
 
@@ -226,6 +224,7 @@ def get_list_profiles_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ):
     from core.usecases.profiles import ListCandidateProfilesUseCase
+
     return ListCandidateProfilesUseCase(repo.profiles)
 
 
@@ -233,6 +232,7 @@ def get_refined_jobs_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ):
     from core.usecases.jobs import GetRefinedJobsUseCase
+
     return GetRefinedJobsUseCase(repo)
 
 
@@ -240,6 +240,7 @@ def get_recent_urls_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ):
     from core.usecases.jobs import GetRecentUrlsUseCase
+
     return GetRecentUrlsUseCase(repo)
 
 
@@ -247,6 +248,7 @@ def get_crawler_checkpoint_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ):
     from core.usecases.jobs import GetCrawlerCheckpointUseCase
+
     return GetCrawlerCheckpointUseCase(repo)
 
 
@@ -254,6 +256,7 @@ def update_crawler_checkpoint_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ):
     from core.usecases.jobs import UpdateCrawlerCheckpointUseCase
+
     return UpdateCrawlerCheckpointUseCase(repo)
 
 
@@ -273,4 +276,3 @@ def get_fail_ingestion_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> FailIngestionUseCase:
     return FailIngestionUseCase(repo.profiles)
-

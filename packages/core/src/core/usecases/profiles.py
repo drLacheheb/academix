@@ -1,22 +1,19 @@
 from typing import Optional
-from core.domain.interfaces.db import BaseCandidateProfileRepository, BaseMatchingQueueRepository
+from core.domain.interfaces.db import (
+    BaseCandidateProfileRepository,
+    BaseMatchingQueueRepository,
+)
 from core.domain.models.profile import CandidateProfile
-from core.domain.interfaces.services import BaseCvExtractor, BaseEmbeddingService, BaseStorageService
+from core.domain.interfaces.services import BaseStorageService
 
 
 class IngestCandidateProfileUseCase:
     def __init__(
         self,
         repo: BaseCandidateProfileRepository,
-        queue_repo: BaseMatchingQueueRepository,
-        extractor: BaseCvExtractor,
-        embedding_service: BaseEmbeddingService,
         storage_service: BaseStorageService,
     ):
         self._repo = repo
-        self._queue_repo = queue_repo
-        self._extractor = extractor
-        self._embedding_service = embedding_service
         self._storage_service = storage_service
 
     def execute(
@@ -66,12 +63,17 @@ class ClaimIngestionUseCase:
     def execute(self, agent_name: str) -> Optional[CandidateProfile]:
         from datetime import datetime, timedelta
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
+
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
         return self._repo.claim_next_for_ingestion(agent_name, cutoff)
 
 
 class CompleteIngestionUseCase:
-    def __init__(self, repo: BaseCandidateProfileRepository, queue_repo: BaseMatchingQueueRepository):
+    def __init__(
+        self,
+        repo: BaseCandidateProfileRepository,
+        queue_repo: BaseMatchingQueueRepository,
+    ):
         self._repo = repo
         self._queue_repo = queue_repo
 
