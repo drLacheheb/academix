@@ -225,3 +225,17 @@ def get_recent_urls_usecase(
     from core.usecases.jobs import GetRecentUrlsUseCase
     return GetRecentUrlsUseCase(repo.jobs)
 
+
+def get_crawler_checkpoint_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+):
+    from core.usecases.jobs import GetCrawlerCheckpointUseCase
+    return GetCrawlerCheckpointUseCase(repo.jobs)
+
+
+def update_crawler_checkpoint_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+):
+    from core.usecases.jobs import UpdateCrawlerCheckpointUseCase
+    return UpdateCrawlerCheckpointUseCase(repo.jobs)
+

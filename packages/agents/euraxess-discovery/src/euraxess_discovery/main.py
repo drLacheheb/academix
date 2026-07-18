@@ -36,13 +36,17 @@ def run():
     logger.info("Starting EURAXESS crawler discovery agent")
 
     try:
-        logger.info("Fetching recent known URLs to optimize pagination...")
+        logger.info("Fetching recent known URLs and checkpoint to optimize pagination...")
         known_resp = api.get(f"/jobs/urls?source={scraper.SOURCE_NAME}&limit=500")
         known_resp.raise_for_status()
         known_urls = set(known_resp.json().get("urls", []))
 
-        logger.info(f"Loaded {len(known_urls)} known URLs. Starting search...")
-        new_jobs = scraper.search_all(known_urls)
+        checkpoint_resp = api.get(f"/jobs/checkpoint?source={scraper.SOURCE_NAME}")
+        checkpoint_resp.raise_for_status()
+        checkpoint_url = checkpoint_resp.json().get("checkpoint_url")
+
+        logger.info(f"Loaded {len(known_urls)} known URLs. Checkpoint URL: {checkpoint_url}")
+        new_jobs = scraper.search_all(known_urls, checkpoint_url=checkpoint_url)
 
         if new_jobs:
             found_urls = [j.url for j in new_jobs]
@@ -61,6 +65,12 @@ def run():
                 resp = api.post("/jobs", json=stubs)
                 resp.raise_for_status()
                 logger.info(f"Submitted {len(truly_new)} new job stubs to API")
+
+                # Update crawler checkpoint
+                checkpoint_payload = {"source": scraper.SOURCE_NAME, "url": new_jobs[0].url}
+                update_resp = api.put("/jobs/checkpoint", json=checkpoint_payload)
+                update_resp.raise_for_status()
+                logger.info(f"Updated crawler checkpoint to: {new_jobs[0].url}")
 
         logger.info("EURAXESS crawler discovery agent finished successfully")
 

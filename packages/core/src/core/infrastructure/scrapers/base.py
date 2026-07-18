@@ -122,7 +122,7 @@ class ConcreteDiscovery(BaseDiscovery):
         self._max_pages_val = max_pages
         self.logger = logging.getLogger(f"agent.{self.SOURCE_NAME.lower().replace(' ', '-')}-discovery")
 
-    def search_all(self, known_urls: set[str]) -> list[Job]:
+    def search_all(self, known_urls: set[str], checkpoint_url: str | None = None) -> list[Job]:
         all_jobs: list[Job] = []
         page = self._start_page()
         max_pages = self._max_pages()
@@ -143,18 +143,27 @@ class ConcreteDiscovery(BaseDiscovery):
                 self.logger.info(f"  -> Finished: No more listings found on page {page}.")
                 break
 
-            new_jobs = [j for j in jobs_on_page if j.url not in known_urls]
+            checkpoint_found = False
+            jobs_to_keep = []
+            for j in jobs_on_page:
+                if checkpoint_url and j.url == checkpoint_url:
+                    self.logger.info(f"  -> Found checkpoint URL: {checkpoint_url}. Stopping pagination.")
+                    checkpoint_found = True
+                    break
+                jobs_to_keep.append(j)
+
+            if not jobs_to_keep and checkpoint_found:
+                break
+
+            new_jobs = [j for j in jobs_to_keep if j.url not in known_urls]
             all_jobs.extend(new_jobs)
 
-            seen_count = len(jobs_on_page) - len(new_jobs)
+            seen_count = len(jobs_to_keep) - len(new_jobs)
             self.logger.info(
                 f"  -> Page {page}: Found {len(jobs_on_page)} listings ({len(new_jobs)} new, {seen_count} seen)"
             )
 
-            if seen_count == len(jobs_on_page):
-                self.logger.info(
-                    f"  -> Page {page}: All jobs on this page have been seen. Stopping pagination."
-                )
+            if checkpoint_found:
                 break
 
             page += 1
