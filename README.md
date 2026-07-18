@@ -55,14 +55,22 @@ cp .env.example .env
 Edit `.env` to verify your variables.
 
 ### B. Boot the Stack
-Build and launch all containers in the background:
+
+You can run the stack in two modes:
+
+#### 1. Local Development Mode (Exposes API directly to port 8000)
+Simply run:
 ```bash
 docker compose up --build -d
 ```
-Docker Compose will automatically:
-1. Boot the **FastAPI gateway (`api`)** and run database schema initializations.
-2. Run automated health checks until the API is healthy.
-3. Start the background **scrapers** (Euraxess and AcademicTransfer) and the **NLP processing agents** concurrently.
+This automatically merges `docker-compose.yml` and `docker-compose.override.yml`, mapping the `api` service directly to host port `8000`.
+
+#### 2. Production Scaled Mode (Behind NGINX Load Balancer)
+To test or deploy in production topology with scaled API server instances:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d --scale api=3
+```
+This launches 3 independent stateless API server containers and puts an **NGINX Reverse Proxy** load balancer in front of them, mapping host port `8000` to distribute traffic dynamically across the API replicas.
 
 ### C. Graceful Terminations
 To stop the stack cleanly:

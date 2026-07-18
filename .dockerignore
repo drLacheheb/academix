@@ -1,0 +1,13 @@
+.git
+.venv
+venv
+models
+uploads
+jobs.db
+.agents
+.gemini
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache

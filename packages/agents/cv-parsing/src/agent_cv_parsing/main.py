@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import gc
+import socket
 import json
 import httpx
 from dotenv import load_dotenv
@@ -35,7 +36,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("agent.cv-parsing")
 
-AGENT_NAME = os.environ.get("AGENT_NAME", "cv-parsing-worker")
+AGENT_NAME = f"{os.environ.get('AGENT_NAME', 'cv-parsing-worker')}-{socket.gethostname()}"
 
 
 def get_llm_runner() -> LocalLlmRunner:

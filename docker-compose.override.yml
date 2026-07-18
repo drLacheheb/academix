@@ -1,0 +1,5 @@
+services:
+  # Expose API gateway directly to local host during development
+  api:
+    ports:
+      - "8000:8000"

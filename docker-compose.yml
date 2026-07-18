@@ -2,8 +2,6 @@ services:
   # 1. FastAPI Gateway & Database Orchestrator
   api:
     build: .
-    ports:
-      - "8000:8000"
     volumes:
       - ./jobs.db:/app/jobs.db
       - ./uploads:/app/uploads

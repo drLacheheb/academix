@@ -1,5 +1,6 @@
 import argparse
 import os
+import socket
 from dotenv import load_dotenv
 
 from core.infrastructure.logging.logger import get_logger
@@ -80,7 +81,7 @@ def run():
     parser.add_argument(
         "--name",
         type=str,
-        default=os.environ.get("AGENT_NAME", "matching-worker"),
+        default=f"{os.environ.get('AGENT_NAME', 'matching-worker')}-{socket.gethostname()}",
         help="Custom agent identifier for locking",
     )
     args = parser.parse_args()
