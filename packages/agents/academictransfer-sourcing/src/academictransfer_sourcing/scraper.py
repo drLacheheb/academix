@@ -63,7 +63,7 @@ class AcademicTransferSourcing(ConcreteSourcing):
         # 2. Extract structured JSON-LD block
         for script in soup.find_all("script", type="application/ld+json"):
             try:
-                data = json.loads(script.get_text().strip())
+                data = json.loads(script.get_text().strip(), strict=False)
                 posting = None
                 if data.get("@type") == "JobPosting":
                     posting = data
