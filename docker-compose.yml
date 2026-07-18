@@ -8,10 +8,10 @@ services:
       - ./jobs.db:/app/jobs.db
       - ./uploads:/app/uploads
     environment:
-      - DATABASE_URL=sqlite:///app/jobs.db
-      - API_SECRET_KEY=dev_secret_key
-      - EMBEDDING_MODEL=nomic-ai/nomic-embed-text-v1.5
-      - MODELS_DIR=/app/models
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/jobs.db}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-ai/nomic-embed-text-v1.5}
+      - MODELS_DIR=${MODELS_DIR:-/app/models}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -28,10 +28,10 @@ services:
         condition: service_healthy
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - MAX_PAGES=5
-      - CRAWL_ONCE=false
-      - CRAWL_INTERVAL=3600
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - MAX_PAGES=${MAX_PAGES:-5}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-3600}
     restart: unless-stopped
 
   # 3. AcademicTransfer Discovery Scraper (Continuous schedule)
@@ -43,10 +43,10 @@ services:
         condition: service_healthy
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - MAX_PAGES=5
-      - CRAWL_ONCE=false
-      - CRAWL_INTERVAL=3600
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - MAX_PAGES=${MAX_PAGES:-5}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-3600}
     restart: unless-stopped
 
   # 4. Euraxess Sourcing Scraper (Continuous polling queue)
@@ -58,9 +58,9 @@ services:
         condition: service_healthy
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - CRAWL_ONCE=false
-      - CRAWL_INTERVAL=15
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
     restart: unless-stopped
 
   # 5. AcademicTransfer Sourcing Scraper (Continuous polling queue)
@@ -72,9 +72,9 @@ services:
         condition: service_healthy
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - CRAWL_ONCE=false
-      - CRAWL_INTERVAL=15
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
     restart: unless-stopped
 
   # 6. Language Detection worker
@@ -86,8 +86,8 @@ services:
         condition: service_healthy
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - AGENT_POLL_INTERVAL=10
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
   # 7. Local NLLB Translation worker
@@ -101,10 +101,10 @@ services:
       - ./models:/app/models
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - MODELS_DIR=/app/models
-      - NLLB_MODEL_PATH=mijuanlo/nllb-200-distilled-600M-ct2-int8
-      - AGENT_POLL_INTERVAL=10
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - MODELS_DIR=${MODELS_DIR:-/app/models}
+      - NLLB_MODEL_PATH=${NLLB_MODEL_PATH:-mijuanlo/nllb-200-distilled-600M-ct2-int8}
+      - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
   # 8. Gemma-4 Metadata Refinement worker
@@ -118,10 +118,10 @@ services:
       - ./models:/app/models
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - MODELS_DIR=/app/models
-      - MODEL_PATH=unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf
-      - AGENT_POLL_INTERVAL=10
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - MODELS_DIR=${MODELS_DIR:-/app/models}
+      - MODEL_PATH=${MODEL_PATH:-unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf}
+      - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
   # 9. Matching and Explanations worker
@@ -135,7 +135,7 @@ services:
       - ./models:/app/models
     environment:
       - API_URL=http://api:8000
-      - API_TOKEN=dev_token
-      - MODELS_DIR=/app/models
-      - AGENT_POLL_INTERVAL=15
+      - API_TOKEN=${API_TOKEN:-dev_token}
+      - MODELS_DIR=${MODELS_DIR:-/app/models}
+      - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-15}
     restart: unless-stopped
