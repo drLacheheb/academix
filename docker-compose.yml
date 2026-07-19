@@ -1,3 +1,5 @@
+name: academix
+
 services:
   # 1. FastAPI Gateway & Database Orchestrator
   api:
