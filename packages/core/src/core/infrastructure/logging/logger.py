@@ -20,8 +20,14 @@ class JsonFormatter(logging.Formatter):
 def get_logger(agent_name: str) -> logging.Logger:
     logger = logging.getLogger(f"agent.{agent_name}")
     if not logger.handlers:
+        from logging.handlers import RotatingFileHandler
         log_file = os.getenv("LOG_FILE", "agent.log")
-        handler = logging.FileHandler(log_file, encoding="utf-8")
+        handler = RotatingFileHandler(
+            log_file, 
+            maxBytes=10 * 1024 * 1024, 
+            backupCount=5, 
+            encoding="utf-8"
+        )
         handler.setFormatter(JsonFormatter())
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)

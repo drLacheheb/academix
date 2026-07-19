@@ -15,11 +15,6 @@ class BaseEmbeddingService(ABC):
         pass
 
 
-class BaseCvExtractor(ABC):
-    @abstractmethod
-    def extract_profile(self, file_path: str) -> tuple[CandidateProfile, str]:
-        pass
-
 
 class BaseLanguageDetector(ABC):
     @abstractmethod

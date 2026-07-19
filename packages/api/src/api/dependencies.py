@@ -31,11 +31,9 @@ from core.usecases import (
 )
 from api.config import get_database_url, get_api_secret, get_match_threshold
 from core.infrastructure.services.embedding_service import EmbeddingService
-from core.infrastructure.services.cv_extractor import CvExtractor
 
 _repo: PipelineJobRepository | None = None
 _embedding_service: EmbeddingService | None = None
-_cv_extractor: CvExtractor | None = None
 _storage_service: BaseStorageService | None = None
 
 
@@ -54,12 +52,6 @@ def get_embedding_service() -> EmbeddingService:
         _embedding_service = EmbeddingService()
     return _embedding_service
 
-
-def get_cv_extractor() -> CvExtractor:
-    global _cv_extractor
-    if _cv_extractor is None:
-        _cv_extractor = CvExtractor()
-    return _cv_extractor
 
 
 def get_repo() -> PipelineJobRepository:

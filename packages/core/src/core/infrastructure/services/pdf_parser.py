@@ -42,7 +42,6 @@ def parse_pdf_to_markdown(file_path: str) -> str:
                 img_buffer = BytesIO()
                 pil_img.save(img_buffer, format="PNG")
                 img_buffer.seek(0)
-
                 # Wrap in DocumentStream
                 source = DocumentStream(name=f"page_{i}.png", stream=img_buffer)
 
