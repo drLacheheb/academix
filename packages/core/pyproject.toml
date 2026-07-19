@@ -7,10 +7,16 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "curl-cffi>=0.15.0",
     "pydantic>=2.13.0",
+    "sentencex>=1.0.30",
+]
+
+[project.optional-dependencies]
+embeddings = [
+    "sentence-transformers>=3.4.0",
+]
+vision = [
     "docling>=2.113.0",
     "onnxruntime>=1.27.0",
-    "sentence-transformers>=3.4.0",
-    "sentencex",
 ]
 
 [build-system]

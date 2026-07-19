@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Background matching and semantic ranking agent using local embeddings and LLM match explainer"
 requires-python = "==3.12.*"
 dependencies = [
-    "core",
+    "core[embeddings]",
     "httpx>=0.28.0",
     "llama-cpp-python>=0.3.0",
     "python-dotenv>=1.2.2",
