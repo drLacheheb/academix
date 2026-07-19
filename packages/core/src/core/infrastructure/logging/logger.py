@@ -20,6 +20,7 @@ class JsonFormatter(logging.Formatter):
 def get_logger(agent_name: str) -> logging.Logger:
     logger = logging.getLogger(f"agent.{agent_name}")
     if not logger.handlers:
+        import sys
         from logging.handlers import RotatingFileHandler
         log_file = os.getenv("LOG_FILE", "agent.log")
         handler = RotatingFileHandler(
@@ -30,6 +31,12 @@ def get_logger(agent_name: str) -> logging.Logger:
         )
         handler.setFormatter(JsonFormatter())
         logger.addHandler(handler)
+        
+        # Add stdout stream handler for Docker log aggregation
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setFormatter(JsonFormatter())
+        logger.addHandler(stream_handler)
+        
         logger.setLevel(logging.INFO)
 
     old_factory = logging.getLogRecordFactory()
