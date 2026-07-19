@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from time import time
 import os
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -63,8 +64,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-
-from time import time
 
 app = FastAPI(title="Job Sourcing API", version="1.0.0", lifespan=lifespan)
 
