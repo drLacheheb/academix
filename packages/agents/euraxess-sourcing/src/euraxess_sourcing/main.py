@@ -38,8 +38,12 @@ def run():
 
             detail_update = scraper.source_detail(job_url)
 
-            if detail_update.description:
-                updates.append(detail_update.model_dump())
+            if not detail_update.description:
+                detail_update.description = f"[EXPIRED] This job posting is no longer available. (Title: {job_title})"
+                if not detail_update.requirements:
+                    detail_update.requirements = "None"
+
+            updates.append(detail_update.model_dump())
 
         if updates:
             logger.info(f"Uploading {len(updates)} updates to API...")
