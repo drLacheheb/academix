@@ -1,6 +1,5 @@
 import os
-import sys
-import logging
+from core.infrastructure.logging.logger import get_logger
 import gc
 import socket
 import json
@@ -20,23 +19,14 @@ from core.infrastructure.services.embedding_service import EmbeddingService
 from core.infrastructure.services.llm_runner import LocalLlmRunner
 from core.infrastructure.services.storage import get_storage_service_from_env
 
-# Ensure stdout uses UTF-8 to prevent encoding crashes on Windows
-try:
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
-
 load_dotenv()
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname)s [%(name)s:%(lineno)d] %(message)s",
-)
-logger = logging.getLogger("agent.cv-parsing")
+logger = get_logger("cv-parsing-worker")
 
-AGENT_NAME = f"{os.environ.get('AGENT_NAME', 'cv-parsing-worker')}-{socket.gethostname()}"
+AGENT_NAME = (
+    f"{os.environ.get('AGENT_NAME', 'cv-parsing-worker')}-{socket.gethostname()}"
+)
 
 
 def get_llm_runner() -> LocalLlmRunner:
@@ -85,7 +75,9 @@ def process_ingestion_task(client: httpx.Client) -> bool:
         storage_service = get_storage_service_from_env()
         local_file_path, is_temp_file = storage_service.get_local_path(file_path)
         if not local_file_path or not os.path.exists(local_file_path):
-            raise FileNotFoundError(f"Resolved file path {local_file_path} not found on disk.")
+            raise FileNotFoundError(
+                f"Resolved file path {local_file_path} not found on disk."
+            )
     except Exception as e:
         error_msg = f"Failed to retrieve CV file path for {file_path}: {e}"
         logger.error(error_msg, exc_info=True)
@@ -266,7 +258,9 @@ def process_ingestion_task(client: httpx.Client) -> bool:
             try:
                 storage_service.clean_up(local_file_path)
             except Exception as cleanup_err:
-                logger.warning(f"[{profile_id}] Failed to clean up temp file {local_file_path}: {cleanup_err}")
+                logger.warning(
+                    f"[{profile_id}] Failed to clean up temp file {local_file_path}: {cleanup_err}"
+                )
         # Force garbage collection to free model weights and layouter caches immediately
         gc.collect()
 

@@ -1,21 +1,22 @@
 from contextlib import asynccontextmanager
-import logging
 import os
-import sys
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
-
+from core.infrastructure.logging.logger import get_logger
 from api.limiter_config import limiter
-from api.routers import status, jobs, detection, translation, refinement, profiles, matching
+from api.routers import (
+    status,
+    jobs,
+    detection,
+    translation,
+    refinement,
+    profiles,
+    matching,
+)
 
-logger = logging.getLogger("api.main")
+logger = get_logger("api")
 
 
 @asynccontextmanager
@@ -33,25 +34,32 @@ async def lifespan(app: FastAPI):
             alembic_cfg = Config(ini_path)
             # Dynamically set the absolute migrations path relative to alembic.ini location
             ini_dir = os.path.dirname(os.path.abspath(ini_path))
-            migrations_dir = os.path.abspath(os.path.join(ini_dir, "src", "api", "migrations"))
+            migrations_dir = os.path.abspath(
+                os.path.join(ini_dir, "src", "api", "migrations")
+            )
             alembic_cfg.set_main_option("script_location", migrations_dir)
-            
+
             command.upgrade(alembic_cfg, "head")
             logger.info("Database migrations completed successfully.")
         else:
-            logger.warning(f"Alembic config not found at {ini_path}, skipping migrations.")
+            logger.warning(
+                f"Alembic config not found at {ini_path}, skipping migrations."
+            )
     except Exception as e:
         logger.error(f"Failed to run database migrations: {e}")
 
     logger.info("Verifying storage backend connection...")
     try:
         from api.dependencies import get_storage_service
+
         storage = get_storage_service()
         storage.verify_connection()
         logger.info("Storage backend connection verified successfully.")
     except Exception as e:
         logger.critical(f"Failed to verify storage connection backend: {e}")
-        raise RuntimeError(f"FastAPI startup aborted due to storage verification failure: {e}") from e
+        raise RuntimeError(
+            f"FastAPI startup aborted due to storage verification failure: {e}"
+        ) from e
 
     yield
 
