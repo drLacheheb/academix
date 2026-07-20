@@ -51,7 +51,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-euraxess-discovery.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - MAX_PAGES=${MAX_PAGES:-5}
       - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
@@ -74,7 +74,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-academictransfer-discovery.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - MAX_PAGES=${MAX_PAGES:-5}
       - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
@@ -97,7 +97,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-euraxess-sourcing.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
       - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
     restart: unless-stopped
@@ -118,7 +118,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-academictransfer-sourcing.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
       - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
     restart: unless-stopped
@@ -139,7 +139,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/lang-detection-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
       - FTLANG_CACHE=/app/${HF_HOME:-models}
     restart: unless-stopped
@@ -163,7 +163,7 @@ services:
       - HF_HUB_DISABLE_SYMLINKS_WARNING=${HF_HUB_DISABLE_SYMLINKS_WARNING:-1}
       - LOG_FILE=/app/logs/translation-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - MODELS_DIR=/app/${MODELS_DIR:-models}
       - NLLB_MODEL_PATH=${NLLB_MODEL_PATH:-mijuanlo/nllb-200-distilled-600M-ct2-int8}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
@@ -188,7 +188,7 @@ services:
       - HF_HUB_DISABLE_SYMLINKS_WARNING=${HF_HUB_DISABLE_SYMLINKS_WARNING:-1}
       - LOG_FILE=/app/logs/refinement-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - MODELS_DIR=/app/${MODELS_DIR:-models}
       - MODEL_PATH=${MODEL_PATH:-unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
@@ -213,7 +213,7 @@ services:
       - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.7}
       - LOG_FILE=/app/logs/matching-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - MODELS_DIR=/app/${MODELS_DIR:-models}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-15}
     restart: unless-stopped
@@ -228,20 +228,14 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - ./${HF_HOME:-models}:/app/models
       - ./data/uploads:/app/uploads
       - ./logs:/app/logs
       - ./packages:/app/packages
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
-      - HF_HOME=/app/${HF_HOME:-models}
-      - HF_HUB_DISABLE_SYMLINKS_WARNING=${HF_HUB_DISABLE_SYMLINKS_WARNING:-1}
       - LOG_FILE=/app/logs/cv-parsing-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_TOKEN:-dev_token}
-      - MODELS_DIR=/app/${MODELS_DIR:-models}
-      - MODEL_PATH=${MODEL_PATH:-unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf}
-      - NLLB_MODEL_PATH=${NLLB_MODEL_PATH:-mijuanlo/nllb-200-distilled-600M-ct2-int8}
+      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
       - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
@@ -249,7 +243,6 @@ services:
       - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
       - S3_REGION=${S3_REGION:-us-east-1}
-      - FTLANG_CACHE=/app/${HF_HOME:-models}
     restart: unless-stopped
 
 # Local host directories ./logs and ./models are used for storage and model persistence

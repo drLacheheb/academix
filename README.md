@@ -154,8 +154,7 @@ Settings configured via the `.env` file:
 | Environment Variable | Default Value | Description |
 |---|---|---|
 | `API_URL` | `http://localhost:8000` | Target URL of the FastAPI gateway |
-| `API_TOKEN` | *None* | Bearer credential token |
-| `API_SECRET_KEY` | *None* | Shared validation key (API Server only) |
+| `API_SECRET_KEY` | *None* | Shared bearer credential and API validation key |
 | `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
 | `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model name |
 | `CRAWL_ONCE` | `false` | If `true`, crawlers execute once and stop. If `false` (default), they loop continuously. |

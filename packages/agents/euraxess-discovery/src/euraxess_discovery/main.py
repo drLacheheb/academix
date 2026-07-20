@@ -13,9 +13,13 @@ logger = get_logger("euraxess-discovery")
 
 def get_config() -> dict:
     api_url = os.environ.get("API_URL", "http://localhost:8000")
-    api_token = os.environ.get("API_TOKEN", "")
+    api_secret_key = os.environ.get("API_SECRET_KEY", "")
     max_pages = int(os.environ.get("MAX_PAGES", "5"))
-    return {"api_url": api_url, "api_token": api_token, "max_pages": max_pages}
+    return {
+        "api_url": api_url,
+        "api_secret_key": api_secret_key,
+        "max_pages": max_pages,
+    }
 
 
 def run():
@@ -28,7 +32,9 @@ def run():
     logger.info("Starting EURAXESS crawler discovery agent")
 
     def cycle():
-        logger.info("Fetching recent known URLs and checkpoint to optimize pagination...")
+        logger.info(
+            "Fetching recent known URLs and checkpoint to optimize pagination..."
+        )
         known_resp = api.get(f"/jobs/urls?source={scraper.SOURCE_NAME}&limit=500")
         known_resp.raise_for_status()
         known_urls = set(known_resp.json().get("urls", []))
@@ -37,7 +43,9 @@ def run():
         checkpoint_resp.raise_for_status()
         checkpoint_url = checkpoint_resp.json().get("checkpoint_url")
 
-        logger.info(f"Loaded {len(known_urls)} known URLs. Checkpoint URL: {checkpoint_url}")
+        logger.info(
+            f"Loaded {len(known_urls)} known URLs. Checkpoint URL: {checkpoint_url}"
+        )
         new_jobs = scraper.search_all(known_urls, checkpoint_url=checkpoint_url)
 
         if new_jobs:
@@ -47,7 +55,9 @@ def run():
             already_known = set(check_resp.json().get("known_urls", []))
 
             truly_new = [j for j in new_jobs if j.url not in already_known]
-            logger.info(f"Found {len(new_jobs)} listings, {len(truly_new)} are truly new")
+            logger.info(
+                f"Found {len(new_jobs)} listings, {len(truly_new)} are truly new"
+            )
 
             if truly_new:
                 stubs = [
@@ -59,7 +69,10 @@ def run():
                 logger.info(f"Submitted {len(truly_new)} new job stubs to API")
 
                 # Update crawler checkpoint
-                checkpoint_payload = {"source": scraper.SOURCE_NAME, "url": new_jobs[0].url}
+                checkpoint_payload = {
+                    "source": scraper.SOURCE_NAME,
+                    "url": new_jobs[0].url,
+                }
                 update_resp = api.put("/jobs/checkpoint", json=checkpoint_payload)
                 update_resp.raise_for_status()
                 logger.info(f"Updated crawler checkpoint to: {new_jobs[0].url}")
@@ -70,6 +83,7 @@ def run():
             cycle()
         else:
             from core.utils.agent import run_agent_loop
+
             crawl_interval = float(os.environ.get("CRAWL_INTERVAL", "21600.0"))
             run_agent_loop(cycle, default_interval=crawl_interval)
     except Exception as e:
