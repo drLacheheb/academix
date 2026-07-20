@@ -25,7 +25,10 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
 ├── Dockerfile                         # Unified multi-purpose Dockerfile
-└── docker-compose.yml                 # Unified Docker Compose orchestration config
+├── docker-compose.yml                 # Unified Docker Compose orchestration config
+├── docker-compose.override.yml        # Dev-mode port mapping override
+├── docker-compose.prod.yml            # Production scaled mode with NGINX
+└── nginx.conf                         # NGINX reverse proxy config
 ```
 
 ---
@@ -133,7 +136,7 @@ curl -X POST http://localhost:8000/profiles/upload-cv \
   -F "email=candidate@example.com" \
   -F "name=John Doe"
 ```
-**Response**: Returns the created placeholder profile object with the database `id`, upload status, and storage path.
+**Response**: Returns the created placeholder profile object with the database `id`, upload status, and storage path. The `email` and `name` fields are optional.
 
 ### B. Background Processing
 Once jobs are discovered, details are sourced, language is detected, and translations (if non-English) are run. The refinement agent then extracts structured skills from job requirements. Candidate profiles follow the same detect, translate, and refine flow before being queued for matching. Finally, the matching agent computes similarities and drafts matching explanations. These pipeline steps run concurrently and automatically.
@@ -144,6 +147,7 @@ Retrieve a list of qualified academic positions for a candidate (ranked by nomic
 curl -X GET http://localhost:8000/profiles/1/matches?limit=10 \
   -H "Authorization: Bearer dev_secret_key"
 ```
+**Response**: Returns `{"matches": [...]}` where each match contains `score`, `skill_score`, `research_score`, `degree_eligible`, `language_eligible`, and `explanation`.
 
 ---
 
@@ -167,6 +171,14 @@ Settings configured via the `.env` file:
 | `MAX_LENGTH` | `4096` | LLM maximum generation length |
 | `TEMPERATURE` | `0.0` | Model generation temperature |
 | `MAX_TEXT_CHARS` | `3000` | Max characters sent to context window |
+| `STORAGE_PROVIDER` | `local` | Storage backend: `local` for filesystem or `s3` for S3/MinIO |
+| `STALE_CLAIM_TIMEOUT_MINUTES` | `10` | Minutes before a claimed task is considered stale and recoverable |
+| `MAX_SAFETY_PAGES` | `500` | Circuit breaker limit for infinite crawl depth |
+| `S3_BUCKET_NAME` | *None* | S3 bucket name (when `STORAGE_PROVIDER=s3`) |
+| `S3_ACCESS_KEY_ID` | *None* | S3 access key (when `STORAGE_PROVIDER=s3`) |
+| `S3_SECRET_ACCESS_KEY` | *None* | S3 secret key (when `STORAGE_PROVIDER=s3`) |
+| `S3_ENDPOINT_URL` | *None* | S3/MinIO endpoint URL (when `STORAGE_PROVIDER=s3`) |
+| `S3_REGION` | `us-east-1` | S3 region (when `STORAGE_PROVIDER=s3`) |
 
 ---
 
@@ -249,7 +261,7 @@ classDiagram
         <<Abstract>>
         +http_client: BaseHttpClient
         +max_pages: int
-        +search_all(known_urls: set) list
+        +search_all(known_urls: set, checkpoint_url: str|None) list
         #_build_browse_url(page: int)* str
         #_parse_search_page(html_content: str)* list
     }
@@ -279,20 +291,31 @@ classDiagram
     }
     class BaseRefiner {
         <<Abstract>>
-        +refine(url: str, title: str, description: str, requirements: str)* RefinementResult
+        +refine(url: str, title: str, location: str|None, description: str|None, requirements: str|None)* RefinementResult
     }
     class LlmRefiner {
         -_system_prompt: str
         -_model_path: str
         +load_model() void
-        +refine(url: str, title: str, description: str, requirements: str) RefinementResult
+        +refine(url: str, title: str, location: str|None, description: str|None, requirements: str|None) RefinementResult
     }
     class NllbTranslator {
         -_model_dir: str
         +translate(text: str, source_lang: str) str
     }
+    class BaseEmbeddingService {
+        <<Interface>>
+        +encode_text(text: str)* list~float~
+        +encode_research(interests: list, title: str)* list~float~
+    }
+    class EmbeddingService {
+        +get_model() SentenceTransformer
+        +encode_text(text: str) list~float~
+        +encode_skills(skills: list) list~float~
+        +encode_research(interests: list, title: str) list~float~
+    }
     class MatchScorer {
-        +score_candidate_against_job(candidate: CandidateProfile, job: Job, threshold: float) CandidateMatch
+        +score_candidate_against_job(candidate: CandidateProfile, job: Job, threshold: float) Match
     }
     class LlmExplainer {
         -_system_prompt: str
@@ -309,13 +332,31 @@ classDiagram
         +requirements: str
         +required_skills: list
         +education_level: str
+        +city: str
+        +country: str
+        +language_code: str
+        +description_en: str
+        +requirements_en: str
+        +skill_embedding: list~float~
+        +research_embedding: list~float~
     }
     class CandidateProfile {
         +id: int
         +name: str
+        +email: str
+        +cv_file_path: str
+        +raw_text: str
+        +language_code: str
+        +raw_text_en: str
+        +highest_degree: str
         +skills: list
-        +education: str
         +languages: list
+        +experience: list
+        +preferred_locations: list
+        +research_interests: list
+        +skill_embedding: list~float~
+        +research_embedding: list~float~
+        +status: str
     }
 
     BaseHttpClient <|-- HttpClient
@@ -326,6 +367,7 @@ classDiagram
     BaseSourcing <|-- EuraxessSourcing
     BaseSourcing <|-- AcademicTransferSourcing
     BaseRefiner <|-- LlmRefiner
+    BaseEmbeddingService <|-- EmbeddingService
     EuraxessSourcing ..> Job : Sources Details
     AcademicTransferSourcing ..> Job : Sources Details
     LlmRefiner ..> Job : Refines

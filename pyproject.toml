@@ -1,5 +1,5 @@
 [project]
-name = "money"
+name = "academic"
 version = "0.1.0"
 description = "Distributed academic job sourcing & refinement system"
 requires-python = "==3.12.*"
