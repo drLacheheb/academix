@@ -45,6 +45,12 @@ class LlmRefiner(BaseRefiner):
         with open(prompt_path, "r", encoding="utf-8") as f:
             self._system_prompt = f.read().strip()
 
+        cv_prompt_path = os.path.join(
+            os.path.dirname(__file__), "prompts", "cv_extraction_prompt.txt"
+        )
+        with open(cv_prompt_path, "r", encoding="utf-8") as f:
+            self._cv_system_prompt = f.read().strip()
+
     @property
     def is_loaded(self) -> bool:
         return self._model is not None
@@ -123,6 +129,28 @@ class LlmRefiner(BaseRefiner):
             city=city,
             country=country,
         )
+
+    def refine_cv(self, text: str) -> dict:
+        if self._model is None:
+            raise RuntimeError("Model not loaded. Call load_model() first.")
+
+        # Truncate input text to max length of chars
+        truncated_text = text[:self._max_text_chars]
+
+        try:
+            response = self._model.create_chat_completion(
+                messages=[
+                    {"role": "system", "content": self._cv_system_prompt},
+                    {"role": "user", "content": f"Candidate CV Text:\n\n{truncated_text}"},
+                ],
+                max_tokens=2048,
+                temperature=self._temperature,
+            )
+            raw_output = response["choices"][0]["message"]["content"].strip()
+            return self._parse_json_response(raw_output)
+        except Exception as e:
+            self.logger.warning(f"GGUF CV inference failed: {e}")
+            return {}
 
     def _run_inference(
         self,

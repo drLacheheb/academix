@@ -5,6 +5,7 @@ import socket
 from dotenv import load_dotenv
 
 from core.infrastructure.logging.logger import get_logger
+from core.infrastructure.services.embedding_service import EmbeddingService
 from core.utils.api import make_api_client
 from agent_refinement.llm_refiner import LlmRefiner
 
@@ -41,6 +42,7 @@ def run():
 
     logger = get_logger(args.name)
     config = get_config()
+    embedding_service = EmbeddingService()
 
     logger.info(f"Starting Job Refinement Agent (name: {args.name})")
 
@@ -52,12 +54,77 @@ def run():
         max_text_chars=config["max_text_chars"],
     )
 
+    from core.domain.models.profile import CandidateProfile
+
     api = make_api_client(timeout=60.0)
 
     from core.utils.agent import run_agent_loop
 
+    def load_refiner_if_needed():
+        nonlocal refiner
+        if not refiner.is_loaded:
+            logger.info("First task claimed. Loading GGUF model into memory...")
+            try:
+                refiner.load_model()
+            except Exception as e:
+                logger.error(f"Failed to load GGUF model: {e}")
+                sys.exit(1)
+
     def cycle() -> bool:
         nonlocal refiner, api, args, logger
+        # 1. Try to claim candidate profile refinement task
+        try:
+            profile_resp = api.post(
+                "/profiles/claim-refine", json={"agent_name": args.name}
+            )
+            profile_resp.raise_for_status()
+            profile_data = profile_resp.json().get("profile")
+            if profile_data:
+                profile_id = profile_data["id"]
+                raw_text = (
+                    profile_data.get("raw_text_en")
+                    or profile_data.get("raw_text")
+                    or ""
+                )
+                logger.info(
+                    f"Successfully claimed candidate profile for refinement: ID {profile_id}"
+                )
+
+                load_refiner_if_needed()
+
+                logger.info("Running LLM skills and metadata extraction...")
+                extracted = refiner.refine_cv(raw_text)
+
+                # Merge with metadata from candidate upload if any
+                extracted["cv_file_path"] = profile_data.get("cv_file_path")
+                if not extracted.get("name") and profile_data.get("name"):
+                    extracted["name"] = profile_data.get("name")
+                if not extracted.get("email") and profile_data.get("email"):
+                    extracted["email"] = profile_data.get("email")
+
+                profile = CandidateProfile.from_dict(extracted)
+                profile.skill_embedding = embedding_service.encode_skills(
+                    profile.skills or []
+                )
+                profile.research_embedding = embedding_service.encode_research(
+                    profile.research_interests or []
+                )
+
+                logger.info("Finished CV refinement. Submitting results to API...")
+                submit_resp = api.put(
+                    "/profiles/refine",
+                    json={
+                        "profile_id": profile_id,
+                        "profile": profile.to_dict(),
+                    },
+                )
+                submit_resp.raise_for_status()
+                logger.info("Successfully uploaded profile refinement results")
+                return True
+        except Exception as e:
+            logger.error(f"Error during profile refinement task processing: {e}")
+
+        # 2. Fallback to claiming job task
         logger.info("Polling for pending refinement jobs...")
         try:
             resp = api.post("/jobs/claim-refine", json={"agent_name": args.name})
@@ -85,13 +152,7 @@ def run():
 
         logger.info(f"Successfully claimed job: {job_title} ({job_url})")
 
-        if not refiner.is_loaded:
-            logger.info("First job claimed. Loading GGUF model into memory...")
-            try:
-                refiner.load_model()
-            except Exception as e:
-                logger.error(f"Failed to load GGUF model: {e}")
-                sys.exit(1)
+        load_refiner_if_needed()
 
         try:
             result = refiner.refine(
@@ -105,6 +166,14 @@ def run():
             logger.info(f"Refinement completed for {job_title}")
             logger.info(f"  -> Skills: {result.required_skills}")
             logger.info(f"  -> Education: {result.education_level}")
+
+            result.skill_embedding = embedding_service.encode_skills(
+                result.required_skills or []
+            )
+            result.research_embedding = embedding_service.encode_research(
+                result.required_skills or [],
+                title=job_title,
+            )
 
             submit_resp = api.put("/jobs/refine", json=result.model_dump())
             submit_resp.raise_for_status()

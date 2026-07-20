@@ -23,6 +23,8 @@ class RefinementResult(BaseModel):
     education_level: Optional[str] = None
     city: Optional[str] = None
     country: Optional[str] = None
+    skill_embedding: Optional[List[float]] = None
+    research_embedding: Optional[List[float]] = None
 
 
 class ClaimRequest(BaseModel):

@@ -21,6 +21,13 @@ from core.usecases import (
     ClaimIngestionUseCase,
     CompleteIngestionUseCase,
     FailIngestionUseCase,
+    SubmitRawTextUseCase,
+    ClaimProfileDetectionUseCase,
+    CompleteProfileDetectionUseCase,
+    ClaimProfileTranslationUseCase,
+    CompleteProfileTranslationUseCase,
+    ClaimProfileRefinementUseCase,
+    CompleteProfileRefinementUseCase,
     ClaimMatchingTaskUseCase,
     SubmitTaskMatchesUseCase,
     FailMatchingTaskUseCase,
@@ -30,10 +37,8 @@ from core.usecases import (
     FailMatchExplanationUseCase,
 )
 from api.config import get_database_url, get_api_secret, get_match_threshold
-from core.infrastructure.services.embedding_service import EmbeddingService
 
 _repo: PipelineJobRepository | None = None
-_embedding_service: EmbeddingService | None = None
 _storage_service: BaseStorageService | None = None
 
 
@@ -46,18 +51,10 @@ def get_storage_service() -> BaseStorageService:
     return _storage_service
 
 
-def get_embedding_service() -> EmbeddingService:
-    global _embedding_service
-    if _embedding_service is None:
-        _embedding_service = EmbeddingService()
-    return _embedding_service
-
-
-
 def get_repo() -> PipelineJobRepository:
     global _repo
     if _repo is None:
-        _repo = PipelineJobRepository(get_database_url(), get_embedding_service())
+        _repo = PipelineJobRepository(get_database_url())
     return _repo
 
 
@@ -268,3 +265,45 @@ def get_fail_ingestion_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> FailIngestionUseCase:
     return FailIngestionUseCase(repo.profiles)
+
+
+def get_submit_raw_text_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> SubmitRawTextUseCase:
+    return SubmitRawTextUseCase(repo.profiles)
+
+
+def get_claim_profile_detect_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimProfileDetectionUseCase:
+    return ClaimProfileDetectionUseCase(repo.profiles)
+
+
+def get_complete_profile_detect_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteProfileDetectionUseCase:
+    return CompleteProfileDetectionUseCase(repo.profiles)
+
+
+def get_claim_profile_translate_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimProfileTranslationUseCase:
+    return ClaimProfileTranslationUseCase(repo.profiles)
+
+
+def get_complete_profile_translate_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteProfileTranslationUseCase:
+    return CompleteProfileTranslationUseCase(repo.profiles)
+
+
+def get_claim_profile_refine_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimProfileRefinementUseCase:
+    return ClaimProfileRefinementUseCase(repo.profiles)
+
+
+def get_complete_profile_refine_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteProfileRefinementUseCase:
+    return CompleteProfileRefinementUseCase(repo.profiles, repo.matching_queue)

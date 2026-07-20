@@ -11,10 +11,16 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
     def __init__(self, database_url_or_session_factory):
         if isinstance(database_url_or_session_factory, str):
             if database_url_or_session_factory.startswith("sqlite"):
-                engine = create_engine(database_url_or_session_factory, echo=False, connect_args={"timeout": 30})
+                engine = create_engine(
+                    database_url_or_session_factory,
+                    echo=False,
+                    connect_args={"timeout": 30},
+                )
             else:
                 engine = create_engine(database_url_or_session_factory, echo=False)
-            self._SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+            self._SessionLocal = sessionmaker(
+                autocommit=False, autoflush=False, bind=engine
+            )
         else:
             self._SessionLocal = database_url_or_session_factory
 
@@ -23,7 +29,11 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
         try:
             model = CandidateProfileModel.from_domain(profile)
             if model.id:
-                existing = session.query(CandidateProfileModel).filter(CandidateProfileModel.id == model.id).first()
+                existing = (
+                    session.query(CandidateProfileModel)
+                    .filter(CandidateProfileModel.id == model.id)
+                    .first()
+                )
                 if existing:
                     existing.name = model.name
                     existing.email = model.email
@@ -45,8 +55,12 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
             else:
                 existing = None
                 if model.email:
-                    existing = session.query(CandidateProfileModel).filter(CandidateProfileModel.email == model.email).first()
-                
+                    existing = (
+                        session.query(CandidateProfileModel)
+                        .filter(CandidateProfileModel.email == model.email)
+                        .first()
+                    )
+
                 if existing:
                     existing.name = model.name
                     existing.cv_file_path = model.cv_file_path
@@ -76,7 +90,11 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
     def get_by_id(self, profile_id: int) -> CandidateProfile | None:
         session = self._SessionLocal()
         try:
-            model = session.query(CandidateProfileModel).filter(CandidateProfileModel.id == profile_id).first()
+            model = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
             return model.to_domain() if model else None
         finally:
             session.close()
@@ -86,7 +104,11 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
             return None
         session = self._SessionLocal()
         try:
-            model = session.query(CandidateProfileModel).filter(CandidateProfileModel.email == email).first()
+            model = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.email == email)
+                .first()
+            )
             return model.to_domain() if model else None
         finally:
             session.close()
@@ -99,7 +121,9 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
         finally:
             session.close()
 
-    def claim_next_for_ingestion(self, agent_name: str, stale_cutoff: datetime) -> CandidateProfile | None:
+    def claim_next_for_ingestion(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
         session = self._SessionLocal()
         try:
             # 1. Recover stale claims
@@ -157,7 +181,11 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
     def complete_ingestion(self, profile_id: int, profile: CandidateProfile) -> None:
         session = self._SessionLocal()
         try:
-            existing = session.query(CandidateProfileModel).filter(CandidateProfileModel.id == profile_id).first()
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
             if existing:
                 existing.name = profile.name
                 existing.email = profile.email
@@ -165,12 +193,32 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 existing.raw_text = profile.raw_text
                 existing.highest_degree = profile.highest_degree
                 existing.skills = json.dumps(profile.skills) if profile.skills else None
-                existing.languages = json.dumps(profile.languages) if profile.languages else None
-                existing.experience = json.dumps(profile.experience) if profile.experience else None
-                existing.preferred_locations = json.dumps(profile.preferred_locations) if profile.preferred_locations else None
-                existing.research_interests = json.dumps(profile.research_interests) if profile.research_interests else None
-                existing.skill_embedding = json.dumps(profile.skill_embedding) if profile.skill_embedding else None
-                existing.research_embedding = json.dumps(profile.research_embedding) if profile.research_embedding else None
+                existing.languages = (
+                    json.dumps(profile.languages) if profile.languages else None
+                )
+                existing.experience = (
+                    json.dumps(profile.experience) if profile.experience else None
+                )
+                existing.preferred_locations = (
+                    json.dumps(profile.preferred_locations)
+                    if profile.preferred_locations
+                    else None
+                )
+                existing.research_interests = (
+                    json.dumps(profile.research_interests)
+                    if profile.research_interests
+                    else None
+                )
+                existing.skill_embedding = (
+                    json.dumps(profile.skill_embedding)
+                    if profile.skill_embedding
+                    else None
+                )
+                existing.research_embedding = (
+                    json.dumps(profile.research_embedding)
+                    if profile.research_embedding
+                    else None
+                )
                 existing.status = "COMPLETED"
                 existing.status_message = "Parsed successfully"
                 existing.claimed_by = None
@@ -185,10 +233,301 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
     def fail_ingestion(self, profile_id: int, error_message: str) -> None:
         session = self._SessionLocal()
         try:
-            existing = session.query(CandidateProfileModel).filter(CandidateProfileModel.id == profile_id).first()
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
             if existing:
                 existing.status = "FAILED"
                 existing.status_message = error_message
+                existing.claimed_by = None
+                existing.claimed_at = None
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def submit_raw_text(
+        self,
+        profile_id: int,
+        raw_text: str,
+        name: str | None = None,
+        email: str | None = None,
+    ) -> None:
+        session = self._SessionLocal()
+        try:
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
+            if existing:
+                existing.raw_text = raw_text
+                if name:
+                    existing.name = name
+                if email:
+                    existing.email = email
+                existing.status = "PENDING_DETECTION"
+                existing.status_message = "Raw text parsed successfully"
+                existing.claimed_by = None
+                existing.claimed_at = None
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def claim_next_for_detection(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        session = self._SessionLocal()
+        try:
+            session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.status == "DETECTION_CLAIMED",
+                    CandidateProfileModel.claimed_at < stale_cutoff,
+                )
+                .values(
+                    status="PENDING_DETECTION",
+                    claimed_by=None,
+                    claimed_at=None,
+                )
+            )
+            candidate = (
+                session.query(CandidateProfileModel)
+                .filter(
+                    CandidateProfileModel.status == "PENDING_DETECTION",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .first()
+            )
+            if not candidate:
+                session.commit()
+                return None
+
+            result = session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.id == candidate.id,
+                    CandidateProfileModel.status == "PENDING_DETECTION",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .values(
+                    status="DETECTION_CLAIMED",
+                    claimed_by=agent_name,
+                    claimed_at=datetime.now(),
+                )
+            )
+            session.commit()
+            if result.rowcount > 0:
+                session.refresh(candidate)
+                return candidate.to_domain()
+            return None
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def complete_detection(self, profile_id: int, language_code: str) -> None:
+        session = self._SessionLocal()
+        try:
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
+            if existing:
+                existing.language_code = language_code
+                if language_code == "en":
+                    existing.status = "PENDING_REFINEMENT"
+                else:
+                    existing.status = "PENDING_TRANSLATION"
+                existing.status_message = f"Language detected: {language_code}"
+                existing.claimed_by = None
+                existing.claimed_at = None
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def claim_next_for_translation(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        session = self._SessionLocal()
+        try:
+            session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.status == "TRANSLATION_CLAIMED",
+                    CandidateProfileModel.claimed_at < stale_cutoff,
+                )
+                .values(
+                    status="PENDING_TRANSLATION",
+                    claimed_by=None,
+                    claimed_at=None,
+                )
+            )
+            candidate = (
+                session.query(CandidateProfileModel)
+                .filter(
+                    CandidateProfileModel.status == "PENDING_TRANSLATION",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .first()
+            )
+            if not candidate:
+                session.commit()
+                return None
+
+            result = session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.id == candidate.id,
+                    CandidateProfileModel.status == "PENDING_TRANSLATION",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .values(
+                    status="TRANSLATION_CLAIMED",
+                    claimed_by=agent_name,
+                    claimed_at=datetime.now(),
+                )
+            )
+            session.commit()
+            if result.rowcount > 0:
+                session.refresh(candidate)
+                return candidate.to_domain()
+            return None
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def complete_translation(self, profile_id: int, raw_text_en: str) -> None:
+        session = self._SessionLocal()
+        try:
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
+            if existing:
+                existing.raw_text_en = raw_text_en
+                existing.status = "PENDING_REFINEMENT"
+                existing.status_message = "Translation completed"
+                existing.claimed_by = None
+                existing.claimed_at = None
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def claim_next_for_refinement(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        session = self._SessionLocal()
+        try:
+            session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.status == "REFINEMENT_CLAIMED",
+                    CandidateProfileModel.claimed_at < stale_cutoff,
+                )
+                .values(
+                    status="PENDING_REFINEMENT",
+                    claimed_by=None,
+                    claimed_at=None,
+                )
+            )
+            candidate = (
+                session.query(CandidateProfileModel)
+                .filter(
+                    CandidateProfileModel.status == "PENDING_REFINEMENT",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .first()
+            )
+            if not candidate:
+                session.commit()
+                return None
+
+            result = session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.id == candidate.id,
+                    CandidateProfileModel.status == "PENDING_REFINEMENT",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .values(
+                    status="REFINEMENT_CLAIMED",
+                    claimed_by=agent_name,
+                    claimed_at=datetime.now(),
+                )
+            )
+            session.commit()
+            if result.rowcount > 0:
+                session.refresh(candidate)
+                return candidate.to_domain()
+            return None
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def complete_refinement(self, profile_id: int, profile: CandidateProfile) -> None:
+        session = self._SessionLocal()
+        try:
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
+            if existing:
+                if profile.name:
+                    existing.name = profile.name
+                if profile.email:
+                    existing.email = profile.email
+                existing.highest_degree = profile.highest_degree
+                existing.skills = json.dumps(profile.skills) if profile.skills else None
+                existing.languages = (
+                    json.dumps(profile.languages) if profile.languages else None
+                )
+                existing.experience = (
+                    json.dumps(profile.experience) if profile.experience else None
+                )
+                existing.preferred_locations = (
+                    json.dumps(profile.preferred_locations)
+                    if profile.preferred_locations
+                    else None
+                )
+                existing.research_interests = (
+                    json.dumps(profile.research_interests)
+                    if profile.research_interests
+                    else None
+                )
+                existing.skill_embedding = (
+                    json.dumps(profile.skill_embedding)
+                    if profile.skill_embedding
+                    else None
+                )
+                existing.research_embedding = (
+                    json.dumps(profile.research_embedding)
+                    if profile.research_embedding
+                    else None
+                )
+                existing.status = "COMPLETED"
+                existing.status_message = "Parsed and refined successfully"
                 existing.claimed_by = None
                 existing.claimed_at = None
                 session.commit()

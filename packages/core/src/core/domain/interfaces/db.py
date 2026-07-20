@@ -6,6 +6,7 @@ from core.domain.models.match import Match
 from core.domain.models.matching_task import MatchingTask
 from core.domain.models.schemas import JobDetailUpdate
 
+
 class BaseJobRepository(ABC):
     @abstractmethod
     def init_db(self) -> None:
@@ -72,7 +73,9 @@ class BaseTranslationRepository(ABC):
         pass
 
     @abstractmethod
-    def complete(self, url: str, description_en: str | None, requirements_en: str | None) -> None:
+    def complete(
+        self, url: str, description_en: str | None, requirements_en: str | None
+    ) -> None:
         pass
 
     @abstractmethod
@@ -95,6 +98,8 @@ class BaseRefinementRepository(ABC):
         url: str,
         required_skills: list[str],
         education_level: str | None,
+        skill_embedding: list[float] | None = None,
+        research_embedding: list[float] | None = None,
         city: str | None = None,
         country: str | None = None,
     ) -> None:
@@ -133,7 +138,9 @@ class BaseCandidateProfileRepository(ABC):
         pass
 
     @abstractmethod
-    def claim_next_for_ingestion(self, agent_name: str, stale_cutoff: datetime) -> CandidateProfile | None:
+    def claim_next_for_ingestion(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
         pass
 
     @abstractmethod
@@ -144,6 +151,46 @@ class BaseCandidateProfileRepository(ABC):
     def fail_ingestion(self, profile_id: int, error_message: str) -> None:
         pass
 
+    @abstractmethod
+    def submit_raw_text(
+        self,
+        profile_id: int,
+        raw_text: str,
+        name: str | None = None,
+        email: str | None = None,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def claim_next_for_detection(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        pass
+
+    @abstractmethod
+    def complete_detection(self, profile_id: int, language_code: str) -> None:
+        pass
+
+    @abstractmethod
+    def claim_next_for_translation(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        pass
+
+    @abstractmethod
+    def complete_translation(self, profile_id: int, raw_text_en: str) -> None:
+        pass
+
+    @abstractmethod
+    def claim_next_for_refinement(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        pass
+
+    @abstractmethod
+    def complete_refinement(self, profile_id: int, profile: CandidateProfile) -> None:
+        pass
+
 
 class BaseMatchingQueueRepository(ABC):
     @abstractmethod
@@ -151,7 +198,9 @@ class BaseMatchingQueueRepository(ABC):
         pass
 
     @abstractmethod
-    def claim_next(self, agent_name: str, stale_cutoff: datetime) -> MatchingTask | None:
+    def claim_next(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> MatchingTask | None:
         pass
 
     @abstractmethod
@@ -173,7 +222,9 @@ class BaseMatchRepository(ABC):
         pass
 
     @abstractmethod
-    def get_matches_for_candidate(self, candidate_id: int, limit: int = 20) -> list[Match]:
+    def get_matches_for_candidate(
+        self, candidate_id: int, limit: int = 20
+    ) -> list[Match]:
         pass
 
     @abstractmethod
@@ -181,7 +232,9 @@ class BaseMatchRepository(ABC):
         pass
 
     @abstractmethod
-    def claim_next_pending_explanation(self, agent_name: str, stale_cutoff: datetime, threshold: float = 0.3) -> Match | None:
+    def claim_next_pending_explanation(
+        self, agent_name: str, stale_cutoff: datetime, threshold: float = 0.3
+    ) -> Match | None:
         pass
 
     @abstractmethod
@@ -195,4 +248,3 @@ class BaseMatchRepository(ABC):
     @abstractmethod
     def recover_stale_explanations(self, stale_cutoff: datetime) -> int:
         pass
-

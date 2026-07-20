@@ -4,16 +4,14 @@ from datetime import datetime, timezone
 from sqlalchemy import update
 
 from core.domain.interfaces.db import BaseRefinementRepository
-from core.domain.interfaces.services import BaseEmbeddingService
 from core.domain.models.job import Job
 from core.domain.constants import JobStatus
 from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
 class RefinementRepository(BaseRefinementRepository):
-    def __init__(self, session_factory, embedding_service: BaseEmbeddingService):
+    def __init__(self, session_factory):
         self._SessionLocal = session_factory
-        self._embedding_service = embedding_service
 
     def claim_next(self, agent_name: str, stale_cutoff: datetime) -> Job | None:
         session = self._SessionLocal()
@@ -34,11 +32,15 @@ class RefinementRepository(BaseRefinementRepository):
 
             candidate = (
                 session.query(JobModel)
-                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
+                .join(
+                    JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url
+                )
                 .filter(
                     JobModel.description.isnot(None),
                     JobOrchestrationModel.refinement_status == JobStatus.PENDING,
-                    JobOrchestrationModel.translation_status.in_([JobStatus.COMPLETED, JobStatus.SKIPPED]),
+                    JobOrchestrationModel.translation_status.in_(
+                        [JobStatus.COMPLETED, JobStatus.SKIPPED]
+                    ),
                 )
                 .first()
             )
@@ -74,6 +76,8 @@ class RefinementRepository(BaseRefinementRepository):
         url: str,
         required_skills: list[str],
         education_level: str | None,
+        skill_embedding: list[float] | None = None,
+        research_embedding: list[float] | None = None,
         city: str | None = None,
         country: str | None = None,
     ) -> None:
@@ -82,13 +86,6 @@ class RefinementRepository(BaseRefinementRepository):
             job_model = session.query(JobModel).filter(JobModel.url == url).first()
             if not job_model:
                 raise ValueError(f"Job not found for url: {url}")
-
-            # Compute embeddings using injected embedding service
-            skill_emb = self._embedding_service.encode_skills(required_skills)
-            research_emb = self._embedding_service.encode_research(
-                interests=required_skills,
-                title=job_model.title,
-            )
 
             skills_str = (
                 json.dumps([strip_accents(s) for s in required_skills if s])
@@ -104,8 +101,12 @@ class RefinementRepository(BaseRefinementRepository):
                     education_level=strip_accents(education_level),
                     city=strip_accents(city),
                     country=strip_accents(country),
-                    skill_embedding=json.dumps(skill_emb) if skill_emb is not None else None,
-                    research_embedding=json.dumps(research_emb) if research_emb is not None else None,
+                    skill_embedding=json.dumps(skill_embedding)
+                    if skill_embedding is not None
+                    else None,
+                    research_embedding=json.dumps(research_embedding)
+                    if research_embedding is not None
+                    else None,
                 )
             )
             # Update refinement orchestration statuses

@@ -13,10 +13,13 @@ dependencies = [
 [project.optional-dependencies]
 embeddings = [
     "sentence-transformers>=3.4.0",
+    "torch",
 ]
 vision = [
     "docling>=2.113.0",
     "onnxruntime>=1.27.0",
+    "torch",
+    "torchvision",
 ]
 
 [build-system]

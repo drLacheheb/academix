@@ -5,7 +5,6 @@ from core.domain.models.job import Job
 from core.domain.constants import (
     STALE_CLAIM_TIMEOUT_MINUTES,
 )
-from core.domain.interfaces.services import BaseEmbeddingService
 from core.infrastructure.db.repository import DatabaseJobRepository
 from core.infrastructure.db.detection import LanguageDetectionRepository
 from core.infrastructure.db.translation import TranslationRepository
@@ -17,18 +16,20 @@ from core.infrastructure.db.match_repository import MatchRepository
 
 
 class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
-    def __init__(self, database_url: str, embedding_service: BaseEmbeddingService):
+    def __init__(self, database_url: str):
         super().__init__(database_url)
         self.detection = LanguageDetectionRepository(self._SessionLocal)
         self.translation = TranslationRepository(self._SessionLocal)
-        self.refinement = RefinementRepository(self._SessionLocal, embedding_service=embedding_service)
+        self.refinement = RefinementRepository(self._SessionLocal)
         self.status = StatusQueryRepository(self._SessionLocal)
         self.profiles = DatabaseCandidateProfileRepository(self._SessionLocal)
         self.matching_queue = MatchingQueueRepository(self._SessionLocal)
         self.matches = MatchRepository(self._SessionLocal)
 
     def claim_next_for_detection(self, agent_name: str) -> Job | None:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            minutes=STALE_CLAIM_TIMEOUT_MINUTES
+        )
         return self.detection.claim_next(agent_name, cutoff)
 
     def complete_detection(self, url: str, language_code: str) -> None:
@@ -38,7 +39,9 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.detection.fail(url)
 
     def claim_next_for_translation(self, agent_name: str) -> Job | None:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            minutes=STALE_CLAIM_TIMEOUT_MINUTES
+        )
         return self.translation.claim_next(agent_name, cutoff)
 
     def complete_translation(
@@ -53,7 +56,9 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.translation.fail(url)
 
     def claim_next_for_refinement(self, agent_name: str) -> Job | None:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            minutes=STALE_CLAIM_TIMEOUT_MINUTES
+        )
         return self.refinement.claim_next(agent_name, cutoff)
 
     def complete_refinement(
@@ -61,11 +66,19 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         url: str,
         required_skills: list[str],
         education_level: str | None,
+        skill_embedding: list[float] | None = None,
+        research_embedding: list[float] | None = None,
         city: str | None = None,
         country: str | None = None,
     ) -> None:
         return self.refinement.complete(
-            url, required_skills, education_level, city, country
+            url,
+            required_skills,
+            education_level,
+            skill_embedding,
+            research_embedding,
+            city,
+            country,
         )
 
     def fail_refinement(self, url: str) -> None:
