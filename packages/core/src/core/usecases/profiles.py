@@ -79,8 +79,6 @@ class CompleteIngestionUseCase:
 
     def execute(self, profile_id: int, profile: CandidateProfile) -> None:
         self._repo.complete_ingestion(profile_id, profile)
-        # Enqueue the profile ID for matching task
-        self._queue_repo.enqueue("candidate", str(profile_id))
 
 
 class FailIngestionUseCase:
@@ -95,7 +93,13 @@ class SubmitRawTextUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
 
-    def execute(self, profile_id: int, raw_text: str, name: str | None = None, email: str | None = None) -> None:
+    def execute(
+        self,
+        profile_id: int,
+        raw_text: str,
+        name: str | None = None,
+        email: str | None = None,
+    ) -> None:
         self._repo.submit_raw_text(profile_id, raw_text, name, email)
 
 
@@ -106,6 +110,7 @@ class ClaimProfileDetectionUseCase:
     def execute(self, agent_name: str) -> Optional[CandidateProfile]:
         from datetime import datetime, timedelta
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
+
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
         return self._repo.claim_next_for_detection(agent_name, cutoff)
 
@@ -125,6 +130,7 @@ class ClaimProfileTranslationUseCase:
     def execute(self, agent_name: str) -> Optional[CandidateProfile]:
         from datetime import datetime, timedelta
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
+
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
         return self._repo.claim_next_for_translation(agent_name, cutoff)
 
@@ -144,6 +150,7 @@ class ClaimProfileRefinementUseCase:
     def execute(self, agent_name: str) -> Optional[CandidateProfile]:
         from datetime import datetime, timedelta
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
+
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
         return self._repo.claim_next_for_refinement(agent_name, cutoff)
 

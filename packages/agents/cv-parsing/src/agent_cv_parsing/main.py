@@ -69,7 +69,7 @@ def process_ingestion_task(client) -> bool:
 
         # Step 2: Upload raw text to API gateway, transitioning state to PENDING_DETECTION
         logger.info(f"[{profile_id}] Uploading raw parsed text to API gateway...")
-        client.put(
+        submit_resp = client.put(
             f"/profiles/submit-raw-text/{profile_id}",
             json={
                 "raw_text": raw_markdown,
@@ -77,6 +77,7 @@ def process_ingestion_task(client) -> bool:
                 "email": profile_data.get("email"),
             },
         )
+        submit_resp.raise_for_status()
         logger.info(f"[{profile_id}] Raw text successfully submitted to pipeline!")
 
     except Exception as e:
