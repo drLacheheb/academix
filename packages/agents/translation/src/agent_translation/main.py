@@ -43,8 +43,77 @@ def run():
 
     from core.utils.agent import run_agent_loop
 
+    def load_translator_if_needed():
+        nonlocal translator
+        if translator is not None:
+            return
+        model_path = config["model_path"]
+        models_dir = config["models_dir"]
+        repo_id = "mijuanlo/nllb-200-distilled-600M-ct2-int8"
+
+        if "/" in model_path:
+            repo_id = model_path
+            resolved_model_dir = os.path.abspath(
+                os.path.join(models_dir, model_path)
+            )
+        else:
+            resolved_model_dir = os.path.abspath(
+                os.path.join(models_dir, model_path)
+            )
+
+        if not os.path.exists(resolved_model_dir) or not os.path.exists(
+            os.path.join(resolved_model_dir, "model.bin")
+        ):
+            logger.info(
+                f"NLLB model directory '{resolved_model_dir}' not found or incomplete. Downloading model from HF repo {repo_id}..."
+            )
+            try:
+                os.makedirs(os.path.dirname(resolved_model_dir), exist_ok=True)
+                from huggingface_hub import snapshot_download
+
+                snapshot_download(
+                    repo_id=repo_id,
+                    local_dir=resolved_model_dir,
+                    allow_patterns=["*.json", "*.bin", "*.model"],
+                    local_dir_use_symlinks=False,
+                )
+                logger.info("Download complete!")
+            except Exception as e:
+                logger.error(f"Failed to automatically download NLLB model: {e}")
+                sys.exit(1)
+
+        logger.info(
+            f"Loading NLLB-200 model from '{resolved_model_dir}'..."
+        )
+        translator = NllbTranslator(resolved_model_dir)
+        logger.info("NLLB model loaded successfully!")
+
     def cycle() -> bool:
         nonlocal translator, api, config, logger
+        # 1. Try to claim candidate profile translation task
+        try:
+            profile_resp = api.post("/profiles/claim-translate", json={"agent_name": args.name})
+            profile_resp.raise_for_status()
+            profile_data = profile_resp.json().get("profile")
+            if profile_data:
+                profile_id = profile_data["id"]
+                raw_text = profile_data.get("raw_text") or ""
+                source_lang = profile_data.get("language_code")
+                logger.info(f"Successfully claimed candidate profile for translation: ID {profile_id} [lang: {source_lang}]")
+
+                load_translator_if_needed()
+
+                logger.info("Translating candidate CV text...")
+                translated = translator.translate(raw_text, source_lang)
+
+                submit_resp = api.put("/profiles/translate", json={"profile_id": profile_id, "raw_text_en": translated})
+                submit_resp.raise_for_status()
+                logger.info(f"Successfully uploaded translation result for profile ID {profile_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error during profile translation task processing: {e}")
+
+        # 2. Fallback to claiming job task
         logger.info("Polling for pending translation jobs...")
         try:
             resp = api.post("/jobs/claim-translate", json={"agent_name": args.name})
@@ -70,47 +139,7 @@ def run():
             f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]"
         )
 
-        if translator is None:
-            model_path = config["model_path"]
-            models_dir = config["models_dir"]
-            repo_id = "mijuanlo/nllb-200-distilled-600M-ct2-int8"
-
-            if "/" in model_path:
-                repo_id = model_path
-                resolved_model_dir = os.path.abspath(
-                    os.path.join(models_dir, model_path)
-                )
-            else:
-                resolved_model_dir = os.path.abspath(
-                    os.path.join(models_dir, model_path)
-                )
-
-            if not os.path.exists(resolved_model_dir) or not os.path.exists(
-                os.path.join(resolved_model_dir, "model.bin")
-            ):
-                logger.info(
-                    f"NLLB model directory '{resolved_model_dir}' not found or incomplete. Downloading model from HF repo {repo_id}..."
-                )
-                try:
-                    os.makedirs(os.path.dirname(resolved_model_dir), exist_ok=True)
-                    from huggingface_hub import snapshot_download
-
-                    snapshot_download(
-                        repo_id=repo_id,
-                        local_dir=resolved_model_dir,
-                        allow_patterns=["*.json", "*.bin", "*.model"],
-                        local_dir_use_symlinks=False,
-                    )
-                    logger.info("Download complete!")
-                except Exception as e:
-                    logger.error(f"Failed to automatically download NLLB model: {e}")
-                    sys.exit(1)
-
-            logger.info(
-                f"First job claimed. Loading NLLB-200 model from '{resolved_model_dir}'..."
-            )
-            translator = NllbTranslator(resolved_model_dir)
-            logger.info("NLLB model loaded successfully!")
+        load_translator_if_needed()
 
         try:
             logger.info(f"Translating description and requirements for: {job_title}...")

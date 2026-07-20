@@ -31,6 +31,27 @@ def run():
 
     def cycle() -> bool:
         nonlocal detector, api, logger
+        # 1. Try to claim candidate profile task
+        try:
+            profile_resp = api.post("/profiles/claim-detect", json={"agent_name": args.name})
+            profile_resp.raise_for_status()
+            profile_data = profile_resp.json().get("profile")
+            if profile_data:
+                profile_id = profile_data["id"]
+                raw_text = profile_data.get("raw_text") or ""
+                logger.info(f"Successfully claimed candidate profile for detection: ID {profile_id}")
+                
+                lang = detector.detect_lang(raw_text)
+                logger.info(f"Detected language for profile ID {profile_id}: {lang}")
+                
+                submit_resp = api.put("/profiles/detect", json={"profile_id": profile_id, "language_code": lang})
+                submit_resp.raise_for_status()
+                logger.info(f"Successfully uploaded detection result for profile ID {profile_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error during profile detection task processing: {e}")
+
+        # 2. Fallback to claiming job task
         logger.info("Polling for pending detection jobs...")
         try:
             resp = api.post("/jobs/claim-detect", json={"agent_name": args.name})
