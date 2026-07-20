@@ -11,6 +11,13 @@ from api.dependencies import (
     get_claim_ingestion_usecase,
     get_complete_ingestion_usecase,
     get_fail_ingestion_usecase,
+    get_submit_raw_text_usecase,
+    get_claim_profile_detect_usecase,
+    get_complete_profile_detect_usecase,
+    get_claim_profile_translate_usecase,
+    get_complete_profile_translate_usecase,
+    get_claim_profile_refine_usecase,
+    get_complete_profile_refine_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
@@ -20,6 +27,13 @@ from core.usecases import (
     ClaimIngestionUseCase,
     CompleteIngestionUseCase,
     FailIngestionUseCase,
+    SubmitRawTextUseCase,
+    ClaimProfileDetectionUseCase,
+    CompleteProfileDetectionUseCase,
+    ClaimProfileTranslationUseCase,
+    CompleteProfileTranslationUseCase,
+    ClaimProfileRefinementUseCase,
+    CompleteProfileRefinementUseCase,
 )
 from core.domain.models.schemas import ClaimRequest
 
@@ -40,6 +54,27 @@ class IngestionComplete(BaseModel):
 
 class IngestionFail(BaseModel):
     error_message: str
+
+
+class SubmitRawTextRequest(BaseModel):
+    raw_text: str
+    name: Optional[str] = None
+    email: Optional[str] = None
+
+
+class ProfileDetectionResult(BaseModel):
+    profile_id: int
+    language_code: str
+
+
+class ProfileTranslationResult(BaseModel):
+    profile_id: int
+    raw_text_en: str
+
+
+class ProfileRefinementResult(BaseModel):
+    profile_id: int
+    profile: dict
 
 
 @router.post("/profiles/upload-cv", status_code=202)
@@ -145,3 +180,89 @@ async def get_all_profiles(
 ):
     profiles = usecase.execute()
     return [p.to_dict() for p in profiles]
+
+
+@router.put("/profiles/submit-raw-text/{profile_id}")
+@limiter.limit("60/minute")
+async def submit_raw_text(
+    request: Request,
+    profile_id: int,
+    body: SubmitRawTextRequest,
+    usecase: SubmitRawTextUseCase = Depends(get_submit_raw_text_usecase),
+):
+    usecase.execute(profile_id, body.raw_text, body.name, body.email)
+    return {"status": "success", "profile_id": profile_id}
+
+
+@router.post("/profiles/claim-detect")
+@limiter.limit("60/minute")
+async def claim_profile_detect(
+    request: Request,
+    body: ClaimRequest,
+    usecase: ClaimProfileDetectionUseCase = Depends(get_claim_profile_detect_usecase),
+):
+    profile = usecase.execute(body.agent_name)
+    if profile is None:
+        return {"profile": None, "message": "No pending profile detection tasks available"}
+    return {"profile": profile.to_dict()}
+
+
+@router.put("/profiles/detect")
+@limiter.limit("60/minute")
+async def complete_profile_detect(
+    request: Request,
+    body: ProfileDetectionResult,
+    usecase: CompleteProfileDetectionUseCase = Depends(get_complete_profile_detect_usecase),
+):
+    usecase.execute(body.profile_id, body.language_code)
+    return {"status": "success", "profile_id": body.profile_id}
+
+
+@router.post("/profiles/claim-translate")
+@limiter.limit("60/minute")
+async def claim_profile_translate(
+    request: Request,
+    body: ClaimRequest,
+    usecase: ClaimProfileTranslationUseCase = Depends(get_claim_profile_translate_usecase),
+):
+    profile = usecase.execute(body.agent_name)
+    if profile is None:
+        return {"profile": None, "message": "No pending profile translation tasks available"}
+    return {"profile": profile.to_dict()}
+
+
+@router.put("/profiles/translate")
+@limiter.limit("60/minute")
+async def complete_profile_translate(
+    request: Request,
+    body: ProfileTranslationResult,
+    usecase: CompleteProfileTranslationUseCase = Depends(get_complete_profile_translate_usecase),
+):
+    usecase.execute(body.profile_id, body.raw_text_en)
+    return {"status": "success", "profile_id": body.profile_id}
+
+
+@router.post("/profiles/claim-refine")
+@limiter.limit("60/minute")
+async def claim_profile_refine(
+    request: Request,
+    body: ClaimRequest,
+    usecase: ClaimProfileRefinementUseCase = Depends(get_claim_profile_refine_usecase),
+):
+    profile = usecase.execute(body.agent_name)
+    if profile is None:
+        return {"profile": None, "message": "No pending profile refinement tasks available"}
+    return {"profile": profile.to_dict()}
+
+
+@router.put("/profiles/refine")
+@limiter.limit("60/minute")
+async def complete_profile_refine(
+    request: Request,
+    body: ProfileRefinementResult,
+    usecase: CompleteProfileRefinementUseCase = Depends(get_complete_profile_refine_usecase),
+):
+    from core.domain.models.profile import CandidateProfile
+    profile_domain = CandidateProfile.from_dict(body.profile)
+    usecase.execute(body.profile_id, profile_domain)
+    return {"status": "success", "profile_id": body.profile_id}

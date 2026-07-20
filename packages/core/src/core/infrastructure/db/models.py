@@ -88,10 +88,6 @@ class JobModel(Base):
             else None
         )
 
-        if job.required_skills is not None:
-            status = JobStatus.COMPLETED
-        else:
-            status = JobStatus.PENDING
 
         return cls(
             title=strip_accents(job.title),
@@ -155,6 +151,8 @@ class CandidateProfileModel(Base):
     email = Column(String, unique=True, index=True, nullable=True)
     cv_file_path = Column(String, nullable=True)
     raw_text = Column(Text, nullable=True)
+    language_code = Column(String, nullable=True)
+    raw_text_en = Column(Text, nullable=True)
     highest_degree = Column(String, nullable=True)
     skills = Column(Text, nullable=True)  # JSON array of strings
     languages = Column(
@@ -183,6 +181,8 @@ class CandidateProfileModel(Base):
             email=self.email,
             cv_file_path=self.cv_file_path,
             raw_text=self.raw_text,
+            language_code=self.language_code,
+            raw_text_en=self.raw_text_en,
             highest_degree=self.highest_degree,
             skills=json.loads(self.skills) if self.skills else [],
             languages=json.loads(self.languages) if self.languages else [],
@@ -215,6 +215,8 @@ class CandidateProfileModel(Base):
             email=profile.email,
             cv_file_path=profile.cv_file_path,
             raw_text=profile.raw_text,
+            language_code=profile.language_code,
+            raw_text_en=profile.raw_text_en,
             highest_degree=strip_accents(profile.highest_degree) if profile.highest_degree else None,
             skills=json.dumps([strip_accents(s) for s in profile.skills if s])
             if profile.skills is not None

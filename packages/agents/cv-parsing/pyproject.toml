@@ -4,9 +4,8 @@ version = "0.1.0"
 description = "Background CV parsing and multilingual layout analysis agent using local Docling, NLLB, and Gemma-4"
 requires-python = "==3.12.*"
 dependencies = [
-    "core[embeddings,vision]",
+    "core[vision]",
     "httpx>=0.28.0",
-    "llama-cpp-python>=0.3.0",
     "python-dotenv>=1.2.2",
 ]
 

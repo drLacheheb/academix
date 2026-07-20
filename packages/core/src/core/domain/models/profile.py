@@ -11,6 +11,8 @@ class CandidateProfile:
     email: Optional[str] = None
     cv_file_path: Optional[str] = None
     raw_text: Optional[str] = None
+    language_code: Optional[str] = None
+    raw_text_en: Optional[str] = None
     highest_degree: Optional[str] = None
     skills: Optional[list[str]] = None
     languages: Optional[list[dict[str, str]]] = None
