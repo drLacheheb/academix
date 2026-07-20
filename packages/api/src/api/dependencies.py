@@ -258,7 +258,7 @@ def get_claim_ingestion_usecase(
 def get_complete_ingestion_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> CompleteIngestionUseCase:
-    return CompleteIngestionUseCase(repo.profiles, repo.matching_queue)
+    return CompleteIngestionUseCase(repo.profiles)
 
 
 def get_fail_ingestion_usecase(

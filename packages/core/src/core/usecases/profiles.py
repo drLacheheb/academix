@@ -72,10 +72,8 @@ class CompleteIngestionUseCase:
     def __init__(
         self,
         repo: BaseCandidateProfileRepository,
-        queue_repo: BaseMatchingQueueRepository,
     ):
         self._repo = repo
-        self._queue_repo = queue_repo
 
     def execute(self, profile_id: int, profile: CandidateProfile) -> None:
         self._repo.complete_ingestion(profile_id, profile)
