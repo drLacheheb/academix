@@ -20,7 +20,7 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 │       ├── translation/                   # Standalone local NLLB-200 translation agent
 │       ├── refinement/                    # Local Gemma-4 metadata extractor & refiner agent
 │       ├── matching/                      # Candidate CV matching & LLM explanation agent
-│       └── cv-parsing/                    # Background CV parsing, translation, and structured LLM extraction agent
+│       └── cv-parsing/                    # Background CV ingest and layout parsing agent
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
@@ -107,7 +107,7 @@ All agents are run from the workspace root. Settings are loaded automatically fr
 | `translation` | `agent_translation.main` | Local NLLB-200 Translation (All Sources) |
 | `refinement` | `agent_refinement.main` | Gemma-4 Skills Extraction (All Sources) |
 | `matching` | `agent_matching.main` | Candidate CV Matcher & Explainer (All Sources) |
-| `cv-parsing` | `agent_cv_parsing.main` | Background CV Ingest, Layout Parsing, Translation, and Gemma-4 Structured Extraction |
+| `cv-parsing` | `agent_cv_parsing.main` | Background CV Ingest and Layout Parsing |
 
 Run any agent using:
 ```bash
@@ -125,7 +125,7 @@ uv run --package matching python -m agent_matching.main
 All requests to the FastAPI Gateway require the `Authorization` header matching the `API_SECRET_KEY` configured in `.env`.
 
 ### A. Ingest a Candidate CV (Fully Asynchronous)
-Upload a candidate's CV (PDF format). The API saves the CV bytes to the configured storage service (local or S3/MinIO) and returns a `202 Accepted` status code immediately. The `cv-parsing` background agent then picks up the ingestion task, translates it if needed, and uses Gemma-4 to extract structured skills, prerequisite degrees, and education history:
+Upload a candidate's CV (PDF format). The API saves the CV bytes to the configured storage service (local or S3/MinIO) and returns a `202 Accepted` status code immediately. The `cv-parsing` background agent then picks up the ingestion task, parses the PDF into raw text, and submits that text back to the API for downstream language detection, translation, and refinement:
 ```bash
 curl -X POST http://localhost:8000/profiles/upload-cv \
   -H "Authorization: Bearer dev_secret_key" \
@@ -133,10 +133,10 @@ curl -X POST http://localhost:8000/profiles/upload-cv \
   -F "email=candidate@example.com" \
   -F "name=John Doe"
 ```
-**Response**: Returns the created profile object containing a structured list of skills, education level, and database `id`.
+**Response**: Returns the created placeholder profile object with the database `id`, upload status, and storage path.
 
 ### B. Background Processing
-Once jobs are discovered, details are sourced, language is detected, and translations (if non-English) are run. The refinement agent then extracts structured skills from job requirements. Finally, the matching agent computes similarities and drafts matching explanations. These pipeline steps run concurrently and automatically.
+Once jobs are discovered, details are sourced, language is detected, and translations (if non-English) are run. The refinement agent then extracts structured skills from job requirements. Candidate profiles follow the same detect, translate, and refine flow before being queued for matching. Finally, the matching agent computes similarities and drafts matching explanations. These pipeline steps run concurrently and automatically.
 
 ### C. Retrieve Matched Jobs & Explanations
 Retrieve a list of qualified academic positions for a candidate (ranked by nomic embedding similarities). The payload includes skill match alignment, degree/language eligibility checks, and LLM-generated explanations:
