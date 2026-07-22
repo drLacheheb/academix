@@ -188,7 +188,7 @@ class BaseCandidateProfileRepository(ABC):
         pass
 
     @abstractmethod
-    def complete_refinement(self, profile_id: int, profile: CandidateProfile) -> None:
+    def complete_refinement(self, profile_id: int, profile: CandidateProfile) -> int:
         pass
 
 

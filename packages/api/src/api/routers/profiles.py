@@ -264,5 +264,5 @@ async def complete_profile_refine(
 ):
     from core.domain.models.profile import CandidateProfile
     profile_domain = CandidateProfile.from_dict(body.profile)
-    usecase.execute(body.profile_id, profile_domain)
-    return {"status": "success", "profile_id": body.profile_id}
+    final_id = usecase.execute(body.profile_id, profile_domain)
+    return {"status": "success", "profile_id": final_id}
