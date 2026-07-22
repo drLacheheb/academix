@@ -1,5 +1,4 @@
 import json
-from core.utils.text import strip_accents
 from datetime import datetime, timezone
 from sqlalchemy import update
 
@@ -88,7 +87,7 @@ class RefinementRepository(BaseRefinementRepository):
                 raise ValueError(f"Job not found for url: {url}")
 
             skills_str = (
-                json.dumps([strip_accents(s) for s in required_skills if s])
+                json.dumps([s for s in required_skills if s], ensure_ascii=False)
                 if required_skills is not None
                 else None
             )
@@ -98,13 +97,13 @@ class RefinementRepository(BaseRefinementRepository):
                 .where(JobModel.url == url)
                 .values(
                     required_skills=skills_str,
-                    education_level=strip_accents(education_level),
-                    city=strip_accents(city),
-                    country=strip_accents(country),
-                    skill_embedding=json.dumps(skill_embedding)
+                    education_level=education_level,
+                    city=city,
+                    country=country,
+                    skill_embedding=json.dumps(skill_embedding, ensure_ascii=False)
                     if skill_embedding is not None
                     else None,
-                    research_embedding=json.dumps(research_embedding)
+                    research_embedding=json.dumps(research_embedding, ensure_ascii=False)
                     if research_embedding is not None
                     else None,
                 )

@@ -1,4 +1,3 @@
-from core.utils.text import strip_accents
 from datetime import datetime, timezone
 from sqlalchemy import update
 
@@ -77,8 +76,8 @@ class TranslationRepository(BaseTranslationRepository):
                 update(JobModel)
                 .where(JobModel.url == url)
                 .values(
-                    description_en=strip_accents(description_en),
-                    requirements_en=strip_accents(requirements_en),
+                    description_en=description_en,
+                    requirements_en=requirements_en,
                 )
             )
             # Update translation orchestration status

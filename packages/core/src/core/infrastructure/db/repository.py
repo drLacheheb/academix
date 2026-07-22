@@ -1,5 +1,4 @@
 import json
-from core.utils.text import strip_accents
 from sqlalchemy import create_engine, update as sa_update
 from sqlalchemy.orm import sessionmaker
 
@@ -76,42 +75,55 @@ class DatabaseJobRepository(BaseJobRepository):
             session.add(existing_orchestrator)
 
         if existing:
-            existing.title = strip_accents(job.title)
+            existing.title = job.title
             existing.source = job.source
             if job.deadline is not None:
-                existing.deadline = strip_accents(job.deadline)
+                existing.deadline = job.deadline
             if job.employer is not None:
-                existing.employer = strip_accents(job.employer)
+                existing.employer = job.employer
             if job.location is not None:
-                existing.location = strip_accents(job.location)
+                existing.location = job.location
             if job.description is not None:
-                existing.description = strip_accents(job.description)
+                existing.description = job.description
             if job.requirements is not None:
-                existing.requirements = strip_accents(job.requirements)
+                existing.requirements = job.requirements
             if job.required_skills is not None:
-                clean_skills = [strip_accents(s) for s in job.required_skills if s]
-                existing.required_skills = json.dumps(clean_skills)
+                clean_skills = [s for s in job.required_skills if s]
+                existing.required_skills = json.dumps(clean_skills, ensure_ascii=False)
                 existing_orchestrator.refinement_status = JobStatus.COMPLETED
             if job.education_level is not None:
-                existing.education_level = strip_accents(job.education_level)
+                existing.education_level = job.education_level
             if job.city is not None:
-                existing.city = strip_accents(job.city)
+                existing.city = job.city
             if job.country is not None:
-                existing.country = strip_accents(job.country)
+                existing.country = job.country
             if job.language_code is not None:
                 existing.language_code = job.language_code
             if job.description_en is not None:
-                existing.description_en = strip_accents(job.description_en)
+                existing.description_en = job.description_en
             if job.requirements_en is not None:
-                existing.requirements_en = strip_accents(job.requirements_en)
+                existing.requirements_en = job.requirements_en
         else:
             session.add(JobModel.from_domain(job))
 
     def get_all_urls(self) -> set[str]:
         session = self._SessionLocal()
         try:
-            results = session.query(JobModel.url).all()
-            return {r[0] for r in results}
+            return {j.url for j in session.query(JobModel.url).all()}
+        finally:
+            session.close()
+
+    def get_urls_by_source(self, source: str, limit: int = 500) -> list[str]:
+        session = self._SessionLocal()
+        try:
+            results = (
+                session.query(JobModel.url)
+                .filter(JobModel.source == source)
+                .order_by(JobModel.last_seen.desc())
+                .limit(limit)
+                .all()
+            )
+            return [r[0] for r in results]
         finally:
             session.close()
 
@@ -149,15 +161,15 @@ class DatabaseJobRepository(BaseJobRepository):
             for d in details:
                 values = {}
                 if d.description is not None:
-                    values["description"] = strip_accents(d.description)
+                    values["description"] = d.description
                 if d.requirements is not None:
-                    values["requirements"] = strip_accents(d.requirements)
+                    values["requirements"] = d.requirements
                 if d.deadline is not None:
-                    values["deadline"] = strip_accents(d.deadline)
+                    values["deadline"] = d.deadline
                 if d.employer is not None:
-                    values["employer"] = strip_accents(d.employer)
+                    values["employer"] = d.employer
                 if d.location is not None:
-                    values["location"] = strip_accents(d.location)
+                    values["location"] = d.location
                 if values:
                     session.execute(
                         sa_update(JobModel)
