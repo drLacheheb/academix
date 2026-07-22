@@ -1,5 +1,4 @@
 import json
-from core.utils.text import strip_accents
 from sqlalchemy import (
     Column,
     Integer,
@@ -83,32 +82,32 @@ class JobModel(Base):
     @classmethod
     def from_domain(cls, job: Job) -> "JobModel":
         skills_str = (
-            json.dumps([strip_accents(s) for s in job.required_skills if s])
+            json.dumps([s for s in job.required_skills if s], ensure_ascii=False)
             if job.required_skills is not None
             else None
         )
 
 
         return cls(
-            title=strip_accents(job.title),
+            title=job.title,
             url=job.url,
             source=job.source,
-            deadline=strip_accents(job.deadline),
-            employer=strip_accents(job.employer),
-            location=strip_accents(job.location),
-            description=strip_accents(job.description),
-            requirements=strip_accents(job.requirements),
+            deadline=job.deadline,
+            employer=job.employer,
+            location=job.location,
+            description=job.description,
+            requirements=job.requirements,
             required_skills=skills_str,
-            education_level=strip_accents(job.education_level),
-            city=strip_accents(job.city),
-            country=strip_accents(job.country),
+            education_level=job.education_level,
+            city=job.city,
+            country=job.country,
             language_code=job.language_code,
-            description_en=strip_accents(job.description_en),
-            requirements_en=strip_accents(job.requirements_en),
-            skill_embedding=json.dumps(job.skill_embedding)
+            description_en=job.description_en,
+            requirements_en=job.requirements_en,
+            skill_embedding=json.dumps(job.skill_embedding, ensure_ascii=False)
             if job.skill_embedding is not None
             else None,
-            research_embedding=json.dumps(job.research_embedding)
+            research_embedding=json.dumps(job.research_embedding, ensure_ascii=False)
             if job.research_embedding is not None
             else None,
         )
@@ -121,7 +120,6 @@ class JobOrchestrationModel(Base):
         String,
         ForeignKey("jobs.url", ondelete="CASCADE"),
         primary_key=True,
-        index=True,
     )
 
     detection_status = Column(
@@ -143,6 +141,15 @@ class JobOrchestrationModel(Base):
     claimed_at = Column(DateTime, nullable=True)
 
 
+def _safe_json_loads(val: str | None, default: any = None) -> any:
+    if not val:
+        return default
+    try:
+        return json.loads(val)
+    except Exception:
+        return default
+
+
 class CandidateProfileModel(Base):
     __tablename__ = "candidate_profiles"
 
@@ -158,9 +165,7 @@ class CandidateProfileModel(Base):
     languages = Column(
         Text, nullable=True
     )  # JSON array of dicts: [{"language": "...", "proficiency": "..."}]
-    experience = Column(
-        Text, nullable=True
-    )  # JSON array of dicts: [{"role": "...", "organization": "...", "from_date": "...", "to_date": "...", "description": "..."}]
+    experience = Column(Text, nullable=True)  # JSON array of dicts
     preferred_locations = Column(Text, nullable=True)  # JSON array of strings
     research_interests = Column(Text, nullable=True)  # JSON array of strings
     skill_embedding = Column(Text, nullable=True)  # JSON array of 256 floats
@@ -184,21 +189,13 @@ class CandidateProfileModel(Base):
             language_code=self.language_code,
             raw_text_en=self.raw_text_en,
             highest_degree=self.highest_degree,
-            skills=json.loads(self.skills) if self.skills else [],
-            languages=json.loads(self.languages) if self.languages else [],
-            experience=json.loads(self.experience) if self.experience else [],
-            preferred_locations=json.loads(self.preferred_locations)
-            if self.preferred_locations
-            else [],
-            research_interests=json.loads(self.research_interests)
-            if self.research_interests
-            else [],
-            skill_embedding=json.loads(self.skill_embedding)
-            if self.skill_embedding
-            else None,
-            research_embedding=json.loads(self.research_embedding)
-            if self.research_embedding
-            else None,
+            skills=_safe_json_loads(self.skills, []),
+            languages=_safe_json_loads(self.languages, []),
+            experience=_safe_json_loads(self.experience, []),
+            preferred_locations=_safe_json_loads(self.preferred_locations, []),
+            research_interests=_safe_json_loads(self.research_interests, []),
+            skill_embedding=_safe_json_loads(self.skill_embedding, None),
+            research_embedding=_safe_json_loads(self.research_embedding, None),
             status=self.status,
             status_message=self.status_message,
             claimed_by=self.claimed_by,
@@ -211,57 +208,61 @@ class CandidateProfileModel(Base):
     def from_domain(cls, profile: CandidateProfile) -> "CandidateProfileModel":
         return cls(
             id=profile.id,
-            name=strip_accents(profile.name) if profile.name else None,
+            name=profile.name if profile.name else None,
             email=profile.email,
             cv_file_path=profile.cv_file_path,
             raw_text=profile.raw_text,
             language_code=profile.language_code,
             raw_text_en=profile.raw_text_en,
-            highest_degree=strip_accents(profile.highest_degree) if profile.highest_degree else None,
-            skills=json.dumps([strip_accents(s) for s in profile.skills if s])
+            highest_degree=profile.highest_degree if profile.highest_degree else None,
+            skills=json.dumps([s for s in profile.skills if s], ensure_ascii=False)
             if profile.skills is not None
             else None,
             languages=json.dumps(
                 [
                     {
-                        "language": strip_accents(lang.get("language")),
-                        "proficiency": strip_accents(lang.get("proficiency")),
+                        "language": lang.get("language") if isinstance(lang, dict) else str(lang),
+                        "proficiency": lang.get("proficiency") if isinstance(lang, dict) else None,
                     }
                     for lang in profile.languages
                     if lang
-                ]
+                ],
+                ensure_ascii=False,
             )
             if profile.languages is not None
             else None,
             experience=json.dumps(
                 [
                     {
-                        "role": strip_accents(exp.get("role")),
-                        "organization": strip_accents(exp.get("organization")),
-                        "from_date": strip_accents(exp.get("from_date")),
-                        "to_date": strip_accents(exp.get("to_date")),
-                        "description": strip_accents(exp.get("description")),
+                        "role": exp.get("role") if isinstance(exp, dict) else str(exp),
+                        "organization": exp.get("organization") if isinstance(exp, dict) else None,
+                        "from_date": exp.get("from_date") if isinstance(exp, dict) else None,
+                        "to_date": exp.get("to_date") if isinstance(exp, dict) else None,
+                        "description": exp.get("description") if isinstance(exp, dict) else None,
                     }
                     for exp in profile.experience
                     if exp
-                ]
+                ],
+                ensure_ascii=False,
             )
             if profile.experience is not None
             else None,
             preferred_locations=json.dumps(
-                [strip_accents(loc) for loc in profile.preferred_locations if loc]
+                [loc for loc in profile.preferred_locations if loc],
+                ensure_ascii=False,
             )
             if profile.preferred_locations is not None
             else None,
             research_interests=json.dumps(
-                [strip_accents(ri) for ri in profile.research_interests if ri]
+                [ri for ri in profile.research_interests if ri],
+                ensure_ascii=False,
             )
             if profile.research_interests is not None
             else None,
-            skill_embedding=json.dumps(profile.skill_embedding)
+            skill_embedding=json.dumps(profile.skill_embedding, ensure_ascii=False)
             if profile.skill_embedding is not None
             else None,
-            research_embedding=json.dumps(profile.research_embedding)
+            research_embedding=json.dumps(profile.research_embedding, ensure_ascii=False)
             if profile.research_embedding is not None
             else None,
             status=profile.status,

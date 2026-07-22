@@ -192,30 +192,30 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 existing.cv_file_path = profile.cv_file_path
                 existing.raw_text = profile.raw_text
                 existing.highest_degree = profile.highest_degree
-                existing.skills = json.dumps(profile.skills) if profile.skills else None
+                existing.skills = json.dumps(profile.skills, ensure_ascii=False) if profile.skills else None
                 existing.languages = (
-                    json.dumps(profile.languages) if profile.languages else None
+                    json.dumps(profile.languages, ensure_ascii=False) if profile.languages else None
                 )
                 existing.experience = (
-                    json.dumps(profile.experience) if profile.experience else None
+                    json.dumps(profile.experience, ensure_ascii=False) if profile.experience else None
                 )
                 existing.preferred_locations = (
-                    json.dumps(profile.preferred_locations)
+                    json.dumps(profile.preferred_locations, ensure_ascii=False)
                     if profile.preferred_locations
                     else None
                 )
                 existing.research_interests = (
-                    json.dumps(profile.research_interests)
+                    json.dumps(profile.research_interests, ensure_ascii=False)
                     if profile.research_interests
                     else None
                 )
                 existing.skill_embedding = (
-                    json.dumps(profile.skill_embedding)
+                    json.dumps(profile.skill_embedding, ensure_ascii=False)
                     if profile.skill_embedding
                     else None
                 )
                 existing.research_embedding = (
-                    json.dumps(profile.research_embedding)
+                    json.dumps(profile.research_embedding, ensure_ascii=False)
                     if profile.research_embedding
                     else None
                 )
@@ -485,52 +485,192 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
         finally:
             session.close()
 
-    def complete_refinement(self, profile_id: int, profile: CandidateProfile) -> None:
+    def complete_refinement(self, profile_id: int, profile: CandidateProfile) -> int:
         session = self._SessionLocal()
         try:
-            existing = (
+            # Check if there is another candidate with the same email
+            existing_email = None
+            if profile.email:
+                existing_email = (
+                    session.query(CandidateProfileModel)
+                    .filter(
+                        CandidateProfileModel.email == profile.email,
+                        CandidateProfileModel.id != profile_id,
+                    )
+                    .first()
+                )
+
+            # Get the current placeholder
+            placeholder = (
                 session.query(CandidateProfileModel)
                 .filter(CandidateProfileModel.id == profile_id)
                 .first()
             )
-            if existing:
+
+            if existing_email:
+                # Merge into the existing candidate profile
                 if profile.name:
-                    existing.name = profile.name
-                if profile.email:
-                    existing.email = profile.email
-                existing.highest_degree = profile.highest_degree
-                existing.skills = json.dumps(profile.skills) if profile.skills else None
-                existing.languages = (
-                    json.dumps(profile.languages) if profile.languages else None
+                    existing_email.name = profile.name
+                existing_email.email = profile.email
+                if placeholder:
+                    existing_email.cv_file_path = placeholder.cv_file_path or existing_email.cv_file_path
+                    existing_email.raw_text = placeholder.raw_text or existing_email.raw_text
+                    existing_email.raw_text_en = placeholder.raw_text_en or existing_email.raw_text_en
+                    existing_email.language_code = placeholder.language_code or existing_email.language_code
+                existing_email.highest_degree = profile.highest_degree if profile.highest_degree else None
+                existing_email.skills = (
+                    json.dumps([s for s in profile.skills if s], ensure_ascii=False)
+                    if profile.skills
+                    else None
                 )
-                existing.experience = (
-                    json.dumps(profile.experience) if profile.experience else None
+                existing_email.languages = (
+                    json.dumps(
+                        [
+                            {
+                                "language": lang.get("language")
+                                if isinstance(lang, dict)
+                                else str(lang),
+                                "proficiency": lang.get("proficiency")
+                                if isinstance(lang, dict)
+                                else None,
+                            }
+                            for lang in profile.languages
+                            if lang
+                        ],
+                        ensure_ascii=False,
+                    )
+                    if profile.languages
+                    else None
                 )
-                existing.preferred_locations = (
-                    json.dumps(profile.preferred_locations)
+                existing_email.experience = (
+                    json.dumps(
+                        [
+                            {
+                                "role": exp.get("role")
+                                if isinstance(exp, dict)
+                                else str(exp),
+                                "organization": exp.get("organization")
+                                if isinstance(exp, dict)
+                                else None,
+                                "from_date": exp.get("from_date")
+                                if isinstance(exp, dict)
+                                else None,
+                                "to_date": exp.get("to_date")
+                                if isinstance(exp, dict)
+                                else None,
+                                "description": exp.get("description")
+                                if isinstance(exp, dict)
+                                else None,
+                            }
+                            for exp in profile.experience
+                            if exp
+                        ],
+                        ensure_ascii=False,
+                    )
+                    if profile.experience
+                    else None
+                )
+                existing_email.preferred_locations = (
+                    json.dumps([loc for loc in profile.preferred_locations if loc], ensure_ascii=False)
                     if profile.preferred_locations
                     else None
                 )
-                existing.research_interests = (
-                    json.dumps(profile.research_interests)
+                existing_email.research_interests = (
+                    json.dumps([ri for ri in profile.research_interests if ri], ensure_ascii=False)
                     if profile.research_interests
                     else None
                 )
-                existing.skill_embedding = (
-                    json.dumps(profile.skill_embedding)
-                    if profile.skill_embedding
-                    else None
-                )
-                existing.research_embedding = (
-                    json.dumps(profile.research_embedding)
-                    if profile.research_embedding
-                    else None
-                )
-                existing.status = "COMPLETED"
-                existing.status_message = "Parsed and refined successfully"
-                existing.claimed_by = None
-                existing.claimed_at = None
+                existing_email.skill_embedding = json.dumps(profile.skill_embedding, ensure_ascii=False) if profile.skill_embedding else None
+                existing_email.research_embedding = json.dumps(profile.research_embedding, ensure_ascii=False) if profile.research_embedding else None
+                existing_email.status = "COMPLETED"
+                existing_email.status_message = "Updated successfully via newer CV upload"
+                existing_email.claimed_by = None
+                existing_email.claimed_at = None
+
+                # Delete the temporary placeholder
+                if placeholder:
+                    session.delete(placeholder)
+                
                 session.commit()
+                return existing_email.id
+            else:
+                # Normal update of the placeholder
+                if placeholder:
+                    if profile.name:
+                        placeholder.name = profile.name
+                    if profile.email:
+                        placeholder.email = profile.email
+                    placeholder.highest_degree = profile.highest_degree if profile.highest_degree else None
+                    placeholder.skills = (
+                        json.dumps([s for s in profile.skills if s], ensure_ascii=False)
+                        if profile.skills
+                        else None
+                    )
+                    placeholder.languages = (
+                        json.dumps(
+                            [
+                                {
+                                    "language": lang.get("language")
+                                    if isinstance(lang, dict)
+                                    else str(lang),
+                                    "proficiency": lang.get("proficiency")
+                                    if isinstance(lang, dict)
+                                    else None,
+                                }
+                                for lang in profile.languages
+                                if lang
+                            ],
+                            ensure_ascii=False,
+                        )
+                        if profile.languages
+                        else None
+                    )
+                    placeholder.experience = (
+                        json.dumps(
+                            [
+                                {
+                                    "role": exp.get("role")
+                                    if isinstance(exp, dict)
+                                    else str(exp),
+                                    "organization": exp.get("organization")
+                                    if isinstance(exp, dict)
+                                    else None,
+                                    "from_date": exp.get("from_date")
+                                    if isinstance(exp, dict)
+                                    else None,
+                                    "to_date": exp.get("to_date")
+                                    if isinstance(exp, dict)
+                                    else None,
+                                    "description": exp.get("description")
+                                    if isinstance(exp, dict)
+                                    else None,
+                                }
+                                for exp in profile.experience
+                                if exp
+                            ],
+                            ensure_ascii=False,
+                        )
+                        if profile.experience
+                        else None
+                    )
+                    placeholder.preferred_locations = (
+                        json.dumps([loc for loc in profile.preferred_locations if loc], ensure_ascii=False)
+                        if profile.preferred_locations
+                        else None
+                    )
+                    placeholder.research_interests = (
+                        json.dumps([ri for ri in profile.research_interests if ri], ensure_ascii=False)
+                        if profile.research_interests
+                        else None
+                    )
+                    placeholder.skill_embedding = json.dumps(profile.skill_embedding, ensure_ascii=False) if profile.skill_embedding else None
+                    placeholder.research_embedding = json.dumps(profile.research_embedding, ensure_ascii=False) if profile.research_embedding else None
+                    placeholder.status = "COMPLETED"
+                    placeholder.status_message = "Parsed and refined successfully"
+                    placeholder.claimed_by = None
+                    placeholder.claimed_at = None
+                session.commit()
+                return profile_id
         except Exception:
             session.rollback()
             raise
