@@ -40,7 +40,7 @@ def check_degree_eligibility(candidate_degree: Optional[str], job_education_leve
     return parse_degree(candidate_degree) >= parse_degree(job_education_level)
 
 
-def check_language_eligibility(candidate_languages: Optional[list[dict[str, str]]], job_language_code: Optional[str]) -> bool:
+def check_language_eligibility(candidate_languages: Optional[list[dict[str, str] | str]], job_language_code: Optional[str]) -> bool:
     """Returns True if the candidate speaks the language required by the job."""
     if not job_language_code or job_language_code.lower() in ["en", "english"]:
         return True
@@ -50,8 +50,13 @@ def check_language_eligibility(candidate_languages: Optional[list[dict[str, str]
     code = job_language_code.lower()
     allowed_names = LANGUAGE_NAMES.get(code, [code])
 
-    for lang_dict in candidate_languages:
-        lang_name = lang_dict.get("language", "").lower()
+    for item in candidate_languages:
+        if isinstance(item, dict):
+            lang_name = item.get("language", "").lower()
+        elif isinstance(item, str):
+            lang_name = item.lower()
+        else:
+            continue
         if any(name in lang_name for name in allowed_names):
             return True
     return False

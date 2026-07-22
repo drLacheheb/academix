@@ -162,7 +162,9 @@ def run():
                     profiles_resp = api.get("/profiles")
                     profiles_resp.raise_for_status()
                     candidates = [
-                        CandidateProfile.from_dict(p) for p in profiles_resp.json()
+                        CandidateProfile.from_dict(p)
+                        for p in profiles_resp.json()
+                        if p.get("status") == "COMPLETED"
                     ]
 
                     # Score job against all candidates
