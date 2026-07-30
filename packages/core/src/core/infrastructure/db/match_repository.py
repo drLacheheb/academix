@@ -1,5 +1,7 @@
-from datetime import datetime, timezone
-from sqlalchemy import update, desc
+from datetime import UTC, datetime
+
+from sqlalchemy import desc, update
+
 from core.domain.interfaces.db import BaseMatchRepository
 from core.domain.models.match import Match
 from core.infrastructure.db.models import MatchModel
@@ -80,7 +82,9 @@ class MatchRepository(BaseMatchRepository):
         finally:
             session.close()
 
-    def claim_next_pending_explanation(self, agent_name: str, stale_cutoff: datetime, threshold: float = 0.3) -> Match | None:
+    def claim_next_pending_explanation(
+        self, agent_name: str, stale_cutoff: datetime, threshold: float = 0.3
+    ) -> Match | None:
         session = self._SessionLocal()
         try:
             # Recover stale claims
@@ -121,7 +125,7 @@ class MatchRepository(BaseMatchRepository):
                 .values(
                     explanation_status="claimed",
                     explanation_claimed_by=agent_name,
-                    explanation_claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                    explanation_claimed_at=datetime.now(UTC).replace(tzinfo=None),
                 )
             )
             session.commit()

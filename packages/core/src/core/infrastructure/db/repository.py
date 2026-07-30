@@ -1,11 +1,14 @@
 import json
-from sqlalchemy import create_engine, update as sa_update
+from datetime import UTC
+
+from sqlalchemy import create_engine
+from sqlalchemy import update as sa_update
 from sqlalchemy.orm import sessionmaker
 
+from core.domain.constants import JobStatus
 from core.domain.interfaces.db import BaseJobRepository
 from core.domain.models.job import Job
 from core.domain.models.schemas import JobDetailUpdate
-from core.domain.constants import JobStatus
 from core.infrastructure.db.models import JobModel
 
 
@@ -13,17 +16,14 @@ class DatabaseJobRepository(BaseJobRepository):
     def __init__(self, database_url: str):
         self._database_url = database_url
         if database_url.startswith("sqlite"):
-            self._engine = create_engine(
-                database_url, echo=False, connect_args={"timeout": 30}
-            )
+            self._engine = create_engine(database_url, echo=False, connect_args={"timeout": 30})
         else:
             self._engine = create_engine(database_url, echo=False)
-        self._SessionLocal = sessionmaker(
-            autocommit=False, autoflush=False, bind=self._engine
-        )
+        self._SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self._engine)
 
     def init_db(self) -> None:
         from core.infrastructure.db.models import Base
+
         Base.metadata.create_all(self._engine)
 
     def load(self) -> list[Job]:
@@ -60,17 +60,23 @@ class DatabaseJobRepository(BaseJobRepository):
 
     def _upsert_in_session(self, session, job: Job) -> None:
         from core.infrastructure.db.models import JobOrchestrationModel
-        
+
         existing = session.query(JobModel).filter(JobModel.url == job.url).first()
-        existing_orchestrator = session.query(JobOrchestrationModel).filter(JobOrchestrationModel.job_url == job.url).first()
-        
+        existing_orchestrator = (
+            session.query(JobOrchestrationModel)
+            .filter(JobOrchestrationModel.job_url == job.url)
+            .first()
+        )
+
         if not existing_orchestrator:
-            ref_status = JobStatus.COMPLETED if job.required_skills is not None else JobStatus.PENDING
+            ref_status = (
+                JobStatus.COMPLETED if job.required_skills is not None else JobStatus.PENDING
+            )
             existing_orchestrator = JobOrchestrationModel(
                 job_url=job.url,
                 detection_status=JobStatus.PENDING,
                 translation_status=JobStatus.PENDING,
-                refinement_status=ref_status
+                refinement_status=ref_status,
             )
             session.add(existing_orchestrator)
 
@@ -136,9 +142,7 @@ class DatabaseJobRepository(BaseJobRepository):
             known_set = set()
             for i in range(0, len(urls), batch_size):
                 sub_list = urls[i : i + batch_size]
-                results = (
-                    session.query(JobModel.url).filter(JobModel.url.in_(sub_list)).all()
-                )
+                results = session.query(JobModel.url).filter(JobModel.url.in_(sub_list)).all()
                 known_set.update(r[0] for r in results)
             return known_set
         finally:
@@ -172,9 +176,7 @@ class DatabaseJobRepository(BaseJobRepository):
                     values["location"] = d.location
                 if values:
                     session.execute(
-                        sa_update(JobModel)
-                        .where(JobModel.url == d.url)
-                        .values(**values)
+                        sa_update(JobModel).where(JobModel.url == d.url).values(**values)
                     )
             session.commit()
         except Exception:
@@ -185,6 +187,7 @@ class DatabaseJobRepository(BaseJobRepository):
 
     def get_refined_jobs(self) -> list[Job]:
         from core.infrastructure.db.models import JobOrchestrationModel
+
         session = self._SessionLocal()
         try:
             models = (
@@ -213,25 +216,36 @@ class DatabaseJobRepository(BaseJobRepository):
 
     def get_crawler_checkpoint(self, source: str) -> str | None:
         from core.infrastructure.db.models import CrawlerCheckpointModel
+
         session = self._SessionLocal()
         try:
-            row = session.query(CrawlerCheckpointModel).filter(CrawlerCheckpointModel.source == source).first()
-            return row.last_successful_url if row else None
+            row = (
+                session.query(CrawlerCheckpointModel)
+                .filter(CrawlerCheckpointModel.source == source)
+                .first()
+            )
+            return str(row.last_successful_url) if (row and row.last_successful_url) else None
         finally:
             session.close()
 
     def update_crawler_checkpoint(self, source: str, url: str) -> None:
+        from datetime import datetime
+
         from core.infrastructure.db.models import CrawlerCheckpointModel
-        from datetime import datetime, timezone
+
         session = self._SessionLocal()
         try:
-            row = session.query(CrawlerCheckpointModel).filter(CrawlerCheckpointModel.source == source).first()
+            row = (
+                session.query(CrawlerCheckpointModel)
+                .filter(CrawlerCheckpointModel.source == source)
+                .first()
+            )
             if not row:
                 row = CrawlerCheckpointModel(source=source, last_successful_url=url)
                 session.add(row)
             else:
                 row.last_successful_url = url
-                row.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                row.updated_at = datetime.now(UTC).replace(tzinfo=None)
             session.commit()
         except Exception:
             session.rollback()

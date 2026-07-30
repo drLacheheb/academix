@@ -1,4 +1,3 @@
-from typing import Optional, List
 from pydantic import BaseModel
 
 
@@ -10,21 +9,21 @@ class JobStubCreate(BaseModel):
 
 class JobDetailUpdate(BaseModel):
     url: str
-    description: Optional[str] = None
-    requirements: Optional[str] = None
-    deadline: Optional[str] = None
-    employer: Optional[str] = None
-    location: Optional[str] = None
+    description: str | None = None
+    requirements: str | None = None
+    deadline: str | None = None
+    employer: str | None = None
+    location: str | None = None
 
 
 class RefinementResult(BaseModel):
     url: str
-    required_skills: List[str]
-    education_level: Optional[str] = None
-    city: Optional[str] = None
-    country: Optional[str] = None
-    skill_embedding: Optional[List[float]] = None
-    research_embedding: Optional[List[float]] = None
+    required_skills: list[str]
+    education_level: str | None = None
+    city: str | None = None
+    country: str | None = None
+    skill_embedding: list[float] | None = None
+    research_embedding: list[float] | None = None
 
 
 class ClaimRequest(BaseModel):
@@ -32,7 +31,7 @@ class ClaimRequest(BaseModel):
 
 
 class KnownUrlsRequest(BaseModel):
-    urls: List[str]
+    urls: list[str]
 
 
 class DetectionResult(BaseModel):
@@ -42,8 +41,8 @@ class DetectionResult(BaseModel):
 
 class TranslationResult(BaseModel):
     url: str
-    description_en: Optional[str] = None
-    requirements_en: Optional[str] = None
+    description_en: str | None = None
+    requirements_en: str | None = None
 
 
 class MatchResult(BaseModel):
@@ -58,7 +57,7 @@ class MatchResult(BaseModel):
 
 class MatchingTaskComplete(BaseModel):
     task_id: int
-    matches: List[MatchResult]
+    matches: list[MatchResult]
 
 
 class MatchExplanationComplete(BaseModel):

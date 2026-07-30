@@ -1,7 +1,9 @@
 import json
 from datetime import datetime
-from sqlalchemy.orm import sessionmaker
+
 from sqlalchemy import create_engine, update
+from sqlalchemy.orm import sessionmaker
+
 from core.domain.interfaces.db import BaseCandidateProfileRepository
 from core.domain.models.profile import CandidateProfile
 from core.infrastructure.db.models import CandidateProfileModel
@@ -18,9 +20,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 )
             else:
                 engine = create_engine(database_url_or_session_factory, echo=False)
-            self._SessionLocal = sessionmaker(
-                autocommit=False, autoflush=False, bind=engine
-            )
+            self._SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         else:
             self._SessionLocal = database_url_or_session_factory
 
@@ -168,7 +168,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
             )
             session.commit()
 
-            if result.rowcount > 0:
+            if getattr(result, "rowcount", 0) > 0:
                 session.refresh(candidate)
                 return candidate.to_domain()
             return None
@@ -192,12 +192,16 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 existing.cv_file_path = profile.cv_file_path
                 existing.raw_text = profile.raw_text
                 existing.highest_degree = profile.highest_degree
-                existing.skills = json.dumps(profile.skills, ensure_ascii=False) if profile.skills else None
+                existing.skills = (
+                    json.dumps(profile.skills, ensure_ascii=False) if profile.skills else None
+                )
                 existing.languages = (
                     json.dumps(profile.languages, ensure_ascii=False) if profile.languages else None
                 )
                 existing.experience = (
-                    json.dumps(profile.experience, ensure_ascii=False) if profile.experience else None
+                    json.dumps(profile.experience, ensure_ascii=False)
+                    if profile.experience
+                    else None
                 )
                 existing.preferred_locations = (
                     json.dumps(profile.preferred_locations, ensure_ascii=False)
@@ -324,7 +328,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 )
             )
             session.commit()
-            if result.rowcount > 0:
+            if getattr(result, "rowcount", 0) > 0:
                 session.refresh(candidate)
                 return candidate.to_domain()
             return None
@@ -401,7 +405,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 )
             )
             session.commit()
-            if result.rowcount > 0:
+            if getattr(result, "rowcount", 0) > 0:
                 session.refresh(candidate)
                 return candidate.to_domain()
             return None
@@ -475,7 +479,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 )
             )
             session.commit()
-            if result.rowcount > 0:
+            if getattr(result, "rowcount", 0) > 0:
                 session.refresh(candidate)
                 return candidate.to_domain()
             return None
@@ -513,11 +517,19 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     existing_email.name = profile.name
                 existing_email.email = profile.email
                 if placeholder:
-                    existing_email.cv_file_path = placeholder.cv_file_path or existing_email.cv_file_path
+                    existing_email.cv_file_path = (
+                        placeholder.cv_file_path or existing_email.cv_file_path
+                    )
                     existing_email.raw_text = placeholder.raw_text or existing_email.raw_text
-                    existing_email.raw_text_en = placeholder.raw_text_en or existing_email.raw_text_en
-                    existing_email.language_code = placeholder.language_code or existing_email.language_code
-                existing_email.highest_degree = profile.highest_degree if profile.highest_degree else None
+                    existing_email.raw_text_en = (
+                        placeholder.raw_text_en or existing_email.raw_text_en
+                    )
+                    existing_email.language_code = (
+                        placeholder.language_code or existing_email.language_code
+                    )
+                existing_email.highest_degree = (
+                    profile.highest_degree if profile.highest_degree else None
+                )
                 existing_email.skills = (
                     json.dumps([s for s in profile.skills if s], ensure_ascii=False)
                     if profile.skills
@@ -546,18 +558,14 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     json.dumps(
                         [
                             {
-                                "role": exp.get("role")
-                                if isinstance(exp, dict)
-                                else str(exp),
+                                "role": exp.get("role") if isinstance(exp, dict) else str(exp),
                                 "organization": exp.get("organization")
                                 if isinstance(exp, dict)
                                 else None,
                                 "from_date": exp.get("from_date")
                                 if isinstance(exp, dict)
                                 else None,
-                                "to_date": exp.get("to_date")
-                                if isinstance(exp, dict)
-                                else None,
+                                "to_date": exp.get("to_date") if isinstance(exp, dict) else None,
                                 "description": exp.get("description")
                                 if isinstance(exp, dict)
                                 else None,
@@ -571,17 +579,31 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     else None
                 )
                 existing_email.preferred_locations = (
-                    json.dumps([loc for loc in profile.preferred_locations if loc], ensure_ascii=False)
+                    json.dumps(
+                        [loc for loc in profile.preferred_locations if loc],
+                        ensure_ascii=False,
+                    )
                     if profile.preferred_locations
                     else None
                 )
                 existing_email.research_interests = (
-                    json.dumps([ri for ri in profile.research_interests if ri], ensure_ascii=False)
+                    json.dumps(
+                        [ri for ri in profile.research_interests if ri],
+                        ensure_ascii=False,
+                    )
                     if profile.research_interests
                     else None
                 )
-                existing_email.skill_embedding = json.dumps(profile.skill_embedding, ensure_ascii=False) if profile.skill_embedding else None
-                existing_email.research_embedding = json.dumps(profile.research_embedding, ensure_ascii=False) if profile.research_embedding else None
+                existing_email.skill_embedding = (
+                    json.dumps(profile.skill_embedding, ensure_ascii=False)
+                    if profile.skill_embedding
+                    else None
+                )
+                existing_email.research_embedding = (
+                    json.dumps(profile.research_embedding, ensure_ascii=False)
+                    if profile.research_embedding
+                    else None
+                )
                 existing_email.status = "COMPLETED"
                 existing_email.status_message = "Updated successfully via newer CV upload"
                 existing_email.claimed_by = None
@@ -590,7 +612,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 # Delete the temporary placeholder
                 if placeholder:
                     session.delete(placeholder)
-                
+
                 session.commit()
                 return existing_email.id
             else:
@@ -600,7 +622,9 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                         placeholder.name = profile.name
                     if profile.email:
                         placeholder.email = profile.email
-                    placeholder.highest_degree = profile.highest_degree if profile.highest_degree else None
+                    placeholder.highest_degree = (
+                        profile.highest_degree if profile.highest_degree else None
+                    )
                     placeholder.skills = (
                         json.dumps([s for s in profile.skills if s], ensure_ascii=False)
                         if profile.skills
@@ -629,9 +653,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                         json.dumps(
                             [
                                 {
-                                    "role": exp.get("role")
-                                    if isinstance(exp, dict)
-                                    else str(exp),
+                                    "role": exp.get("role") if isinstance(exp, dict) else str(exp),
                                     "organization": exp.get("organization")
                                     if isinstance(exp, dict)
                                     else None,
@@ -654,17 +676,31 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                         else None
                     )
                     placeholder.preferred_locations = (
-                        json.dumps([loc for loc in profile.preferred_locations if loc], ensure_ascii=False)
+                        json.dumps(
+                            [loc for loc in profile.preferred_locations if loc],
+                            ensure_ascii=False,
+                        )
                         if profile.preferred_locations
                         else None
                     )
                     placeholder.research_interests = (
-                        json.dumps([ri for ri in profile.research_interests if ri], ensure_ascii=False)
+                        json.dumps(
+                            [ri for ri in profile.research_interests if ri],
+                            ensure_ascii=False,
+                        )
                         if profile.research_interests
                         else None
                     )
-                    placeholder.skill_embedding = json.dumps(profile.skill_embedding, ensure_ascii=False) if profile.skill_embedding else None
-                    placeholder.research_embedding = json.dumps(profile.research_embedding, ensure_ascii=False) if profile.research_embedding else None
+                    placeholder.skill_embedding = (
+                        json.dumps(profile.skill_embedding, ensure_ascii=False)
+                        if profile.skill_embedding
+                        else None
+                    )
+                    placeholder.research_embedding = (
+                        json.dumps(profile.research_embedding, ensure_ascii=False)
+                        if profile.research_embedding
+                        else None
+                    )
                     placeholder.status = "COMPLETED"
                     placeholder.status_message = "Parsed and refined successfully"
                     placeholder.claimed_by = None

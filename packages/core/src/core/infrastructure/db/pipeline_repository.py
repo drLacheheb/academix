@@ -1,18 +1,18 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from core.domain.interfaces.db import BaseStatusQueryRepository
-from core.domain.models.job import Job
 from core.domain.constants import (
     STALE_CLAIM_TIMEOUT_MINUTES,
 )
-from core.infrastructure.db.repository import DatabaseJobRepository
+from core.domain.interfaces.db import BaseStatusQueryRepository
+from core.domain.models.job import Job
 from core.infrastructure.db.detection import LanguageDetectionRepository
-from core.infrastructure.db.translation import TranslationRepository
-from core.infrastructure.db.refinement import RefinementRepository
-from core.infrastructure.db.status import StatusQueryRepository
-from core.infrastructure.db.profile_repository import DatabaseCandidateProfileRepository
-from core.infrastructure.db.matching_queue import MatchingQueueRepository
 from core.infrastructure.db.match_repository import MatchRepository
+from core.infrastructure.db.matching_queue import MatchingQueueRepository
+from core.infrastructure.db.profile_repository import DatabaseCandidateProfileRepository
+from core.infrastructure.db.refinement import RefinementRepository
+from core.infrastructure.db.repository import DatabaseJobRepository
+from core.infrastructure.db.status import StatusQueryRepository
+from core.infrastructure.db.translation import TranslationRepository
 
 
 class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
@@ -27,7 +27,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         self.matches = MatchRepository(self._SessionLocal)
 
     def claim_next_for_detection(self, agent_name: str) -> Job | None:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
             minutes=STALE_CLAIM_TIMEOUT_MINUTES
         )
         return self.detection.claim_next(agent_name, cutoff)
@@ -39,7 +39,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.detection.fail(url)
 
     def claim_next_for_translation(self, agent_name: str) -> Job | None:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
             minutes=STALE_CLAIM_TIMEOUT_MINUTES
         )
         return self.translation.claim_next(agent_name, cutoff)
@@ -56,7 +56,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.translation.fail(url)
 
     def claim_next_for_refinement(self, agent_name: str) -> Job | None:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
             minutes=STALE_CLAIM_TIMEOUT_MINUTES
         )
         return self.refinement.claim_next(agent_name, cutoff)
@@ -85,7 +85,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         return self.refinement.fail(url)
 
     def _recover_stale_claims(self, session) -> int:
-        stale_cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        stale_cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
             minutes=STALE_CLAIM_TIMEOUT_MINUTES
         )
         recovered = 0

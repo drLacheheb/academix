@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from typing import Optional
+from dataclasses import asdict, dataclass
 
 
 @dataclass
@@ -10,23 +9,23 @@ class Job:
     url: str
     source: str
 
-    deadline: Optional[str] = None
-    employer: Optional[str] = None
-    location: Optional[str] = None
-    description: Optional[str] = None
-    requirements: Optional[str] = None
+    deadline: str | None = None
+    employer: str | None = None
+    location: str | None = None
+    description: str | None = None
+    requirements: str | None = None
 
-    required_skills: Optional[list[str]] = None
-    education_level: Optional[str] = None
-    city: Optional[str] = None
-    country: Optional[str] = None
+    required_skills: list[str] | None = None
+    education_level: str | None = None
+    city: str | None = None
+    country: str | None = None
 
-    language_code: Optional[str] = None
-    description_en: Optional[str] = None
-    requirements_en: Optional[str] = None
+    language_code: str | None = None
+    description_en: str | None = None
+    requirements_en: str | None = None
 
-    skill_embedding: Optional[list[float]] = None
-    research_embedding: Optional[list[float]] = None
+    skill_embedding: list[float] | None = None
+    research_embedding: list[float] | None = None
 
     def is_detail_scraped(self) -> bool:
         return self.description is not None

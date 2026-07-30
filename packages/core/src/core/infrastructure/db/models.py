@@ -1,22 +1,24 @@
 import json
+from datetime import datetime
+from typing import Any
+
 from sqlalchemy import (
-    Column,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
     Integer,
     String,
     Text,
-    DateTime,
-    Boolean,
-    Float,
-    ForeignKey,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
-from core.domain.models.job import Job
-from core.domain.models.profile import CandidateProfile
-from core.domain.models.match import Match
 from core.domain.constants import JobStatus
+from core.domain.models.job import Job
+from core.domain.models.match import Match
+from core.domain.models.profile import CandidateProfile
 
 Base = declarative_base()
 
@@ -24,59 +26,71 @@ Base = declarative_base()
 class JobModel(Base):
     __tablename__ = "jobs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    url = Column(String, unique=True, nullable=False, index=True)
-    title = Column(String, nullable=False)
-    source = Column(String, nullable=False)
-    deadline = Column(String, nullable=True)
-    employer = Column(String, nullable=True)
-    location = Column(String, nullable=True)
-    description = Column(Text, nullable=True)
-    requirements = Column(Text, nullable=True)
-    required_skills = Column(Text, nullable=True)
-    education_level = Column(String, nullable=True)
-    city = Column(String, nullable=True)
-    country = Column(String, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    url: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    source: Mapped[str] = mapped_column(String, nullable=False)
+    deadline: Mapped[str | None] = mapped_column(String, nullable=True)
+    employer: Mapped[str | None] = mapped_column(String, nullable=True)
+    location: Mapped[str | None] = mapped_column(String, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
+    required_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
+    education_level: Mapped[str | None] = mapped_column(String, nullable=True)
+    city: Mapped[str | None] = mapped_column(String, nullable=True)
+    country: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    language_code = Column(String, nullable=True)
-    description_en = Column(Text, nullable=True)
-    requirements_en = Column(Text, nullable=True)
-    skill_embedding = Column(Text, nullable=True)
-    research_embedding = Column(Text, nullable=True)
+    language_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    description_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requirements_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    skill_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
+    research_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    first_seen = Column(DateTime, server_default=func.now())
-    last_seen = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    first_seen: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    last_seen: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
 
     def to_domain(self) -> Job:
-        try:
-            skills_list = (
-                json.loads(self.required_skills) if self.required_skills else None
-            )
-        except Exception:
-            skills_list = None
+        required_skills_list: list[str] | None = None
+        if self.required_skills:
+            try:
+                required_skills_list = json.loads(self.required_skills)
+            except Exception:
+                required_skills_list = None
+
+        skill_emb: list[float] | None = None
+        if self.skill_embedding:
+            try:
+                skill_emb = json.loads(self.skill_embedding)
+            except Exception:
+                skill_emb = None
+
+        research_emb: list[float] | None = None
+        if self.research_embedding:
+            try:
+                research_emb = json.loads(self.research_embedding)
+            except Exception:
+                research_emb = None
 
         return Job(
-            title=self.title,
             url=self.url,
+            title=self.title,
             source=self.source,
             deadline=self.deadline,
             employer=self.employer,
             location=self.location,
             description=self.description,
             requirements=self.requirements,
-            required_skills=skills_list,
+            required_skills=required_skills_list,
             education_level=self.education_level,
             city=self.city,
             country=self.country,
             language_code=self.language_code,
             description_en=self.description_en,
             requirements_en=self.requirements_en,
-            skill_embedding=json.loads(self.skill_embedding)
-            if self.skill_embedding
-            else None,
-            research_embedding=json.loads(self.research_embedding)
-            if self.research_embedding
-            else None,
+            skill_embedding=skill_emb,
+            research_embedding=research_emb,
         )
 
     @classmethod
@@ -86,7 +100,6 @@ class JobModel(Base):
             if job.required_skills is not None
             else None
         )
-
 
         return cls(
             title=job.title,
@@ -116,32 +129,32 @@ class JobModel(Base):
 class JobOrchestrationModel(Base):
     __tablename__ = "job_orchestrations"
 
-    job_url = Column(
+    job_url: Mapped[str] = mapped_column(
         String,
         ForeignKey("jobs.url", ondelete="CASCADE"),
         primary_key=True,
     )
 
-    detection_status = Column(
+    detection_status: Mapped[str] = mapped_column(
         String, nullable=False, default=JobStatus.PENDING, index=True
     )
-    detection_claimed_by = Column(String, nullable=True)
-    detection_claimed_at = Column(DateTime, nullable=True)
+    detection_claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    detection_claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    translation_status = Column(
+    translation_status: Mapped[str] = mapped_column(
         String, nullable=False, default=JobStatus.PENDING, index=True
     )
-    translation_claimed_by = Column(String, nullable=True)
-    translation_claimed_at = Column(DateTime, nullable=True)
+    translation_claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    translation_claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    refinement_status = Column(
+    refinement_status: Mapped[str] = mapped_column(
         String, nullable=False, default=JobStatus.PENDING, index=True
     )
-    claimed_by = Column(String, nullable=True)
-    claimed_at = Column(DateTime, nullable=True)
+    claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-def _safe_json_loads(val: str | None, default: any = None) -> any:
+def _safe_json_loads(val: str | None, default: Any = None) -> Any:
     if not val:
         return default
     try:
@@ -153,29 +166,27 @@ def _safe_json_loads(val: str | None, default: any = None) -> any:
 class CandidateProfileModel(Base):
     __tablename__ = "candidate_profiles"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=True)
-    email = Column(String, unique=True, index=True, nullable=True)
-    cv_file_path = Column(String, nullable=True)
-    raw_text = Column(Text, nullable=True)
-    language_code = Column(String, nullable=True)
-    raw_text_en = Column(Text, nullable=True)
-    highest_degree = Column(String, nullable=True)
-    skills = Column(Text, nullable=True)  # JSON array of strings
-    languages = Column(
-        Text, nullable=True
-    )  # JSON array of dicts: [{"language": "...", "proficiency": "..."}]
-    experience = Column(Text, nullable=True)  # JSON array of dicts
-    preferred_locations = Column(Text, nullable=True)  # JSON array of strings
-    research_interests = Column(Text, nullable=True)  # JSON array of strings
-    skill_embedding = Column(Text, nullable=True)  # JSON array of 256 floats
-    research_embedding = Column(Text, nullable=True)  # JSON array of 256 floats
-    status = Column(String, nullable=False, default="INGESTING", index=True)
-    status_message = Column(String, nullable=True)
-    claimed_by = Column(String, nullable=True)
-    claimed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    updated_at = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    email: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
+    cv_file_path: Mapped[str | None] = mapped_column(String, nullable=True)
+    raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    language_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    raw_text_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    highest_degree: Mapped[str | None] = mapped_column(String, nullable=True)
+    skills: Mapped[str | None] = mapped_column(Text, nullable=True)
+    languages: Mapped[str | None] = mapped_column(Text, nullable=True)
+    experience: Mapped[str | None] = mapped_column(Text, nullable=True)
+    preferred_locations: Mapped[str | None] = mapped_column(Text, nullable=True)
+    research_interests: Mapped[str | None] = mapped_column(Text, nullable=True)
+    skill_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
+    research_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="INGESTING", index=True)
+    status_message: Mapped[str | None] = mapped_column(String, nullable=True)
+    claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now(), nullable=False
     )
 
@@ -275,45 +286,49 @@ class CandidateProfileModel(Base):
 class MatchingQueueModel(Base):
     __tablename__ = "matching_queue"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    entity_type = Column(String, nullable=False)
-    entity_id = Column(String, nullable=False)
-    status = Column(String, nullable=False, default="pending", index=True)
-    claimed_by = Column(String, nullable=True)
-    claimed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String, nullable=False)
+    entity_id: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending", index=True)
+    claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
 
 
 class MatchModel(Base):
     __tablename__ = "matches"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    candidate_id = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    candidate_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("candidate_profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    job_url = Column(
+    job_url: Mapped[str] = mapped_column(
         String,
         ForeignKey("jobs.url", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    score = Column(Float, nullable=False)
-    degree_eligible = Column(Boolean, nullable=False)
-    language_eligible = Column(Boolean, nullable=False)
-    skill_score = Column(Float, nullable=False)
-    research_score = Column(Float, nullable=False)
-    explanation = Column(Text, nullable=True)
-    explanation_status = Column(String, nullable=False, default="pending", index=True)
-    explanation_claimed_by = Column(String, nullable=True)
-    explanation_claimed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("candidate_id", "job_url", name="uq_candidate_job_match"),
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    degree_eligible: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    language_eligible: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    skill_score: Mapped[float] = mapped_column(Float, nullable=False)
+    research_score: Mapped[float] = mapped_column(Float, nullable=False)
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    explanation_status: Mapped[str] = mapped_column(
+        String, nullable=False, default="pending", index=True
     )
+    explanation_claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    explanation_claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (UniqueConstraint("candidate_id", "job_url", name="uq_candidate_job_match"),)
 
     def to_domain(self) -> Match:
         return Match(
@@ -334,6 +349,8 @@ class MatchModel(Base):
 class CrawlerCheckpointModel(Base):
     __tablename__ = "crawler_checkpoints"
 
-    source = Column(String, primary_key=True)
-    last_successful_url = Column(String, nullable=True)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    source: Mapped[str] = mapped_column(String, primary_key=True)
+    last_successful_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

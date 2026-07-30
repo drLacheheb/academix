@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import update
 
+from core.domain.constants import JobStatus
 from core.domain.interfaces.db import BaseDetectionRepository
 from core.domain.models.job import Job
-from core.domain.constants import JobStatus
 from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
@@ -50,7 +51,7 @@ class LanguageDetectionRepository(BaseDetectionRepository):
                 .values(
                     detection_status=JobStatus.CLAIMED,
                     detection_claimed_by=agent_name,
-                    detection_claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                    detection_claimed_at=datetime.now(UTC).replace(tzinfo=None),
                 )
             )
             session.commit()
@@ -69,14 +70,10 @@ class LanguageDetectionRepository(BaseDetectionRepository):
         try:
             # Update job language code
             session.execute(
-                update(JobModel)
-                .where(JobModel.url == url)
-                .values(language_code=language_code)
+                update(JobModel).where(JobModel.url == url).values(language_code=language_code)
             )
             # Update orchestration statuses
-            translation_status = (
-                JobStatus.SKIPPED if language_code == "en" else JobStatus.PENDING
-            )
+            translation_status = JobStatus.SKIPPED if language_code == "en" else JobStatus.PENDING
             session.execute(
                 update(JobOrchestrationModel)
                 .where(JobOrchestrationModel.job_url == url)

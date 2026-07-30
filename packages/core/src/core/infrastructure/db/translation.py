@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import update
 
+from core.domain.constants import JobStatus
 from core.domain.interfaces.db import BaseTranslationRepository
 from core.domain.models.job import Job
-from core.domain.constants import JobStatus
 from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
@@ -49,7 +50,7 @@ class TranslationRepository(BaseTranslationRepository):
                 .values(
                     translation_status=JobStatus.CLAIMED,
                     translation_claimed_by=agent_name,
-                    translation_claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                    translation_claimed_at=datetime.now(UTC).replace(tzinfo=None),
                 )
             )
             session.commit()

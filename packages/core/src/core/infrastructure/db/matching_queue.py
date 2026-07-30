@@ -1,5 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import update
+
 from core.domain.interfaces.db import BaseMatchingQueueRepository
 from core.domain.models.matching_task import MatchingTask
 from core.infrastructure.db.models import MatchingQueueModel
@@ -73,7 +75,7 @@ class MatchingQueueRepository(BaseMatchingQueueRepository):
                 .values(
                     status="claimed",
                     claimed_by=agent_name,
-                    claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                    claimed_at=datetime.now(UTC).replace(tzinfo=None),
                 )
             )
             session.commit()

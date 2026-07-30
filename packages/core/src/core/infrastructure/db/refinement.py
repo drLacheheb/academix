@@ -1,10 +1,11 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import update
 
+from core.domain.constants import JobStatus
 from core.domain.interfaces.db import BaseRefinementRepository
 from core.domain.models.job import Job
-from core.domain.constants import JobStatus
 from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
@@ -31,9 +32,7 @@ class RefinementRepository(BaseRefinementRepository):
 
             candidate = (
                 session.query(JobModel)
-                .join(
-                    JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url
-                )
+                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
                     JobModel.description.isnot(None),
                     JobOrchestrationModel.refinement_status == JobStatus.PENDING,
@@ -56,7 +55,7 @@ class RefinementRepository(BaseRefinementRepository):
                 .values(
                     refinement_status=JobStatus.CLAIMED,
                     claimed_by=agent_name,
-                    claimed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                    claimed_at=datetime.now(UTC).replace(tzinfo=None),
                 )
             )
             session.commit()

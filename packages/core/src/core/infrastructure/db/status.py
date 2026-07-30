@@ -1,7 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 
-from core.domain.interfaces.db import BaseStatusQueryRepository
 from core.domain.constants import JobStatus
+from core.domain.interfaces.db import BaseStatusQueryRepository
 from core.infrastructure.db.models import JobModel, JobOrchestrationModel
 
 
@@ -13,9 +13,7 @@ class StatusQueryRepository(BaseStatusQueryRepository):
         session = self._session_factory()
         try:
             total = session.query(JobModel).count()
-            pending_details = (
-                session.query(JobModel).filter(JobModel.description.is_(None)).count()
-            )
+            pending_details = session.query(JobModel).filter(JobModel.description.is_(None)).count()
 
             # Detection stats
             pending_detect = (
@@ -75,7 +73,9 @@ class StatusQueryRepository(BaseStatusQueryRepository):
                 session.query(JobOrchestrationModel)
                 .filter(
                     JobOrchestrationModel.refinement_status == JobStatus.PENDING,
-                    JobOrchestrationModel.translation_status.in_([JobStatus.COMPLETED, JobStatus.SKIPPED]),
+                    JobOrchestrationModel.translation_status.in_(
+                        [JobStatus.COMPLETED, JobStatus.SKIPPED]
+                    ),
                 )
                 .count()
             )

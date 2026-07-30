@@ -1,6 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict
-from typing import Optional
+
+from dataclasses import asdict, dataclass
 from datetime import datetime
 
 
@@ -13,10 +13,10 @@ class Match:
     language_eligible: bool
     skill_score: float
     research_score: float
-    id: Optional[int] = None
-    explanation: Optional[str] = None
+    id: int | None = None
+    explanation: str | None = None
     explanation_status: str = "pending"
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
