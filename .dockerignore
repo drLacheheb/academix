@@ -1,13 +1,43 @@
+# Git & AI Agent Metadata
 .git
-.venv
-venv
-models
-uploads
-jobs.db
+.gitignore
 .agents
 .gemini
+
+# Virtual Environments
+.venv
+venv
+env
+
+# Local Environment Secrets (Prevent baking secrets into build context)
+.env
+.env.*
+
+# Large Assets, Models, Data & Logs
+models
+uploads
+data
+logs
+*.log
+*.db
+*.db-*
+*.sqlite
+*.pdf
+
+# Python Caches & Build Artifacts
 __pycache__
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache
+.ruff_cache
+.mypy_cache
+build
+dist
+*.egg-info
+
+# IDE & System Files
+.idea
+.vscode
+.DS_Store
+Thumbs.db

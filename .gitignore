@@ -1,37 +1,53 @@
-# Python
+# Python & Virtual Environments
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 env/
+venv/
+.venv/
 build/
 developer_venv/
-.venv/
-venv/
 pip-log.txt
 pip-delete-this-directory.txt
-metadata
-.tgt/
-.onnx/
 
-# Local Environment Config
+# Caches & Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+
+# AI Assistants & Agent Metadata
+.agents/
+.gemini/
+
+# Local Environment & Secrets
 .env
+.env.local
+.env.*.local
 
-
-# Local model folder (2.2GB - MUST NOT be checked in)
-phi-4-mini-onnx/
-nllb-200-ct2/
+# Models Directory (ML/LLM weights - MUST NOT be committed)
 /models/
 
-# Databases and Local Scraped Output
+# Data, Uploads & Logs
+data/
+uploads/
+logs/
+*.log
+
+# Databases & SQLite files
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
-*.log
+*.sqlite
+*.sqlite3
 
-# IDE / Editor Settings
+# Test Documents & PDF Uploads
+*.pdf
+
+# IDE & OS Settings
 .idea/
 .vscode/
 *.swp
@@ -39,10 +55,5 @@ nllb-200-ct2/
 .project
 .pydevproject
 .settings/
-
 .DS_Store
 Thumbs.db
-
-# PDF Files and Candidate CV Uploads
-*.pdf
-uploads/
