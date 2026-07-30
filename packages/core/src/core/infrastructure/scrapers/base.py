@@ -2,16 +2,14 @@ import html
 import logging
 import re
 
+from core.domain.interfaces.http import BaseHttpClient
+from core.domain.interfaces.scrapers import BaseDiscovery, BaseSourcing
 from core.domain.models.job import Job
 from core.domain.models.schemas import JobDetailUpdate
-from core.domain.interfaces.scrapers import BaseDiscovery, BaseSourcing
-from core.domain.interfaces.http import BaseHttpClient
 
 
 def clean_html(raw_html: str) -> str:
-    text = re.sub(
-        r"<script[^>]*>.*?</script>", "", raw_html, flags=re.DOTALL | re.IGNORECASE
-    )
+    text = re.sub(r"<script[^>]*>.*?</script>", "", raw_html, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r"<.*?>", "\n", text)
     text = re.sub(r"\n+", "\n", text)
@@ -89,8 +87,7 @@ def extract_requirements_from_text(text: str) -> str | None:
                 req_index = idx
                 break
             if any(
-                re.search(r"\b" + re.escape(kw) + r"\b", clean_line)
-                for kw in req_keywords
+                re.search(r"\b" + re.escape(kw) + r"\b", clean_line) for kw in req_keywords
             ) and (
                 "what" in clean_line
                 or "you" in clean_line
@@ -107,9 +104,7 @@ def extract_requirements_from_text(text: str) -> str | None:
     extracted = []
     for line in lines[req_index + 1 :]:
         clean_line = line.strip().lower()
-        if len(clean_line) < 100 and any(
-            re.search(pat, clean_line) for pat in stop_patterns
-        ):
+        if len(clean_line) < 100 and any(re.search(pat, clean_line) for pat in stop_patterns):
             break
         extracted.append(line)
 
@@ -120,10 +115,13 @@ class ConcreteDiscovery(BaseDiscovery):
     def __init__(self, http_client: BaseHttpClient, max_pages: int = 5):
         self._http = http_client
         self._max_pages_val = max_pages
-        self.logger = logging.getLogger(f"agent.{self.SOURCE_NAME.lower().replace(' ', '-')}-discovery")
+        self.logger = logging.getLogger(
+            f"agent.{self.SOURCE_NAME.lower().replace(' ', '-')}-discovery"
+        )
 
     def search_all(self, known_urls: set[str], checkpoint_url: str | None = None) -> list[Job]:
         import os
+
         all_jobs: list[Job] = []
         page = self._start_page()
         max_pages = self._max_pages()
@@ -131,11 +129,12 @@ class ConcreteDiscovery(BaseDiscovery):
 
         self.logger.info(f"Starting broad search on {self.SOURCE_NAME} (sorting: newest first)...")
 
-        infinite = (max_pages <= 0)
+        infinite = max_pages <= 0
         while infinite or (page < max_pages):
             if infinite and page > max_safety_pages:
                 self.logger.warning(
-                    f"Safety circuit breaker triggered: reached max depth of {max_safety_pages} pages."
+                    f"Safety circuit breaker triggered: reached max depth of "
+                    f"{max_safety_pages} pages."
                 )
                 break
 
@@ -156,7 +155,9 @@ class ConcreteDiscovery(BaseDiscovery):
             jobs_to_keep = []
             for j in jobs_on_page:
                 if checkpoint_url and j.url == checkpoint_url:
-                    self.logger.info(f"  -> Found checkpoint URL: {checkpoint_url}. Stopping pagination.")
+                    self.logger.info(
+                        f"  -> Found checkpoint URL: {checkpoint_url}. Stopping pagination."
+                    )
                     checkpoint_found = True
                     break
                 jobs_to_keep.append(j)
@@ -169,7 +170,8 @@ class ConcreteDiscovery(BaseDiscovery):
 
             seen_count = len(jobs_to_keep) - len(new_jobs)
             self.logger.info(
-                f"  -> Page {page}: Found {len(jobs_on_page)} listings ({len(new_jobs)} new, {seen_count} seen)"
+                f"  -> Page {page}: Found {len(jobs_on_page)} listings "
+                f"({len(new_jobs)} new, {seen_count} seen)"
             )
 
             if checkpoint_found:

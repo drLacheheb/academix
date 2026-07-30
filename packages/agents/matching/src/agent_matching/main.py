@@ -1,15 +1,15 @@
 import argparse
 import os
 import socket
-from dotenv import load_dotenv
 
-from core.infrastructure.logging.logger import get_logger
-from core.domain.models.profile import CandidateProfile
-from core.domain.models.job import Job
-from core.usecases.match_scorer import MatchScorer
-from core.infrastructure.services.llm_runner import LocalLlmRunner
 from core.domain.interfaces.services import BaseLlmRunner
+from core.domain.models.job import Job
+from core.domain.models.profile import CandidateProfile
+from core.infrastructure.logging.logger import get_logger
+from core.infrastructure.services.llm_runner import LocalLlmRunner
+from core.usecases.match_scorer import MatchScorer
 from core.utils.api import make_api_client
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -46,10 +46,10 @@ class LlmExplainer:
     def is_loaded(self) -> bool:
         return self._runner.is_loaded
 
-    def load_model(self, logger) -> None:
+    def load_model(self) -> None:
         self._runner.load_model()
 
-    def free_model(self, logger) -> None:
+    def free_model(self) -> None:
         self._runner.free_model()
 
     def generate_explanation(self, candidate: CandidateProfile, job: Job) -> str:
@@ -68,7 +68,9 @@ class LlmExplainer:
                 {"role": "system", "content": prompt},
                 {
                     "role": "user",
-                    "content": f"Write the explanation paragraph matching {candidate.name} with '{job.title}'.",
+                    "content": (
+                        f"Write explanation paragraph matching {candidate.name} with '{job.title}'."
+                    ),
                 },
             ],
             max_tokens=256,
@@ -149,9 +151,7 @@ def run():
                     # Load all refined jobs to find this specific one
                     jobs_resp = api.get("/jobs/refined")
                     jobs_resp.raise_for_status()
-                    job_dict = next(
-                        (j for j in jobs_resp.json() if j["url"] == entity_id), None
-                    )
+                    job_dict = next((j for j in jobs_resp.json() if j["url"] == entity_id), None)
 
                     if not job_dict:
                         raise ValueError(f"Refined job not found: {entity_id}")
@@ -194,7 +194,8 @@ def run():
                 )
                 submit_resp.raise_for_status()
                 logger.info(
-                    f"Successfully processed matching task {task_id} with {len(payload_matches)} matches saved."
+                    f"Successfully processed matching task {task_id} with "
+                    f"{len(payload_matches)} matches saved."
                 )
 
             except Exception as e:
@@ -208,9 +209,7 @@ def run():
         # Polling for explanations
         logger.info("Polling for pending match explanations...")
         try:
-            explain_resp = api.post(
-                "/matches/claim-explain", json={"agent_name": args.name}
-            )
+            explain_resp = api.post("/matches/claim-explain", json={"agent_name": args.name})
             explain_resp.raise_for_status()
         except Exception as e:
             logger.error(f"Error polling match explanations: {e}")
@@ -224,7 +223,8 @@ def run():
             job_url = match_data["job_url"]
 
             logger.info(
-                f"Claimed match explanation {match_id} for candidate {candidate_id} and job {job_url}"
+                f"Claimed match explanation {match_id} for candidate "
+                f"{candidate_id} and job {job_url}"
             )
 
             try:
@@ -236,16 +236,14 @@ def run():
                 # Load jobs list to find job details
                 jobs_resp = api.get("/jobs/refined")
                 jobs_resp.raise_for_status()
-                job_dict = next(
-                    (j for j in jobs_resp.json() if j["url"] == job_url), None
-                )
+                job_dict = next((j for j in jobs_resp.json() if j["url"] == job_url), None)
                 if not job_dict:
                     raise ValueError(f"Job not found for explanation: {job_url}")
                 job = Job.from_dict(job_dict)
 
                 # Lazy-load LLM model
                 if not explainer.is_loaded:
-                    explainer.load_model(logger)
+                    explainer.load_model()
 
                 # Generate explanation
                 explanation = explainer.generate_explanation(candidate, job)
@@ -260,9 +258,7 @@ def run():
                 logger.info(f"Successfully submitted explanation for match {match_id}.")
 
             except Exception as e:
-                logger.error(
-                    f"Failed to generate/submit explanation for match {match_id}: {e}"
-                )
+                logger.error(f"Failed to generate/submit explanation for match {match_id}: {e}")
                 try:
                     api.put(f"/matches/fail-explain/{match_id}")
                 except Exception:
@@ -273,14 +269,14 @@ def run():
         if not task_processed:
             logger.info("No matching tasks or pending explanations available.")
             if explainer.is_loaded:
-                explainer.free_model(logger)
+                explainer.free_model()
         return False
 
     try:
         run_agent_loop(cycle, default_interval=15.0)
     finally:
         if explainer.is_loaded:
-            explainer.free_model(logger)
+            explainer.free_model()
         api.close()
 
 

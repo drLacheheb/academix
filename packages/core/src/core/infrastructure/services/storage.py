@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 from pathlib import Path
 from uuid import uuid4
 
@@ -28,9 +28,7 @@ class LocalStorageService(BaseStorageService):
         with open(saved_file_path, "wb") as f:
             f.write(content)
 
-        logger.info(
-            f"LocalStorageService: Uploaded file saved to local path: {saved_file_path}"
-        )
+        logger.info(f"LocalStorageService: Uploaded file saved to local path: {saved_file_path}")
         return saved_file_path
 
     def get_local_path(self, uri: str) -> tuple[str, bool]:
@@ -42,17 +40,11 @@ class LocalStorageService(BaseStorageService):
         pass
 
     def verify_connection(self) -> None:
-        logger.info(
-            "LocalStorageService: Verifying uploads directory exists and is writeable..."
-        )
+        logger.info("LocalStorageService: Verifying uploads directory exists and is writeable...")
         if not os.path.exists(self._uploads_dir):
-            raise FileNotFoundError(
-                f"Uploads directory does not exist: {self._uploads_dir}"
-            )
+            raise FileNotFoundError(f"Uploads directory does not exist: {self._uploads_dir}")
         if not os.access(self._uploads_dir, os.W_OK):
-            raise PermissionError(
-                f"Uploads directory is not writeable: {self._uploads_dir}"
-            )
+            raise PermissionError(f"Uploads directory is not writeable: {self._uploads_dir}")
 
 
 class S3StorageService(BaseStorageService):
@@ -74,9 +66,7 @@ class S3StorageService(BaseStorageService):
         import boto3
         from botocore.client import Config
 
-        logger.info(
-            f"S3StorageService: Uploading '{filename}' to S3 bucket '{self._bucket}'..."
-        )
+        logger.info(f"S3StorageService: Uploading '{filename}' to S3 bucket '{self._bucket}'...")
 
         s3 = boto3.client(
             "s3",
@@ -103,9 +93,7 @@ class S3StorageService(BaseStorageService):
             ExpiresIn=3600,
         )
 
-        logger.info(
-            "S3StorageService: Upload completed. Presigned URL generated successfully."
-        )
+        logger.info("S3StorageService: Upload completed. Presigned URL generated successfully.")
         return url
 
     def get_local_path(self, uri: str) -> tuple[str, bool]:
@@ -122,9 +110,7 @@ class S3StorageService(BaseStorageService):
         temp_file.write(cv_bytes)
         temp_file.close()
 
-        logger.info(
-            f"S3StorageService: Successfully downloaded remote file to temporary local path: {temp_file.name}"
-        )
+        logger.info(f"S3StorageService: Downloaded remote file to temp path: {temp_file.name}")
         return temp_file.name, True
 
     def clean_up(self, local_path: str) -> None:
@@ -142,9 +128,7 @@ class S3StorageService(BaseStorageService):
     def verify_connection(self) -> None:
         import boto3
 
-        logger.info(
-            f"S3StorageService: Verifying connection to S3 bucket '{self._bucket}'..."
-        )
+        logger.info(f"S3StorageService: Verifying connection to S3 bucket '{self._bucket}'...")
 
         s3 = boto3.client(
             "s3",
@@ -164,9 +148,7 @@ def get_storage_service_from_env() -> BaseStorageService:
     if provider == "s3":
         bucket_name = os.environ.get("S3_BUCKET_NAME")
         if not bucket_name:
-            raise RuntimeError(
-                "S3_BUCKET_NAME env variable is required when STORAGE_PROVIDER=s3"
-            )
+            raise RuntimeError("S3_BUCKET_NAME env variable is required when STORAGE_PROVIDER=s3")
         aws_access_key_id = os.environ.get("S3_ACCESS_KEY_ID", "")
         aws_secret_access_key = os.environ.get("S3_SECRET_ACCESS_KEY", "")
         endpoint_url = os.environ.get("S3_ENDPOINT_URL")

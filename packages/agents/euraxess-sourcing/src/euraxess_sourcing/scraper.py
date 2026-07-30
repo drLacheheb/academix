@@ -1,6 +1,10 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from core.domain.models.schemas import JobDetailUpdate
-from core.infrastructure.scrapers.base import clean_html, extract_requirements_from_text, ConcreteSourcing
+from core.infrastructure.scrapers.base import (
+    ConcreteSourcing,
+    clean_html,
+    extract_requirements_from_text,
+)
 
 
 class EuraxessSourcing(ConcreteSourcing):
@@ -55,9 +59,9 @@ class EuraxessSourcing(ConcreteSourcing):
                 return None
             sibling_content = []
             for sibling in h2_start.next_siblings:
-                if sibling.name == "h2" and sibling.get("id") in end_ids:
-                    break
-                if sibling.name:
+                if isinstance(sibling, Tag):
+                    if sibling.name == "h2" and sibling.get("id") in end_ids:
+                        break
                     sibling_content.append(sibling.get_text(strip=True))
                 elif isinstance(sibling, str):
                     text = sibling.strip()

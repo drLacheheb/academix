@@ -1,23 +1,23 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Request
 from core.domain.models.schemas import (
-    KnownUrlsRequest,
-    JobStubCreate,
-    JobDetailUpdate,
     CheckpointUpdate,
+    JobDetailUpdate,
+    JobStubCreate,
+    KnownUrlsRequest,
 )
+from fastapi import APIRouter, Depends, Request
+
 from api.dependencies import (
-    get_check_known_urls_usecase,
     CheckKnownUrlsUseCase,
-    get_create_jobs_usecase,
     CreateJobsUseCase,
-    get_pending_details_usecase,
     GetPendingDetailsUseCase,
-    get_update_details_usecase,
     UpdateJobDetailsUseCase,
-    get_refined_jobs_usecase,
-    get_recent_urls_usecase,
+    get_check_known_urls_usecase,
     get_crawler_checkpoint_usecase,
+    get_create_jobs_usecase,
+    get_pending_details_usecase,
+    get_recent_urls_usecase,
+    get_refined_jobs_usecase,
+    get_update_details_usecase,
     update_crawler_checkpoint_usecase,
     verify_token,
 )
@@ -52,7 +52,7 @@ async def create_jobs(
 @limiter.limit("30/minute")
 async def get_pending_details(
     request: Request,
-    source: Optional[str] = None,
+    source: str | None = None,
     usecase: GetPendingDetailsUseCase = Depends(get_pending_details_usecase),
 ):
     jobs = usecase.execute(source=source)
@@ -74,7 +74,7 @@ async def update_job_details(
 @limiter.limit("60/minute")
 async def get_refined_jobs(
     request: Request,
-    usecase = Depends(get_refined_jobs_usecase),
+    usecase=Depends(get_refined_jobs_usecase),
 ):
     jobs = usecase.execute()
     return [j.to_dict() for j in jobs]
@@ -86,7 +86,7 @@ async def get_recent_urls(
     request: Request,
     source: str,
     limit: int = 500,
-    usecase = Depends(get_recent_urls_usecase),
+    usecase=Depends(get_recent_urls_usecase),
 ):
     urls = usecase.execute(source=source, limit=limit)
     return {"urls": urls}
@@ -97,7 +97,7 @@ async def get_recent_urls(
 async def get_crawler_checkpoint(
     request: Request,
     source: str,
-    usecase = Depends(get_crawler_checkpoint_usecase),
+    usecase=Depends(get_crawler_checkpoint_usecase),
 ):
     val = usecase.execute(source=source)
     return {"checkpoint_url": val}
@@ -108,7 +108,7 @@ async def get_crawler_checkpoint(
 async def update_crawler_checkpoint(
     request: Request,
     body: CheckpointUpdate,
-    usecase = Depends(update_crawler_checkpoint_usecase),
+    usecase=Depends(update_crawler_checkpoint_usecase),
 ):
     usecase.execute(source=body.source, url=body.url)
     return {"status": "updated", "source": body.source}

@@ -11,10 +11,10 @@ class LanguageDetector(BaseLanguageDetector):
 
         try:
             result = detect(text)
-            if isinstance(result, list) and len(result) > 0:
-                return result[0]["lang"]
+            if isinstance(result, list) and len(result) > 0 and isinstance(result[0], dict):
+                return str(result[0].get("lang", "en"))
             elif isinstance(result, dict):
-                return result["lang"]
+                return str(result.get("lang", "en"))
             return "en"
         except Exception:
             return "en"

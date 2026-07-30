@@ -1,5 +1,5 @@
-from core.domain.models.job import Job
 from core.domain.interfaces.db import BaseJobRepository
+from core.domain.models.job import Job
 
 
 class GetPendingDetailsUseCase:

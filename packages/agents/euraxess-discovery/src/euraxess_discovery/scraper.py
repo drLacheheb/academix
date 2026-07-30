@@ -1,4 +1,5 @@
 import re
+
 from bs4 import BeautifulSoup
 from core.domain.models.job import Job
 from core.infrastructure.scrapers.base import ConcreteDiscovery
@@ -20,10 +21,8 @@ class EuraxessDiscovery(ConcreteDiscovery):
             span = a.find("span")
             if span:
                 title = span.get_text(strip=True)
-                link = "https://euraxess.ec.europa.eu" + a["href"]
-                jobs.append(
-                    Job(title=title, url=link, source=self.SOURCE_NAME)
-                )
+                link = "https://euraxess.ec.europa.eu" + str(a["href"])
+                jobs.append(Job(title=title, url=link, source=self.SOURCE_NAME))
 
         self.logger.info(f"  -> Found {len(jobs)} listings")
         return jobs

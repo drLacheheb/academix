@@ -1,20 +1,21 @@
+import os
 from contextlib import asynccontextmanager
 from time import time
-import os
+
+from core.infrastructure.logging.logger import get_logger
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
-from core.infrastructure.logging.logger import get_logger
 from api.limiter_config import limiter
 from api.routers import (
-    status,
-    jobs,
     detection,
-    translation,
-    refinement,
-    profiles,
+    jobs,
     matching,
+    profiles,
+    refinement,
+    status,
+    translation,
 )
 
 logger = get_logger("api")
@@ -24,8 +25,8 @@ logger = get_logger("api")
 async def lifespan(app: FastAPI):
     logger.info("Running database migrations on startup...")
     try:
-        from alembic.config import Config
         from alembic import command
+        from alembic.config import Config
 
         ini_path = "packages/api/alembic.ini"
         if not os.path.exists(ini_path):
@@ -35,22 +36,16 @@ async def lifespan(app: FastAPI):
             alembic_cfg = Config(ini_path)
             # Dynamically set the absolute migrations path relative to alembic.ini location
             ini_dir = os.path.dirname(os.path.abspath(ini_path))
-            migrations_dir = os.path.abspath(
-                os.path.join(ini_dir, "src", "api", "migrations")
-            )
+            migrations_dir = os.path.abspath(os.path.join(ini_dir, "src", "api", "migrations"))
             alembic_cfg.set_main_option("script_location", migrations_dir)
 
             command.upgrade(alembic_cfg, "head")
             logger.info("Database migrations completed successfully.")
         else:
-            logger.warning(
-                f"Alembic config not found at {ini_path}, skipping migrations."
-            )
+            logger.warning(f"Alembic config not found at {ini_path}, skipping migrations.")
     except Exception as e:
         logger.critical(f"Failed to run database migrations: {e}")
-        raise RuntimeError(
-            f"FastAPI startup aborted due to migration failure: {e}"
-        ) from e
+        raise RuntimeError(f"FastAPI startup aborted due to migration failure: {e}") from e
 
     logger.info("Verifying storage backend connection...")
     try:
@@ -77,9 +72,7 @@ async def log_requests(request: Request, call_next):
     start_time = time()
     response = await call_next(request)
     duration = time() - start_time
-    logger.info(
-        f"{request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)"
-    )
+    logger.info(f"{request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)")
     return response
 
 

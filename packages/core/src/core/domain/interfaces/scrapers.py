@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+
 from core.domain.models.job import Job
 from core.domain.models.schemas import JobDetailUpdate
+
 
 class BaseDiscovery(ABC):
     SOURCE_NAME: str = ""

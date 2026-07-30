@@ -25,7 +25,7 @@ class LlmRefiner(BaseRefiner):
         self.logger = logger or logging.getLogger("agent.refinement.refiner")
 
         # Resolve Hugging Face path format or local file path
-        # Example format: repo_id/filename.gguf -> unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf
+        # Example format: repo_id/filename.gguf
         self._repo_id = None
         self._filename = None
         self._resolved_model_path = model_path
@@ -35,13 +35,9 @@ class LlmRefiner(BaseRefiner):
             if len(parts) >= 3:
                 self._repo_id = "/".join(parts[:-1])
                 self._filename = parts[-1]
-                self._resolved_model_path = os.path.abspath(
-                    os.path.join(models_dir, model_path)
-                )
+                self._resolved_model_path = os.path.abspath(os.path.join(models_dir, model_path))
 
-        prompt_path = os.path.join(
-            os.path.dirname(__file__), "prompts", "refinement_prompt.txt"
-        )
+        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "refinement_prompt.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             self._system_prompt = f.read().strip()
 
@@ -62,20 +58,20 @@ class LlmRefiner(BaseRefiner):
         if not os.path.exists(self._resolved_model_path):
             if self._repo_id and self._filename:
                 self.logger.info(
-                    f"Model file not found locally. Downloading {self._filename} from HF repo {self._repo_id}..."
+                    f"Model file not found locally. Downloading {self._filename} "
+                    f"from HF repo {self._repo_id}..."
                 )
                 target_dir = os.path.dirname(self._resolved_model_path)
                 os.makedirs(target_dir, exist_ok=True)
                 from huggingface_hub import hf_hub_download
+
                 hf_hub_download(
                     repo_id=self._repo_id,
                     filename=self._filename,
                     local_dir=target_dir,
                 )
             else:
-                raise FileNotFoundError(
-                    f"Model path does not exist and cannot be auto-downloaded: {self._resolved_model_path}"
-                )
+                raise FileNotFoundError(f"Model path does not exist: {self._resolved_model_path}")
 
         self.logger.info(f"Loading GGUF model from {self._resolved_model_path}...")
         self._model = Llama(
@@ -92,6 +88,7 @@ class LlmRefiner(BaseRefiner):
             del self._model
             self._model = None
             import gc
+
             gc.collect()
             self.logger.info("Model freed successfully!")
 
@@ -135,19 +132,30 @@ class LlmRefiner(BaseRefiner):
             raise RuntimeError("Model not loaded. Call load_model() first.")
 
         # Truncate input text to max length of chars
-        truncated_text = text[:self._max_text_chars]
+        truncated_text = text[: self._max_text_chars]
 
+        assert self._model is not None
         try:
             response = self._model.create_chat_completion(
                 messages=[
                     {"role": "system", "content": self._cv_system_prompt},
-                    {"role": "user", "content": f"Candidate CV Text:\n\n{truncated_text}"},
+                    {
+                        "role": "user",
+                        "content": f"Candidate CV Text:\n\n{truncated_text}",
+                    },
                 ],
                 max_tokens=2048,
                 temperature=self._temperature,
             )
-            raw_output = response["choices"][0]["message"]["content"].strip()
-            return self._parse_json_response(raw_output)
+            if isinstance(response, dict):
+                choices = response.get("choices", [])
+                if choices and isinstance(choices[0], dict):
+                    msg = choices[0].get("message", {})
+                    if isinstance(msg, dict):
+                        content = msg.get("content", "")
+                        if isinstance(content, str):
+                            return self._parse_json_response(content.strip())
+            return {}
         except Exception as e:
             self.logger.warning(f"GGUF CV inference failed: {e}")
             return {}
@@ -161,6 +169,7 @@ class LlmRefiner(BaseRefiner):
     ) -> dict:
         text = self._build_input_text(title, location, description, requirements)
 
+        assert self._model is not None
         try:
             response = self._model.create_chat_completion(
                 messages=[
@@ -170,8 +179,15 @@ class LlmRefiner(BaseRefiner):
                 max_tokens=1024,
                 temperature=self._temperature,
             )
-            raw_output = response["choices"][0]["message"]["content"].strip()
-            return self._parse_json_response(raw_output)
+            if isinstance(response, dict):
+                choices = response.get("choices", [])
+                if choices and isinstance(choices[0], dict):
+                    msg = choices[0].get("message", {})
+                    if isinstance(msg, dict):
+                        content = msg.get("content", "")
+                        if isinstance(content, str):
+                            return self._parse_json_response(content.strip())
+            return {}
         except Exception as e:
             self.logger.warning(f"GGUF inference failed: {e}")
             return {}
@@ -188,8 +204,7 @@ class LlmRefiner(BaseRefiner):
 
         # Calculate available budget for desc and req
         avail_budget = self._max_text_chars - len(title_block) - len(loc_block) - 100
-        if avail_budget < 500:
-            avail_budget = 500
+        avail_budget = max(avail_budget, 500)
 
         desc_str = description or ""
         req_str = requirements or ""

@@ -1,6 +1,7 @@
-import os
 import json
+import os
 import re
+
 import sentencex
 from core.domain.interfaces.services import BaseTranslator
 
@@ -36,7 +37,8 @@ class NllbTranslator(BaseTranslator):
 
             # Split paragraph into sentences using SOTA sentencex (with regex fallback)
             try:
-                sentences = sentencex.segment(source_lang, paragraph)
+                segment_fn = getattr(sentencex, "segment")
+                sentences = segment_fn(source_lang, paragraph)
             except Exception:
                 sentences = re.split(r"(?<=[.!?])\s+", paragraph)
             translated_sentences = []

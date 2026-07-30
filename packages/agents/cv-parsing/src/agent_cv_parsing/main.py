@@ -1,22 +1,20 @@
-import os
 import gc
+import os
 import socket
-from dotenv import load_dotenv
 
 from core.infrastructure.logging.logger import get_logger
-from core.utils.agent import run_agent_loop
-from core.utils.api import make_api_client
 from core.infrastructure.services.pdf_parser import parse_pdf_to_markdown
 from core.infrastructure.services.storage import get_storage_service_from_env
+from core.utils.agent import run_agent_loop
+from core.utils.api import make_api_client
+from dotenv import load_dotenv
 
 load_dotenv()
 
 # Setup logging
 logger = get_logger("cv-parsing-worker")
 
-AGENT_NAME = (
-    f"{os.environ.get('AGENT_NAME', 'cv-parsing-worker')}-{socket.gethostname()}"
-)
+AGENT_NAME = f"{os.environ.get('AGENT_NAME', 'cv-parsing-worker')}-{socket.gethostname()}"
 
 
 def process_ingestion_task(client) -> bool:
@@ -46,16 +44,12 @@ def process_ingestion_task(client) -> bool:
         storage_service = get_storage_service_from_env()
         local_file_path, is_temp_file = storage_service.get_local_path(file_path)
         if not local_file_path or not os.path.exists(local_file_path):
-            raise FileNotFoundError(
-                f"Resolved file path {local_file_path} not found on disk."
-            )
+            raise FileNotFoundError(f"Resolved file path {local_file_path} not found on disk.")
     except Exception as e:
         error_msg = f"Failed to retrieve CV file path for {file_path}: {e}"
         logger.error(error_msg, exc_info=True)
         try:
-            client.put(
-                f"/profiles/fail-ingest/{profile_id}", json={"error_message": error_msg}
-            )
+            client.put(f"/profiles/fail-ingest/{profile_id}", json={"error_message": error_msg})
         except Exception as api_err:
             logger.error(f"Failed to submit failure status to API: {api_err}")
         return True
@@ -86,9 +80,7 @@ def process_ingestion_task(client) -> bool:
             exc_info=True,
         )
         try:
-            client.put(
-                f"/profiles/fail-ingest/{profile_id}", json={"error_message": str(e)}
-            )
+            client.put(f"/profiles/fail-ingest/{profile_id}", json={"error_message": str(e)})
         except Exception as api_err:
             logger.error(f"Failed to notify API about parsing failure: {api_err}")
     finally:
@@ -106,9 +98,7 @@ def process_ingestion_task(client) -> bool:
 
 
 def main():
-    logger.info(
-        f"Starting CV Ingestion and Parsing Worker (agent_name: {AGENT_NAME})..."
-    )
+    logger.info(f"Starting CV Ingestion and Parsing Worker (agent_name: {AGENT_NAME})...")
     api_client = make_api_client()
     poll_interval = int(os.environ.get("AGENT_POLL_INTERVAL", "10"))
 

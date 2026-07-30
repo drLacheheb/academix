@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Request
 from core.domain.models.schemas import ClaimRequest, DetectionResult
+from fastapi import APIRouter, Depends, Request
+
 from api.dependencies import (
-    get_detect_claim_usecase,
     ClaimDetectionJobUseCase,
-    get_detect_complete_usecase,
     CompleteDetectionUseCase,
+    get_detect_claim_usecase,
+    get_detect_complete_usecase,
     verify_token,
 )
 from api.limiter_config import limiter

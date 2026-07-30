@@ -1,6 +1,7 @@
-import os
 import logging
+import os
 from io import BytesIO
+
 import pypdfium2 as pdfium
 from docling.datamodel.base_models import DocumentStream
 from docling.document_converter import DocumentConverter
@@ -23,9 +24,7 @@ def parse_pdf_to_markdown(file_path: str) -> str:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"PDF file not found: {file_path}")
 
-    logger.info(
-        f"Rasterizing and parsing PDF: {file_path} using visual Docling pipeline"
-    )
+    logger.info(f"Rasterizing and parsing PDF: {file_path} using visual Docling pipeline")
 
     converter = get_document_converter()
 
@@ -34,8 +33,8 @@ def parse_pdf_to_markdown(file_path: str) -> str:
         with pdfium.PdfDocument(file_path) as pdf:
             for i in range(len(pdf)):
                 page = pdf[i]
-                # Render page to PIL Image at 2.0x scale for high resolution
-                bitmap = page.render(scale=2.0)
+                # Render page to PIL Image at 2x scale for high resolution
+                bitmap = page.render(scale=2)
                 pil_img = bitmap.to_pil()
 
                 # Save PIL image to byte buffer as PNG
@@ -53,7 +52,8 @@ def parse_pdf_to_markdown(file_path: str) -> str:
 
         markdown_text = "\n\n".join(markdown_pages)
         logger.info(
-            f"Successfully rasterized and converted PDF {file_path} to Markdown ({len(markdown_text)} chars)"
+            f"Successfully rasterized and converted PDF {file_path} to "
+            f"Markdown ({len(markdown_text)} chars)"
         )
         return markdown_text
     except Exception as e:
@@ -81,9 +81,7 @@ def truncate_bibliography(text: str) -> str:
         clean_line = line.strip().lower().replace("#", "").strip()
         # If we hit a header matching any stop keyword, truncate everything from here
         if clean_line in stop_headers:
-            logger.info(
-                f"Truncating PDF text at bibliography section header: '{line.strip()}'"
-            )
+            logger.info(f"Truncating PDF text at bibliography section header: '{line.strip()}'")
             break
         truncated_lines.append(line)
 

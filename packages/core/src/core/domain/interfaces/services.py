@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
-from core.domain.models.profile import CandidateProfile
+from collections.abc import Sequence
 
 
 class BaseEmbeddingService(ABC):
@@ -9,11 +8,8 @@ class BaseEmbeddingService(ABC):
         pass
 
     @abstractmethod
-    def encode_research(
-        self, interests: Optional[list[str]], title: str = ""
-    ) -> Optional[list[float]]:
+    def encode_research(self, interests: list[str] | None, title: str = "") -> list[float] | None:
         pass
-
 
 
 class BaseLanguageDetector(ABC):
@@ -45,9 +41,9 @@ class BaseLlmRunner(ABC):
     @abstractmethod
     def create_chat_completion(
         self,
-        messages: list[dict],
+        messages: Sequence[dict[str, str]],
         max_tokens: int = 512,
-        response_format: Optional[dict] = None,
+        response_format: dict | None = None,
     ) -> str:
         pass
 

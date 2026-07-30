@@ -1,11 +1,11 @@
 import json
-from bs4 import BeautifulSoup
 
+from bs4 import BeautifulSoup, Tag
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.scrapers.base import (
+    ConcreteSourcing,
     clean_html,
     extract_requirements_from_text,
-    ConcreteSourcing,
 )
 
 
@@ -21,9 +21,9 @@ class AcademicTransferSourcing(ConcreteSourcing):
             heading = h2.get_text(strip=True).lower()
             sibling_content = []
             for sibling in h2.next_siblings:
-                if sibling.name == "h2":
-                    break
-                if sibling.name:
+                if isinstance(sibling, Tag):
+                    if sibling.name == "h2":
+                        break
                     sibling_content.append(sibling.get_text(strip=True))
                 elif isinstance(sibling, str):
                     text = sibling.strip()
@@ -113,10 +113,7 @@ class AcademicTransferSourcing(ConcreteSourcing):
             "Job types",
         ]:
             p_label = soup.find(
-                lambda tag: (
-                    tag.name == "p"
-                    and tag.get_text(strip=True).lower() == field.lower()
-                )
+                lambda tag: tag.name == "p" and tag.get_text(strip=True).lower() == field.lower()
             )
             if p_label:
                 # Get next paragraph sibling

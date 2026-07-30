@@ -1,10 +1,9 @@
-from typing import Optional
 from core.domain.interfaces.db import (
     BaseCandidateProfileRepository,
     BaseMatchingQueueRepository,
 )
-from core.domain.models.profile import CandidateProfile
 from core.domain.interfaces.services import BaseStorageService
+from core.domain.models.profile import CandidateProfile
 
 
 class IngestCandidateProfileUseCase:
@@ -20,8 +19,8 @@ class IngestCandidateProfileUseCase:
         self,
         file_name: str,
         file_content: bytes,
-        email: Optional[str] = None,
-        name: Optional[str] = None,
+        email: str | None = None,
+        name: str | None = None,
     ) -> CandidateProfile:
         # Upload the CV file using our storage abstraction layer
         url_or_path = self._storage_service.upload(file_name, file_content)
@@ -44,7 +43,7 @@ class GetCandidateProfileUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
 
-    def execute(self, profile_id: int) -> Optional[CandidateProfile]:
+    def execute(self, profile_id: int) -> CandidateProfile | None:
         return self._repo.get_by_id(profile_id)
 
 
@@ -60,8 +59,9 @@ class ClaimIngestionUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
 
-    def execute(self, agent_name: str) -> Optional[CandidateProfile]:
+    def execute(self, agent_name: str) -> CandidateProfile | None:
         from datetime import datetime, timedelta
+
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
 
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
@@ -105,8 +105,9 @@ class ClaimProfileDetectionUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
 
-    def execute(self, agent_name: str) -> Optional[CandidateProfile]:
+    def execute(self, agent_name: str) -> CandidateProfile | None:
         from datetime import datetime, timedelta
+
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
 
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
@@ -125,8 +126,9 @@ class ClaimProfileTranslationUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
 
-    def execute(self, agent_name: str) -> Optional[CandidateProfile]:
+    def execute(self, agent_name: str) -> CandidateProfile | None:
         from datetime import datetime, timedelta
+
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
 
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
@@ -145,8 +147,9 @@ class ClaimProfileRefinementUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
 
-    def execute(self, agent_name: str) -> Optional[CandidateProfile]:
+    def execute(self, agent_name: str) -> CandidateProfile | None:
         from datetime import datetime, timedelta
+
         from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
 
         cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)

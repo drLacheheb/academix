@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Optional
+
 from core.domain.interfaces.services import BaseEmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -20,12 +20,16 @@ class EmbeddingService(BaseEmbeddingService):
     def get_model(cls):
         if cls._model is None:
             import os
+
             from sentence_transformers import SentenceTransformer
 
             embedding_model = os.environ.get("EMBEDDING_MODEL", "nomic-ai/nomic-embed-text-v1.5")
             models_dir = os.environ.get("MODELS_DIR", "models")
 
-            logger.info(f"Loading embedding model '{embedding_model}' with cache_folder '{models_dir}' into memory...")
+            logger.info(
+                f"Loading embedding model '{embedding_model}' with cache_folder "
+                f"'{models_dir}' into memory..."
+            )
             cls._model = SentenceTransformer(embedding_model, cache_folder=models_dir)
             logger.info("Embedding model loaded successfully!")
         return cls._model
@@ -45,16 +49,14 @@ class EmbeddingService(BaseEmbeddingService):
         truncated = raw_embedding[:256]
         return l2_normalize(truncated)
 
-    def encode_skills(self, skills: Optional[list[str]]) -> Optional[list[float]]:
+    def encode_skills(self, skills: list[str] | None) -> list[float] | None:
         if not skills:
             return None
         # Join skills with commas to make a descriptive string
         text = ", ".join(skills)
         return self.encode_text(text)
 
-    def encode_research(
-        self, interests: Optional[list[str]], title: str = ""
-    ) -> Optional[list[float]]:
+    def encode_research(self, interests: list[str] | None, title: str = "") -> list[float] | None:
         if not interests and not title:
             return None
         parts = []

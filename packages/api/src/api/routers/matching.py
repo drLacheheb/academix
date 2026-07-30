@@ -1,26 +1,28 @@
 import logging
-from fastapi import APIRouter, Depends, Request
+
+from core.domain.models.match import Match
 from core.domain.models.schemas import (
     ClaimRequest,
-    MatchingTaskComplete,
     MatchExplanationComplete,
+    MatchingTaskComplete,
 )
-from core.domain.models.match import Match
+from fastapi import APIRouter, Depends, Request
+
 from api.dependencies import (
-    get_claim_matching_task_usecase,
-    ClaimMatchingTaskUseCase,
-    get_submit_task_matches_usecase,
-    SubmitTaskMatchesUseCase,
-    get_fail_matching_task_usecase,
-    FailMatchingTaskUseCase,
-    get_candidate_matches_usecase,
-    GetCandidateMatchesUseCase,
-    get_claim_match_explanation_usecase,
     ClaimMatchExplanationUseCase,
-    get_complete_match_explanation_usecase,
+    ClaimMatchingTaskUseCase,
     CompleteMatchExplanationUseCase,
-    get_fail_match_explanation_usecase,
     FailMatchExplanationUseCase,
+    FailMatchingTaskUseCase,
+    GetCandidateMatchesUseCase,
+    SubmitTaskMatchesUseCase,
+    get_candidate_matches_usecase,
+    get_claim_match_explanation_usecase,
+    get_claim_matching_task_usecase,
+    get_complete_match_explanation_usecase,
+    get_fail_match_explanation_usecase,
+    get_fail_matching_task_usecase,
+    get_submit_task_matches_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
@@ -83,9 +85,7 @@ async def fail_matching_task(
 async def claim_match_explanation(
     request: Request,
     body: ClaimRequest,
-    usecase: ClaimMatchExplanationUseCase = Depends(
-        get_claim_match_explanation_usecase
-    ),
+    usecase: ClaimMatchExplanationUseCase = Depends(get_claim_match_explanation_usecase),
 ):
     match = usecase.execute(body.agent_name)
     if match is None:
@@ -98,9 +98,7 @@ async def claim_match_explanation(
 async def complete_match_explanation(
     request: Request,
     body: MatchExplanationComplete,
-    usecase: CompleteMatchExplanationUseCase = Depends(
-        get_complete_match_explanation_usecase
-    ),
+    usecase: CompleteMatchExplanationUseCase = Depends(get_complete_match_explanation_usecase),
 ):
     usecase.execute(body.match_id, body.explanation)
     return {"status": "completed", "match_id": body.match_id}

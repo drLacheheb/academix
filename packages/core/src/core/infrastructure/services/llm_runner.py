@@ -1,7 +1,8 @@
 import gc
 import logging
 import os
-from typing import Optional
+from collections.abc import Sequence
+
 from core.domain.interfaces.services import BaseLlmRunner
 
 logger = logging.getLogger(__name__)
@@ -31,9 +32,7 @@ class LocalLlmRunner(BaseLlmRunner):
             if len(parts) >= 3:
                 self._repo_id = "/".join(parts[:-1])
                 self._filename = parts[-1]
-                self._resolved_path = os.path.abspath(
-                    os.path.join(models_dir, model_path)
-                )
+                self._resolved_path = os.path.abspath(os.path.join(models_dir, model_path))
 
     @property
     def is_loaded(self) -> bool:
@@ -48,7 +47,8 @@ class LocalLlmRunner(BaseLlmRunner):
         if not os.path.exists(self._resolved_path):
             if self._repo_id and self._filename:
                 logger.info(
-                    f"Model file not found locally. Downloading {self._filename} from HF repo {self._repo_id}..."
+                    f"Model file not found locally. Downloading {self._filename} "
+                    f"from HF repo {self._repo_id}..."
                 )
                 target_dir = os.path.dirname(self._resolved_path)
                 os.makedirs(target_dir, exist_ok=True)
@@ -60,9 +60,7 @@ class LocalLlmRunner(BaseLlmRunner):
                     local_dir=target_dir,
                 )
             else:
-                raise FileNotFoundError(
-                    f"Model path does not exist and cannot be auto-downloaded: {self._resolved_path}"
-                )
+                raise FileNotFoundError(f"Model path does not exist: {self._resolved_path}")
 
         logger.info(f"Loading local GGUF model from {self._resolved_path}...")
         self.model = Llama(
@@ -87,20 +85,31 @@ class LocalLlmRunner(BaseLlmRunner):
 
     def create_chat_completion(
         self,
-        messages: list[dict],
+        messages: Sequence[dict[str, str]],
         max_tokens: int = 512,
-        response_format: Optional[dict] = None,
+        response_format: dict | None = None,
     ) -> str:
         self.load_model()
+        if self.model is None:
+            raise RuntimeError("Llama model failed to load.")
 
         kwargs = {}
         if response_format:
             kwargs["response_format"] = response_format
 
+        chat_messages: list = list(messages)
         response = self.model.create_chat_completion(
-            messages=messages,
+            messages=chat_messages,
             max_tokens=max_tokens,
             temperature=self.temperature,
             **kwargs,
         )
-        return response["choices"][0]["message"]["content"].strip()
+        if isinstance(response, dict):
+            choices = response.get("choices", [])
+            if choices and isinstance(choices[0], dict):
+                msg = choices[0].get("message", {})
+                if isinstance(msg, dict):
+                    content = msg.get("content", "")
+                    if isinstance(content, str):
+                        return content.strip()
+        return ""

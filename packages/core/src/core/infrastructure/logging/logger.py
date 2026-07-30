@@ -1,13 +1,13 @@
-import os
 import json
 import logging
-from datetime import datetime, timezone
+import os
+from datetime import UTC, datetime
 
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         log_entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "agent": getattr(record, "agent", "unknown"),
             "msg": record.getMessage(),
@@ -22,21 +22,19 @@ def get_logger(agent_name: str) -> logging.Logger:
     if not logger.handlers:
         import sys
         from logging.handlers import RotatingFileHandler
+
         log_file = os.getenv("LOG_FILE", "agent.log")
         handler = RotatingFileHandler(
-            log_file, 
-            maxBytes=10 * 1024 * 1024, 
-            backupCount=5, 
-            encoding="utf-8"
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
         )
         handler.setFormatter(JsonFormatter())
         logger.addHandler(handler)
-        
+
         # Add stdout stream handler for Docker log aggregation
         stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(JsonFormatter())
         logger.addHandler(stream_handler)
-        
+
         logger.setLevel(logging.INFO)
 
     old_factory = logging.getLogRecordFactory()

@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta, timezone
-from core.domain.models.job import Job
+from datetime import UTC, datetime, timedelta
+
 from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
 from core.domain.interfaces.db import (
-    BaseRefinementRepository,
     BaseMatchingQueueRepository,
+    BaseRefinementRepository,
 )
+from core.domain.models.job import Job
 
 
 class ClaimRefinementJobUseCase:
@@ -12,16 +13,14 @@ class ClaimRefinementJobUseCase:
         self._repo = repo
 
     def execute(self, agent_name: str) -> Job | None:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
             minutes=STALE_CLAIM_TIMEOUT_MINUTES
         )
         return self._repo.claim_next(agent_name, cutoff)
 
 
 class CompleteRefinementUseCase:
-    def __init__(
-        self, repo: BaseRefinementRepository, queue_repo: BaseMatchingQueueRepository
-    ):
+    def __init__(self, repo: BaseRefinementRepository, queue_repo: BaseMatchingQueueRepository):
         self._repo = repo
         self._queue_repo = queue_repo
 

@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+
 from core.domain.models.job import Job
-from core.domain.models.profile import CandidateProfile
 from core.domain.models.match import Match
 from core.domain.models.matching_task import MatchingTask
+from core.domain.models.profile import CandidateProfile
 from core.domain.models.schemas import JobDetailUpdate
 
 
@@ -73,9 +74,7 @@ class BaseTranslationRepository(ABC):
         pass
 
     @abstractmethod
-    def complete(
-        self, url: str, description_en: str | None, requirements_en: str | None
-    ) -> None:
+    def complete(self, url: str, description_en: str | None, requirements_en: str | None) -> None:
         pass
 
     @abstractmethod
@@ -198,9 +197,7 @@ class BaseMatchingQueueRepository(ABC):
         pass
 
     @abstractmethod
-    def claim_next(
-        self, agent_name: str, stale_cutoff: datetime
-    ) -> MatchingTask | None:
+    def claim_next(self, agent_name: str, stale_cutoff: datetime) -> MatchingTask | None:
         pass
 
     @abstractmethod
@@ -222,9 +219,7 @@ class BaseMatchRepository(ABC):
         pass
 
     @abstractmethod
-    def get_matches_for_candidate(
-        self, candidate_id: int, limit: int = 20
-    ) -> list[Match]:
+    def get_matches_for_candidate(self, candidate_id: int, limit: int = 20) -> list[Match]:
         pass
 
     @abstractmethod

@@ -1,5 +1,5 @@
-from core.domain.models.schemas import JobDetailUpdate
 from core.domain.interfaces.db import BaseJobRepository
+from core.domain.models.schemas import JobDetailUpdate
 
 
 class UpdateJobDetailsUseCase:

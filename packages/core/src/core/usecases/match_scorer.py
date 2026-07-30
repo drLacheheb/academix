@@ -1,8 +1,9 @@
 import logging
-from typing import Optional
-from core.domain.models.profile import CandidateProfile
+from collections.abc import Sequence
+
 from core.domain.models.job import Job
 from core.domain.models.match import Match
+from core.domain.models.profile import CandidateProfile
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ LANGUAGE_NAMES = {
 }
 
 
-def parse_degree(degree_str: Optional[str]) -> int:
+def parse_degree(degree_str: str | None) -> int:
     """Map education levels to comparable ranks: PhD=3, Master=2, Bachelor=1, None=0."""
     if not degree_str:
         return 0
@@ -26,21 +27,41 @@ def parse_degree(degree_str: Optional[str]) -> int:
         return 3
 
     import re
-    if "master" in s or "msc" in s or "m.sc" in s or re.search(r'\bma\b', s) or re.search(r'\bm\.a\b', s):
+
+    if (
+        "master" in s
+        or "msc" in s
+        or "m.sc" in s
+        or re.search(r"\bma\b", s)
+        or re.search(r"\bm\.a\b", s)
+    ):
         return 2
-    if "bachelor" in s or "bsc" in s or "b.sc" in s or re.search(r'\bba\b', s) or re.search(r'\bb\.a\b', s):
+    if (
+        "bachelor" in s
+        or "bsc" in s
+        or "b.sc" in s
+        or re.search(r"\bba\b", s)
+        or re.search(r"\bb\.a\b", s)
+    ):
         return 1
     return 0
 
 
-def check_degree_eligibility(candidate_degree: Optional[str], job_education_level: Optional[str]) -> bool:
+def check_degree_eligibility(candidate_degree: str | None, job_education_level: str | None) -> bool:
     """Returns True if candidate's degree is equal to or higher than job's required degree."""
-    if not job_education_level or job_education_level.lower() in ["none", "any", "unspecified"]:
+    if not job_education_level or job_education_level.lower() in [
+        "none",
+        "any",
+        "unspecified",
+    ]:
         return True
     return parse_degree(candidate_degree) >= parse_degree(job_education_level)
 
 
-def check_language_eligibility(candidate_languages: Optional[list[dict[str, str] | str]], job_language_code: Optional[str]) -> bool:
+def check_language_eligibility(
+    candidate_languages: Sequence[dict[str, str] | str] | None,
+    job_language_code: str | None,
+) -> bool:
     """Returns True if the candidate speaks the language required by the job."""
     if not job_language_code or job_language_code.lower() in ["en", "english"]:
         return True
@@ -62,7 +83,7 @@ def check_language_eligibility(candidate_languages: Optional[list[dict[str, str]
     return False
 
 
-def dot_product(v1: Optional[list[float]], v2: Optional[list[float]]) -> float:
+def dot_product(v1: list[float] | None, v2: list[float] | None) -> float:
     """Calculates dot product of two L2-normalized vectors (equivalent to cosine similarity)."""
     if not v1 or not v2 or len(v1) != len(v2):
         return 0.0
@@ -75,7 +96,7 @@ class MatchScorer:
         candidate: CandidateProfile,
         job: Job,
         threshold: float = 0.3,
-    ) -> Optional[Match]:
+    ) -> Match | None:
         """
         Runs hard filters and computes soft scores for candidate-job pair.
         Returns a Match object if eligible and score >= threshold, otherwise None.
@@ -100,7 +121,7 @@ class MatchScorer:
         # Bound composite score to [0.0, 1.0]
         composite_score = max(0.0, min(1.0, composite_score))
 
-        if composite_score < threshold:
+        if composite_score < threshold or candidate.id is None:
             return None
 
         return Match(

@@ -1,9 +1,10 @@
 import os
-from dotenv import load_dotenv
 
 from core.infrastructure.http.http_client import HttpClient
 from core.infrastructure.logging.logger import get_logger
 from core.utils.api import make_api_client
+from dotenv import load_dotenv
+
 from euraxess_discovery.scraper import EuraxessDiscovery
 
 load_dotenv()
@@ -32,9 +33,7 @@ def run():
     logger.info("Starting EURAXESS crawler discovery agent")
 
     def cycle():
-        logger.info(
-            "Fetching recent known URLs and checkpoint to optimize pagination..."
-        )
+        logger.info("Fetching recent known URLs and checkpoint to optimize pagination...")
         known_resp = api.get(f"/jobs/urls?source={scraper.SOURCE_NAME}&limit=500")
         known_resp.raise_for_status()
         known_urls = set(known_resp.json().get("urls", []))
@@ -43,9 +42,7 @@ def run():
         checkpoint_resp.raise_for_status()
         checkpoint_url = checkpoint_resp.json().get("checkpoint_url")
 
-        logger.info(
-            f"Loaded {len(known_urls)} known URLs. Checkpoint URL: {checkpoint_url}"
-        )
+        logger.info(f"Loaded {len(known_urls)} known URLs. Checkpoint URL: {checkpoint_url}")
         new_jobs = scraper.search_all(known_urls, checkpoint_url=checkpoint_url)
 
         if new_jobs:
@@ -55,15 +52,10 @@ def run():
             already_known = set(check_resp.json().get("known_urls", []))
 
             truly_new = [j for j in new_jobs if j.url not in already_known]
-            logger.info(
-                f"Found {len(new_jobs)} listings, {len(truly_new)} are truly new"
-            )
+            logger.info(f"Found {len(new_jobs)} listings, {len(truly_new)} are truly new")
 
             if truly_new:
-                stubs = [
-                    {"title": j.title, "url": j.url, "source": j.source}
-                    for j in truly_new
-                ]
+                stubs = [{"title": j.title, "url": j.url, "source": j.source} for j in truly_new]
                 resp = api.post("/jobs", json=stubs)
                 resp.raise_for_status()
                 logger.info(f"Submitted {len(truly_new)} new job stubs to API")

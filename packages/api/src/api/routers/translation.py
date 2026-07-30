@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Request
 from core.domain.models.schemas import ClaimRequest, TranslationResult
+from fastapi import APIRouter, Depends, Request
+
 from api.dependencies import (
-    get_translate_claim_usecase,
     ClaimTranslationJobUseCase,
-    get_translate_complete_usecase,
     CompleteTranslationUseCase,
+    get_translate_claim_usecase,
+    get_translate_complete_usecase,
     verify_token,
 )
 from api.limiter_config import limiter

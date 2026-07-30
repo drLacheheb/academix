@@ -15,16 +15,13 @@ class AcademicTransferDiscovery(ConcreteDiscovery):
         for article in soup.find_all("article"):
             a = article.find("a", href=True)
             if a:
-                href = a["href"]
+                href = str(a["href"])
                 if href.startswith("/en/jobs/") and len(href) > len("/en/jobs/"):
                     h3 = article.find("h3")
                     if h3:
                         title = h3.get_text(strip=True)
                         link = "https://www.academictransfer.com" + href
-                        jobs.append(
-                            Job(title=title, url=link, source=self.SOURCE_NAME)
-                        )
+                        jobs.append(Job(title=title, url=link, source=self.SOURCE_NAME))
 
         self.logger.info(f"  -> Found {len(jobs)} listings")
         return jobs
-

@@ -1,41 +1,41 @@
-import os
 import logging
-from typing import Optional
-from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, Request
+import os
+
+from core.domain.models.schemas import ClaimRequest
+from core.usecases import (
+    ClaimIngestionUseCase,
+    ClaimProfileDetectionUseCase,
+    ClaimProfileRefinementUseCase,
+    ClaimProfileTranslationUseCase,
+    CompleteIngestionUseCase,
+    CompleteProfileDetectionUseCase,
+    CompleteProfileRefinementUseCase,
+    CompleteProfileTranslationUseCase,
+    FailIngestionUseCase,
+    GetCandidateProfileUseCase,
+    IngestCandidateProfileUseCase,
+    SubmitRawTextUseCase,
+)
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
 from api.dependencies import (
-    get_ingest_profile_usecase,
     get_candidate_profile_usecase,
-    get_list_profiles_usecase,
     get_claim_ingestion_usecase,
-    get_complete_ingestion_usecase,
-    get_fail_ingestion_usecase,
-    get_submit_raw_text_usecase,
     get_claim_profile_detect_usecase,
-    get_complete_profile_detect_usecase,
-    get_claim_profile_translate_usecase,
-    get_complete_profile_translate_usecase,
     get_claim_profile_refine_usecase,
+    get_claim_profile_translate_usecase,
+    get_complete_ingestion_usecase,
+    get_complete_profile_detect_usecase,
     get_complete_profile_refine_usecase,
+    get_complete_profile_translate_usecase,
+    get_fail_ingestion_usecase,
+    get_ingest_profile_usecase,
+    get_list_profiles_usecase,
+    get_submit_raw_text_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
-from core.usecases import (
-    IngestCandidateProfileUseCase,
-    GetCandidateProfileUseCase,
-    ClaimIngestionUseCase,
-    CompleteIngestionUseCase,
-    FailIngestionUseCase,
-    SubmitRawTextUseCase,
-    ClaimProfileDetectionUseCase,
-    CompleteProfileDetectionUseCase,
-    ClaimProfileTranslationUseCase,
-    CompleteProfileTranslationUseCase,
-    ClaimProfileRefinementUseCase,
-    CompleteProfileRefinementUseCase,
-)
-from core.domain.models.schemas import ClaimRequest
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +58,8 @@ class IngestionFail(BaseModel):
 
 class SubmitRawTextRequest(BaseModel):
     raw_text: str
-    name: Optional[str] = None
-    email: Optional[str] = None
+    name: str | None = None
+    email: str | None = None
 
 
 class ProfileDetectionResult(BaseModel):
@@ -82,11 +82,12 @@ class ProfileRefinementResult(BaseModel):
 async def upload_cv(
     request: Request,
     file: UploadFile = File(...),
-    email: Optional[str] = Form(None),
-    name: Optional[str] = Form(None),
+    email: str | None = Form(None),
+    name: str | None = Form(None),
     usecase: IngestCandidateProfileUseCase = Depends(get_ingest_profile_usecase),
 ):
-    if not file.filename.lower().endswith(".pdf"):
+    filename = file.filename or "cv.pdf"
+    if not filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=400,
             detail="Unsupported file format. Only PDF files are supported.",
@@ -102,20 +103,16 @@ async def upload_cv(
     # 2. Register placeholder profile and trigger ingestion task asynchronously
     try:
         saved_profile = usecase.execute(
-            file_name=file.filename,
+            file_name=filename,
             file_content=content,
             email=email,
             name=name,
         )
-        logger.info(
-            f"Successfully registered CV ingestion for profile ID: {saved_profile.id}"
-        )
+        logger.info(f"Successfully registered CV ingestion for profile ID: {saved_profile.id}")
         return saved_profile.to_dict()
     except Exception as e:
         logger.error("Error registering CV ingestion", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Failed to register CV ingestion task: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to register CV ingestion task: {e!s}")
 
 
 @router.post("/profiles/claim-ingest")
@@ -140,6 +137,7 @@ async def complete_ingest_task(
     usecase: CompleteIngestionUseCase = Depends(get_complete_ingestion_usecase),
 ):
     from core.domain.models.profile import CandidateProfile
+
     profile_domain = CandidateProfile.from_dict(body.profile)
     usecase.execute(profile_id, profile_domain)
     return {"status": "completed", "profile_id": profile_id}
@@ -203,7 +201,10 @@ async def claim_profile_detect(
 ):
     profile = usecase.execute(body.agent_name)
     if profile is None:
-        return {"profile": None, "message": "No pending profile detection tasks available"}
+        return {
+            "profile": None,
+            "message": "No pending profile detection tasks available",
+        }
     return {"profile": profile.to_dict()}
 
 
@@ -227,7 +228,10 @@ async def claim_profile_translate(
 ):
     profile = usecase.execute(body.agent_name)
     if profile is None:
-        return {"profile": None, "message": "No pending profile translation tasks available"}
+        return {
+            "profile": None,
+            "message": "No pending profile translation tasks available",
+        }
     return {"profile": profile.to_dict()}
 
 
@@ -251,7 +255,10 @@ async def claim_profile_refine(
 ):
     profile = usecase.execute(body.agent_name)
     if profile is None:
-        return {"profile": None, "message": "No pending profile refinement tasks available"}
+        return {
+            "profile": None,
+            "message": "No pending profile refinement tasks available",
+        }
     return {"profile": profile.to_dict()}
 
 
@@ -263,6 +270,7 @@ async def complete_profile_refine(
     usecase: CompleteProfileRefinementUseCase = Depends(get_complete_profile_refine_usecase),
 ):
     from core.domain.models.profile import CandidateProfile
+
     profile_domain = CandidateProfile.from_dict(body.profile)
     final_id = usecase.execute(body.profile_id, profile_domain)
     return {"status": "success", "profile_id": final_id}

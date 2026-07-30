@@ -1,5 +1,5 @@
-from datetime import datetime, timezone, timedelta
-from typing import Optional
+from datetime import UTC, datetime, timedelta
+
 from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
 from core.domain.interfaces.db import BaseMatchingQueueRepository, BaseMatchRepository
 from core.domain.models.match import Match
@@ -10,8 +10,10 @@ class ClaimMatchingTaskUseCase:
     def __init__(self, queue_repo: BaseMatchingQueueRepository):
         self._queue_repo = queue_repo
 
-    def execute(self, agent_name: str) -> Optional[MatchingTask]:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+    def execute(self, agent_name: str) -> MatchingTask | None:
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
+            minutes=STALE_CLAIM_TIMEOUT_MINUTES
+        )
         return self._queue_repo.claim_next(agent_name, cutoff)
 
 
@@ -46,8 +48,10 @@ class ClaimMatchExplanationUseCase:
         self._match_repo = match_repo
         self._threshold = threshold
 
-    def execute(self, agent_name: str) -> Optional[Match]:
-        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
+    def execute(self, agent_name: str) -> Match | None:
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
+            minutes=STALE_CLAIM_TIMEOUT_MINUTES
+        )
         return self._match_repo.claim_next_pending_explanation(agent_name, cutoff, self._threshold)
 
 

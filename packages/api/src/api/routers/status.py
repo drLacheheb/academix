@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request
-from api.dependencies import get_status_usecase, GetDatabaseStatusUseCase
+
+from api.dependencies import GetDatabaseStatusUseCase, get_status_usecase
 from api.limiter_config import limiter
 
 router = APIRouter()

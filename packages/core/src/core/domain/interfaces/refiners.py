@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from core.domain.models.schemas import RefinementResult
+
 
 class BaseRefiner(ABC):
     @abstractmethod
