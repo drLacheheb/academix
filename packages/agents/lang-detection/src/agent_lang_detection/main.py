@@ -1,8 +1,5 @@
-import argparse
-import os
-import socket
-
 from core.infrastructure.logging.logger import get_logger
+from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
@@ -12,30 +9,20 @@ load_dotenv()
 
 
 def run():
-    parser = argparse.ArgumentParser(description="Job Language Detection Agent")
-    parser.add_argument(
-        "--name",
-        type=str,
-        default=f"{os.environ.get('AGENT_NAME', 'lang-detect-worker')}-{socket.gethostname()}",
-        help="Custom agent identifier for locking",
-    )
-    args = parser.parse_args()
+    agent_name = get_agent_name("lang-detection-worker")
+    logger = get_logger(agent_name)
 
-    logger = get_logger(args.name)
-
-    logger.info(f"Starting Language Detection Agent (name: {args.name})")
+    logger.info(f"Starting Language Detection Agent (name: {agent_name})")
 
     detector = LanguageDetector()
     api = make_api_client(timeout=60.0)
-
-    from core.utils.agent import run_agent_loop
 
     def cycle() -> bool:
         nonlocal detector, api, logger
         # 1. Try to claim candidate profile task
         profile_data = None
         try:
-            profile_resp = api.post("/profiles/claim-detect", json={"agent_name": args.name})
+            profile_resp = api.post("/profiles/claim-detect", json={"agent_name": agent_name})
             profile_resp.raise_for_status()
             profile_data = profile_resp.json().get("profile")
         except Exception as e:
@@ -65,7 +52,7 @@ def run():
         # 2. Fallback to claiming job task
         logger.info("Polling for pending detection jobs...")
         try:
-            resp = api.post("/jobs/claim-detect", json={"agent_name": args.name})
+            resp = api.post("/jobs/claim-detect", json={"agent_name": agent_name})
             resp.raise_for_status()
         except Exception as e:
             logger.error(f"Error polling API: {e}")

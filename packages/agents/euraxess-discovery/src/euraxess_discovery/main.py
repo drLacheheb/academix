@@ -2,14 +2,13 @@ import os
 
 from core.infrastructure.http.http_client import HttpClient
 from core.infrastructure.logging.logger import get_logger
+from core.utils.agent import get_agent_name
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
 from euraxess_discovery.scraper import EuraxessDiscovery
 
 load_dotenv()
-
-logger = get_logger("euraxess-discovery")
 
 
 def get_config() -> dict:
@@ -24,13 +23,15 @@ def get_config() -> dict:
 
 
 def run():
+    agent_name = get_agent_name("euraxess-discovery-worker")
+    logger = get_logger(agent_name)
     config = get_config()
     api = make_api_client(timeout=30.0)
 
     http = HttpClient()
     scraper = EuraxessDiscovery(http, max_pages=config["max_pages"])
 
-    logger.info("Starting EURAXESS crawler discovery agent")
+    logger.info(f"Starting EURAXESS crawler discovery agent (name: {agent_name})")
 
     def cycle():
         logger.info("Fetching recent known URLs and checkpoint to optimize pagination...")

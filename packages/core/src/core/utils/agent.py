@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import socket
 import threading
 from collections.abc import Callable
 
@@ -8,6 +9,10 @@ logger = logging.getLogger("core.agent")
 
 # Global event for coordinating process termination
 shutdown_event = threading.Event()
+
+
+def get_agent_name(name: str) -> str:
+    return f"{name}-{socket.gethostname()}"
 
 
 def handle_shutdown(signum, frame):

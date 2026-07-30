@@ -2,6 +2,7 @@ import os
 
 from core.infrastructure.http.http_client import HttpClient
 from core.infrastructure.logging.logger import get_logger
+from core.utils.agent import get_agent_name
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
@@ -9,16 +10,16 @@ from euraxess_sourcing.scraper import EuraxessSourcing
 
 load_dotenv()
 
-logger = get_logger("euraxess-sourcing")
-
 
 def run():
+    agent_name = get_agent_name("euraxess-sourcing-worker")
+    logger = get_logger(agent_name)
     api = make_api_client(timeout=30.0)
 
     http = HttpClient()
     scraper = EuraxessSourcing(http)
 
-    logger.info("Starting EURAXESS crawler sourcing agent")
+    logger.info(f"Starting EURAXESS crawler sourcing agent (name: {agent_name})")
 
     def cycle() -> bool:
         logger.info("Checking for jobs needing detail scraping...")

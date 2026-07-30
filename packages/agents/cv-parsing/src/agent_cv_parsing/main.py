@@ -1,20 +1,17 @@
 import gc
 import os
-import socket
 
 from core.infrastructure.logging.logger import get_logger
 from core.infrastructure.services.pdf_parser import parse_pdf_to_markdown
 from core.infrastructure.services.storage import get_storage_service_from_env
-from core.utils.agent import run_agent_loop
+from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Setup logging
-logger = get_logger("cv-parsing-worker")
-
-AGENT_NAME = f"{os.environ.get('AGENT_NAME', 'cv-parsing-worker')}-{socket.gethostname()}"
+AGENT_NAME = get_agent_name("cv-parsing-worker")
+logger = get_logger(AGENT_NAME)
 
 
 def process_ingestion_task(client) -> bool:

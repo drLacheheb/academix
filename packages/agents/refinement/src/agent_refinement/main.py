@@ -1,10 +1,8 @@
-import argparse
 import os
-import socket
-import sys
 
 from core.infrastructure.logging.logger import get_logger
 from core.infrastructure.services.embedding_service import EmbeddingService
+from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
@@ -32,26 +30,18 @@ def get_config() -> dict:
 
 
 def run():
-    parser = argparse.ArgumentParser(description="Job Refinement Agent")
-    parser.add_argument(
-        "--name",
-        type=str,
-        default=f"{os.environ.get('AGENT_NAME', 'refinement-worker')}-{socket.gethostname()}",
-        help="Custom agent identifier for locking",
-    )
-    args = parser.parse_args()
-
-    logger = get_logger(args.name)
+    agent_name = get_agent_name("refinement-worker")
+    logger = get_logger(agent_name)
     config = get_config()
     embedding_service = EmbeddingService()
 
-    logger.info(f"Starting Job Refinement Agent (name: {args.name})")
+    logger.info(f"Starting Job Refinement Agent (name: {agent_name})")
 
+    from core.infrastructure.services.http_runner import HttpLlmRunner
+
+    runner = HttpLlmRunner()
     refiner = LlmRefiner(
-        model_path=config["model_path"],
-        models_dir=config["models_dir"],
-        max_length=config["max_length"],
-        temperature=config["temperature"],
+        runner=runner,
         max_text_chars=config["max_text_chars"],
     )
 
@@ -59,24 +49,15 @@ def run():
 
     api = make_api_client(timeout=60.0)
 
-    from core.utils.agent import run_agent_loop
-
     def load_refiner_if_needed():
-        nonlocal refiner
-        if not refiner.is_loaded:
-            logger.info("First task claimed. Loading GGUF model into memory...")
-            try:
-                refiner.load_model()
-            except Exception as e:
-                logger.error(f"Failed to load GGUF model: {e}")
-                sys.exit(1)
+        pass
 
     def cycle() -> bool:
-        nonlocal refiner, api, args, logger
+        nonlocal refiner, api, logger
         # 1. Try to claim candidate profile refinement task
         profile_data = None
         try:
-            profile_resp = api.post("/profiles/claim-refine", json={"agent_name": args.name})
+            profile_resp = api.post("/profiles/claim-refine", json={"agent_name": agent_name})
             profile_resp.raise_for_status()
             profile_data = profile_resp.json().get("profile")
         except Exception as e:
@@ -125,7 +106,7 @@ def run():
         # 2. Fallback to claiming job task
         logger.info("Polling for pending refinement jobs...")
         try:
-            resp = api.post("/jobs/claim-refine", json={"agent_name": args.name})
+            resp = api.post("/jobs/claim-refine", json={"agent_name": agent_name})
             resp.raise_for_status()
         except Exception as e:
             logger.error(f"Error polling API: {e}")

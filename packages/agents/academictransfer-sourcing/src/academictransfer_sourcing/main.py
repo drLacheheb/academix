@@ -2,6 +2,7 @@ import os
 
 from core.infrastructure.http.http_client import HttpClient
 from core.infrastructure.logging.logger import get_logger
+from core.utils.agent import get_agent_name
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
@@ -9,16 +10,16 @@ from academictransfer_sourcing.scraper import AcademicTransferSourcing
 
 load_dotenv()
 
-logger = get_logger("academictransfer-sourcing")
-
 
 def run():
+    agent_name = get_agent_name("academictransfer-sourcing-worker")
+    logger = get_logger(agent_name)
     api = make_api_client(timeout=30.0)
 
     http = HttpClient()
     scraper = AcademicTransferSourcing(http)
 
-    logger.info("Starting AcademicTransfer crawler sourcing agent")
+    logger.info(f"Starting AcademicTransfer crawler sourcing agent (name: {agent_name})")
 
     def cycle() -> bool:
         logger.info("Checking for jobs needing detail scraping...")

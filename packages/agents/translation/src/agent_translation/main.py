@@ -1,9 +1,8 @@
-import argparse
 import os
-import socket
 import sys
 
 from core.infrastructure.logging.logger import get_logger
+from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
@@ -25,24 +24,14 @@ def get_config() -> dict:
 
 
 def run():
-    parser = argparse.ArgumentParser(description="Job Translation Agent")
-    parser.add_argument(
-        "--name",
-        type=str,
-        default=f"{os.environ.get('AGENT_NAME', 'translation-worker')}-{socket.gethostname()}",
-        help="Custom agent identifier for locking",
-    )
-    args = parser.parse_args()
-
-    logger = get_logger(args.name)
+    agent_name = get_agent_name("translation-worker")
+    logger = get_logger(agent_name)
     config = get_config()
 
-    logger.info(f"Starting Job Translation Agent (name: {args.name})")
+    logger.info(f"Starting Job Translation Agent (name: {agent_name})")
 
     translator = None
     api = make_api_client(timeout=60.0)
-
-    from core.utils.agent import run_agent_loop
 
     def load_translator_if_needed():
         nonlocal translator
@@ -88,7 +77,7 @@ def run():
         # 1. Try to claim candidate profile translation task
         profile_data = None
         try:
-            profile_resp = api.post("/profiles/claim-translate", json={"agent_name": args.name})
+            profile_resp = api.post("/profiles/claim-translate", json={"agent_name": agent_name})
             profile_resp.raise_for_status()
             profile_data = profile_resp.json().get("profile")
         except Exception as e:
@@ -125,7 +114,7 @@ def run():
         # 2. Fallback to claiming job task
         logger.info("Polling for pending translation jobs...")
         try:
-            resp = api.post("/jobs/claim-translate", json={"agent_name": args.name})
+            resp = api.post("/jobs/claim-translate", json={"agent_name": agent_name})
             resp.raise_for_status()
         except Exception as e:
             logger.error(f"Error polling API: {e}")
