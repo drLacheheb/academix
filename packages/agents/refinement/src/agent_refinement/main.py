@@ -1,12 +1,13 @@
 import argparse
 import os
-import sys
 import socket
-from dotenv import load_dotenv
+import sys
 
 from core.infrastructure.logging.logger import get_logger
 from core.infrastructure.services.embedding_service import EmbeddingService
 from core.utils.api import make_api_client
+from dotenv import load_dotenv
+
 from agent_refinement.llm_refiner import LlmRefiner
 
 load_dotenv()
@@ -73,19 +74,18 @@ def run():
     def cycle() -> bool:
         nonlocal refiner, api, args, logger
         # 1. Try to claim candidate profile refinement task
+        profile_data = None
         try:
-            profile_resp = api.post(
-                "/profiles/claim-refine", json={"agent_name": args.name}
-            )
+            profile_resp = api.post("/profiles/claim-refine", json={"agent_name": args.name})
             profile_resp.raise_for_status()
             profile_data = profile_resp.json().get("profile")
-            if profile_data:
-                profile_id = profile_data["id"]
-                raw_text = (
-                    profile_data.get("raw_text_en")
-                    or profile_data.get("raw_text")
-                    or ""
-                )
+        except Exception as e:
+            logger.error(f"Error polling profile refinement task from API: {e}")
+
+        if profile_data:
+            profile_id = profile_data["id"]
+            try:
+                raw_text = profile_data.get("raw_text_en") or profile_data.get("raw_text") or ""
                 logger.info(
                     f"Successfully claimed candidate profile for refinement: ID {profile_id}"
                 )
@@ -103,9 +103,7 @@ def run():
                     extracted["email"] = profile_data.get("email")
 
                 profile = CandidateProfile.from_dict(extracted)
-                profile.skill_embedding = embedding_service.encode_skills(
-                    profile.skills or []
-                )
+                profile.skill_embedding = embedding_service.encode_skills(profile.skills or [])
                 profile.research_embedding = embedding_service.encode_research(
                     profile.research_interests or []
                 )
@@ -120,9 +118,9 @@ def run():
                 )
                 submit_resp.raise_for_status()
                 logger.info("Successfully uploaded profile refinement results")
-                return True
-        except Exception as e:
-            logger.error(f"Error during profile refinement task processing: {e}")
+            except Exception as e:
+                logger.error(f"Error during profile refinement processing for ID {profile_id}: {e}")
+            return True
 
         # 2. Fallback to claiming job task
         logger.info("Polling for pending refinement jobs...")
@@ -146,9 +144,7 @@ def run():
         job_url = job_data.get("url")
         job_location = job_data.get("location")
         job_description = job_data.get("description_en") or job_data.get("description")
-        job_requirements = job_data.get("requirements_en") or job_data.get(
-            "requirements"
-        )
+        job_requirements = job_data.get("requirements_en") or job_data.get("requirements")
 
         logger.info(f"Successfully claimed job: {job_title} ({job_url})")
 
@@ -167,9 +163,7 @@ def run():
             logger.info(f"  -> Skills: {result.required_skills}")
             logger.info(f"  -> Education: {result.education_level}")
 
-            result.skill_embedding = embedding_service.encode_skills(
-                result.required_skills or []
-            )
+            result.skill_embedding = embedding_service.encode_skills(result.required_skills or [])
             result.research_embedding = embedding_service.encode_research(
                 result.required_skills or [],
                 title=job_title,

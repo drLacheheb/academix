@@ -1,8 +1,8 @@
+import logging
 import os
 import signal
-import logging
 import threading
-from typing import Callable
+from collections.abc import Callable
 
 logger = logging.getLogger("core.agent")
 
@@ -36,6 +36,10 @@ def run_agent_loop(cycle_fn: Callable[[], bool | None], default_interval: float 
             result = cycle_fn()
             if result is True:
                 work_done = True
+        except (KeyboardInterrupt, SystemExit):
+            logger.info("Termination signal caught in agent loop. Shutting down...")
+            shutdown_event.set()
+            break
         except Exception as e:
             logger.error(f"Error during agent cycle execution: {e}")
 

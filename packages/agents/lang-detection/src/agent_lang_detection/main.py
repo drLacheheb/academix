@@ -1,10 +1,11 @@
 import argparse
 import os
 import socket
-from dotenv import load_dotenv
 
 from core.infrastructure.logging.logger import get_logger
 from core.utils.api import make_api_client
+from dotenv import load_dotenv
+
 from agent_lang_detection.detector import LanguageDetector
 
 load_dotenv()
@@ -32,24 +33,34 @@ def run():
     def cycle() -> bool:
         nonlocal detector, api, logger
         # 1. Try to claim candidate profile task
+        profile_data = None
         try:
             profile_resp = api.post("/profiles/claim-detect", json={"agent_name": args.name})
             profile_resp.raise_for_status()
             profile_data = profile_resp.json().get("profile")
-            if profile_data:
-                profile_id = profile_data["id"]
+        except Exception as e:
+            logger.error(f"Error polling profile detection task from API: {e}")
+
+        if profile_data:
+            profile_id = profile_data["id"]
+            try:
                 raw_text = profile_data.get("raw_text") or ""
-                logger.info(f"Successfully claimed candidate profile for detection: ID {profile_id}")
-                
+                logger.info(
+                    f"Successfully claimed candidate profile for detection: ID {profile_id}"
+                )
+
                 lang = detector.detect_lang(raw_text)
                 logger.info(f"Detected language for profile ID {profile_id}: {lang}")
-                
-                submit_resp = api.put("/profiles/detect", json={"profile_id": profile_id, "language_code": lang})
+
+                submit_resp = api.put(
+                    "/profiles/detect",
+                    json={"profile_id": profile_id, "language_code": lang},
+                )
                 submit_resp.raise_for_status()
                 logger.info(f"Successfully uploaded detection result for profile ID {profile_id}")
-                return True
-        except Exception as e:
-            logger.error(f"Error during profile detection task processing: {e}")
+            except Exception as e:
+                logger.error(f"Error during profile detection processing for ID {profile_id}: {e}")
+            return True
 
         # 2. Fallback to claiming job task
         logger.info("Polling for pending detection jobs...")
@@ -81,9 +92,7 @@ def run():
             lang = detector.detect_lang(text_for_detection)
             logger.info(f"Detected language for '{job_title}': {lang}")
 
-            submit_resp = api.put(
-                "/jobs/detect", json={"url": job_url, "language_code": lang}
-            )
+            submit_resp = api.put("/jobs/detect", json={"url": job_url, "language_code": lang})
             submit_resp.raise_for_status()
             logger.info("Successfully uploaded detection result")
 

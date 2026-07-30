@@ -1,11 +1,12 @@
 import argparse
 import os
-import sys
 import socket
-from dotenv import load_dotenv
+import sys
 
 from core.infrastructure.logging.logger import get_logger
 from core.utils.api import make_api_client
+from dotenv import load_dotenv
+
 from agent_translation.translator import NllbTranslator
 
 load_dotenv()
@@ -53,19 +54,16 @@ def run():
 
         if "/" in model_path:
             repo_id = model_path
-            resolved_model_dir = os.path.abspath(
-                os.path.join(models_dir, model_path)
-            )
+            resolved_model_dir = os.path.abspath(os.path.join(models_dir, model_path))
         else:
-            resolved_model_dir = os.path.abspath(
-                os.path.join(models_dir, model_path)
-            )
+            resolved_model_dir = os.path.abspath(os.path.join(models_dir, model_path))
 
         if not os.path.exists(resolved_model_dir) or not os.path.exists(
             os.path.join(resolved_model_dir, "model.bin")
         ):
             logger.info(
-                f"NLLB model directory '{resolved_model_dir}' not found or incomplete. Downloading model from HF repo {repo_id}..."
+                f"NLLB model directory '{resolved_model_dir}' not found or incomplete. "
+                f"Downloading model from HF repo {repo_id}..."
             )
             try:
                 os.makedirs(os.path.dirname(resolved_model_dir), exist_ok=True)
@@ -75,43 +73,54 @@ def run():
                     repo_id=repo_id,
                     local_dir=resolved_model_dir,
                     allow_patterns=["*.json", "*.bin", "*.model"],
-                    local_dir_use_symlinks=False,
                 )
                 logger.info("Download complete!")
             except Exception as e:
                 logger.error(f"Failed to automatically download NLLB model: {e}")
                 sys.exit(1)
 
-        logger.info(
-            f"Loading NLLB-200 model from '{resolved_model_dir}'..."
-        )
+        logger.info(f"Loading NLLB-200 model from '{resolved_model_dir}'...")
         translator = NllbTranslator(resolved_model_dir)
         logger.info("NLLB model loaded successfully!")
 
     def cycle() -> bool:
         nonlocal translator, api, config, logger
         # 1. Try to claim candidate profile translation task
+        profile_data = None
         try:
             profile_resp = api.post("/profiles/claim-translate", json={"agent_name": args.name})
             profile_resp.raise_for_status()
             profile_data = profile_resp.json().get("profile")
-            if profile_data:
-                profile_id = profile_data["id"]
+        except Exception as e:
+            logger.error(f"Error polling profile translation task from API: {e}")
+
+        if profile_data:
+            profile_id = profile_data["id"]
+            try:
                 raw_text = profile_data.get("raw_text") or ""
                 source_lang = profile_data.get("language_code")
-                logger.info(f"Successfully claimed candidate profile for translation: ID {profile_id} [lang: {source_lang}]")
+                logger.info(
+                    f"Successfully claimed candidate profile for translation: "
+                    f"ID {profile_id} [lang: {source_lang}]"
+                )
 
                 load_translator_if_needed()
+                assert translator is not None
 
                 logger.info("Translating candidate CV text...")
                 translated = translator.translate(raw_text, source_lang)
 
-                submit_resp = api.put("/profiles/translate", json={"profile_id": profile_id, "raw_text_en": translated})
+                submit_resp = api.put(
+                    "/profiles/translate",
+                    json={"profile_id": profile_id, "raw_text_en": translated},
+                )
                 submit_resp.raise_for_status()
                 logger.info(f"Successfully uploaded translation result for profile ID {profile_id}")
-                return True
-        except Exception as e:
-            logger.error(f"Error during profile translation task processing: {e}")
+            except Exception as e:
+                logger.error(
+                    f"Error during profile translation processing for ID {profile_id}: {e}"
+                )
+            return True
 
         # 2. Fallback to claiming job task
         logger.info("Polling for pending translation jobs...")
@@ -135,11 +144,10 @@ def run():
         job_requirements = job_data.get("requirements")
         source_lang = job_data.get("language_code")
 
-        logger.info(
-            f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]"
-        )
+        logger.info(f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]")
 
         load_translator_if_needed()
+        assert translator is not None
 
         try:
             logger.info(f"Translating description and requirements for: {job_title}...")

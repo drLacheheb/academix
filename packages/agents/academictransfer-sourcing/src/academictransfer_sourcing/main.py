@@ -1,9 +1,10 @@
 import os
-from dotenv import load_dotenv
 
 from core.infrastructure.http.http_client import HttpClient
 from core.infrastructure.logging.logger import get_logger
 from core.utils.api import make_api_client
+from dotenv import load_dotenv
+
 from academictransfer_sourcing.scraper import AcademicTransferSourcing
 
 load_dotenv()
@@ -36,14 +37,21 @@ def run():
             job_url = job_data.get("url")
             logger.info(f"[{idx}/{len(pending_jobs)}] Fetching: {job_title}")
 
-            detail_update = scraper.source_detail(job_url)
+            try:
+                detail_update = scraper.source_detail(job_url)
 
-            if not detail_update.description:
-                detail_update.description = f"[EXPIRED] This job posting is no longer available. (Title: {job_title})"
-                if not detail_update.requirements:
-                    detail_update.requirements = "None"
+                if not detail_update.description:
+                    detail_update.description = (
+                        f"[EXPIRED] This job posting is no longer available. (Title: {job_title})"
+                    )
+                    if not detail_update.requirements:
+                        detail_update.requirements = "None"
 
-            updates.append(detail_update.model_dump())
+                updates.append(detail_update.model_dump())
+            except Exception as scrape_err:
+                logger.error(
+                    f"Failed scraping details for job '{job_title}' ({job_url}): {scrape_err}"
+                )
 
         if updates:
             logger.info(f"Uploading {len(updates)} updates to API...")
@@ -57,6 +65,7 @@ def run():
             cycle()
         else:
             from core.utils.agent import run_agent_loop
+
             crawl_interval = float(os.environ.get("CRAWL_INTERVAL", "15.0"))
             run_agent_loop(cycle, default_interval=crawl_interval)
     except Exception as e:

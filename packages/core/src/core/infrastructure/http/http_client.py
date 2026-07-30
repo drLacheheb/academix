@@ -1,6 +1,8 @@
 import logging
 import time
-from curl_cffi import requests as cffi_requests
+
+from curl_cffi.requests import BrowserTypeLiteral, Session
+
 from core.domain.interfaces.http import BaseHttpClient
 
 
@@ -11,23 +13,24 @@ class HttpClient(BaseHttpClient):
         max_retries: int = 3,
         timeout: int = 15,
         user_agent: str = "Mozilla/5.0",
-        impersonate: str = "chrome",
+        impersonate: BrowserTypeLiteral = "chrome",
         logger: logging.Logger | None = None,
     ):
         self._base_delay = base_delay
         self._max_retries = max_retries
         self._timeout = timeout
         self._user_agent = user_agent
-        self._impersonate = impersonate
+        self._impersonate: BrowserTypeLiteral = impersonate
         self.logger = logger or logging.getLogger("core.http")
 
-        self._session = cffi_requests.Session()
+        self._session = Session()
         self._session.headers.update({"User-Agent": self._user_agent})
 
     def fetch(self, url: str) -> bytes | None:
         for attempt in range(self._max_retries):
-            current_delay = self._base_delay * (3**attempt)
-            time.sleep(current_delay)
+            if attempt > 0:
+                current_delay = self._base_delay * (3**attempt)
+                time.sleep(current_delay)
 
             try:
                 response = self._session.get(
@@ -45,9 +48,7 @@ class HttpClient(BaseHttpClient):
                         if retry_after and retry_after.isdigit()
                         else (20 * (attempt + 1))
                     )
-                    self.logger.warning(
-                        f"[Rate Limit 429] {url} — waiting {wait}s before retry..."
-                    )
+                    self.logger.warning(f"[Rate Limit 429] {url} — waiting {wait}s before retry...")
                     time.sleep(wait)
                     continue
                 else:
