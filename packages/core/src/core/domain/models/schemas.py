@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 
-from core.domain.constants import EducationLevel, LanguageProficiencyLevel
+from core.domain.constants import (
+    EducationLevel,
+    LanguageProficiencyLevel,
+    MatchCategory,
+)
 
 
 class JobStubCreate(BaseModel):
@@ -86,6 +90,18 @@ class CandidateCvExtraction(BaseModel):
     research_interests: list[str] = Field(
         default_factory=list,
         description="Core scientific research topics or specialized subfields.",
+    )
+
+
+class MatchReason(BaseModel):
+    category: MatchCategory = Field(description="Category of match")
+    description: str = Field(description="Detailed description of the specific matching point.")
+
+
+class MatchExplanationExtraction(BaseModel):
+    reasons: list[MatchReason] = Field(
+        default_factory=list,
+        description="Structured breakdown of key matching reasons.",
     )
 
 

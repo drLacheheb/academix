@@ -1,13 +1,11 @@
-import argparse
 import os
-import socket
 
 from core.domain.interfaces.services import BaseLlmRunner
 from core.domain.models.job import Job
 from core.domain.models.profile import CandidateProfile
 from core.infrastructure.logging.logger import get_logger
-from core.infrastructure.services.llm_runner import LocalLlmRunner
 from core.usecases.match_scorer import MatchScorer
+from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
@@ -53,65 +51,64 @@ class LlmExplainer:
         self._runner.free_model()
 
     def generate_explanation(self, candidate: CandidateProfile, job: Job) -> str:
-        prompt = self._system_prompt.format(
-            candidate_name=candidate.name,
-            highest_degree=candidate.highest_degree or "None",
-            candidate_skills=", ".join(candidate.skills or []),
-            research_interests=", ".join(candidate.research_interests or []),
-            job_title=job.title,
-            job_skills=", ".join(job.required_skills or []),
-            job_education=job.education_level or "None",
+        from core.domain.models.schemas import MatchExplanationExtraction
+
+        user_content = (
+            f"### Candidate Profile\n"
+            f"- Name: {candidate.name}\n"
+            f"- Highest Degree: {candidate.highest_degree or 'None'}\n"
+            f"- Skills: {', '.join(candidate.skills or [])}\n"
+            f"- Research Interests: {', '.join(candidate.research_interests or [])}\n\n"
+            f"### Job Details\n"
+            f"- Title: {job.title}\n"
+            f"- Required Skills: {', '.join(job.required_skills or [])}\n"
+            f"- Education Requirement: {job.education_level or 'None'}\n\n"
         )
 
+        schema = MatchExplanationExtraction.model_json_schema()
         raw_output = self._runner.create_chat_completion(
             messages=[
-                {"role": "system", "content": prompt},
-                {
-                    "role": "user",
-                    "content": (
-                        f"Write explanation paragraph matching {candidate.name} with '{job.title}'."
-                    ),
-                },
+                {"role": "system", "content": self._system_prompt},
+                {"role": "user", "content": user_content},
             ],
             max_tokens=256,
+            response_format={"type": "json_object", "schema": schema},
         )
-        return raw_output
+
+        if raw_output:
+            try:
+                import json
+
+                parsed = json.loads(raw_output)
+                validated = MatchExplanationExtraction.model_validate(parsed)
+                if validated.reasons:
+                    return " ".join(r.description for r in validated.reasons)
+            except Exception:
+                return raw_output.strip()
+        return ""
 
 
 def run():
-    parser = argparse.ArgumentParser(description="Job Matching Agent")
-    parser.add_argument(
-        "--name",
-        type=str,
-        default=f"{os.environ.get('AGENT_NAME', 'matching-worker')}-{socket.gethostname()}",
-        help="Custom agent identifier for locking",
-    )
-    args = parser.parse_args()
-
-    logger = get_logger(args.name)
+    agent_name = get_agent_name("matching-worker")
+    logger = get_logger(agent_name)
     config = get_config()
 
-    logger.info(f"Starting Job Matching Agent (name: {args.name})")
+    logger.info(f"Starting Job Matching Agent (name: {agent_name})")
 
-    runner = LocalLlmRunner(
-        model_path=config["model_path"],
-        models_dir=config["models_dir"],
-        max_context=config["max_length"],
-        temperature=config["temperature"],
-    )
+    from core.infrastructure.services.http_runner import HttpLlmRunner
+
+    runner = HttpLlmRunner()
     explainer = LlmExplainer(runner=runner)
 
     api = make_api_client(timeout=60.0)
 
-    from core.utils.agent import run_agent_loop
-
     def cycle() -> bool:
-        nonlocal explainer, api, args, logger
+        nonlocal explainer, api, logger
         logger.info("Polling for pending matching tasks...")
         task_processed = False
 
         try:
-            resp = api.post("/matches/claim", json={"agent_name": args.name})
+            resp = api.post("/matches/claim", json={"agent_name": agent_name})
             resp.raise_for_status()
         except Exception as e:
             logger.error(f"Error polling matching tasks: {e}")
@@ -209,7 +206,7 @@ def run():
         # Polling for explanations
         logger.info("Polling for pending match explanations...")
         try:
-            explain_resp = api.post("/matches/claim-explain", json={"agent_name": args.name})
+            explain_resp = api.post("/matches/claim-explain", json={"agent_name": agent_name})
             explain_resp.raise_for_status()
         except Exception as e:
             logger.error(f"Error polling match explanations: {e}")

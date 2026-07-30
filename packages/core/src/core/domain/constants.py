@@ -23,3 +23,11 @@ class LanguageProficiencyLevel(StrEnum):
     FLUENT = "Fluent"
     INTERMEDIATE = "Intermediate"
     BASIC = "Basic"
+
+
+class MatchCategory(StrEnum):
+    SKILL = "Skill"
+    DEGREE = "Degree"
+    DOMAIN = "Domain"
+    LANGUAGE = "Language"
+    LOCATION = "Location"
