@@ -19,6 +19,7 @@ members = [
     "euraxess-discovery",
     "euraxess-sourcing",
     "lang-detection",
+    "llm-runner",
     "matching",
     "refinement",
     "translation",
@@ -1062,6 +1063,31 @@ wheels = [
 ]
 
 [[package]]
+name = "llm-runner"
+version = "0.1.0"
+source = { editable = "packages/agents/llm-runner" }
+dependencies = [
+    { name = "core" },
+    { name = "fastapi" },
+    { name = "huggingface-hub" },
+    { name = "llama-cpp-python" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "core", editable = "packages/core" },
+    { name = "fastapi", specifier = ">=0.110.0" },
+    { name = "huggingface-hub", specifier = ">=0.23.0" },
+    { name = "llama-cpp-python", specifier = ">=0.2.70", index = "https://abetlen.github.io/llama-cpp-python/whl/cpu" },
+    { name = "pydantic", specifier = ">=2.6.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "uvicorn", specifier = ">=0.28.0" },
+]
+
+[[package]]
 name = "lxml"
 version = "6.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1155,7 +1181,6 @@ source = { editable = "packages/agents/matching" }
 dependencies = [
     { name = "core", extra = ["embeddings"] },
     { name = "httpx" },
-    { name = "llama-cpp-python" },
     { name = "python-dotenv" },
 ]
 
@@ -1163,7 +1188,6 @@ dependencies = [
 requires-dist = [
     { name = "core", extras = ["embeddings"], editable = "packages/core" },
     { name = "httpx", specifier = ">=0.28.0" },
-    { name = "llama-cpp-python", specifier = ">=0.3.0", index = "https://abetlen.github.io/llama-cpp-python/whl/cpu" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
 ]
 
@@ -1689,7 +1713,6 @@ source = { editable = "packages/agents/refinement" }
 dependencies = [
     { name = "core", extra = ["embeddings"] },
     { name = "httpx" },
-    { name = "llama-cpp-python" },
     { name = "python-dotenv" },
 ]
 
@@ -1697,7 +1720,6 @@ dependencies = [
 requires-dist = [
     { name = "core", extras = ["embeddings"], editable = "packages/core" },
     { name = "httpx", specifier = ">=0.28.0" },
-    { name = "llama-cpp-python", specifier = ">=0.3.0", index = "https://abetlen.github.io/llama-cpp-python/whl/cpu" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
 ]
 

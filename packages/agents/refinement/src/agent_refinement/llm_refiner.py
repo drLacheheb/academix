@@ -3,6 +3,7 @@ import logging
 import os
 
 from core.domain.interfaces.refiners import BaseRefiner
+from core.domain.interfaces.services import BaseLlmRunner
 from core.domain.models.schemas import (
     CandidateCvExtraction,
     JobRefinementExtraction,
@@ -13,33 +14,13 @@ from core.domain.models.schemas import (
 class LlmRefiner(BaseRefiner):
     def __init__(
         self,
-        model_path: str,
-        models_dir: str = "models",
-        max_length: int = 4096,
-        temperature: float = 0.0,
+        runner: BaseLlmRunner,
         max_text_chars: int = 3000,
         logger: logging.Logger | None = None,
     ):
-        self._model_path = model_path
-        self._models_dir = models_dir
-        self._max_length = max_length
-        self._temperature = temperature
+        self._runner = runner
         self._max_text_chars = max_text_chars
-        self._model = None
         self.logger = logger or logging.getLogger("agent.refinement.refiner")
-
-        # Resolve Hugging Face path format or local file path
-        # Example format: repo_id/filename.gguf
-        self._repo_id = None
-        self._filename = None
-        self._resolved_model_path = model_path
-
-        if "/" in model_path and model_path.endswith(".gguf"):
-            parts = model_path.split("/")
-            if len(parts) >= 3:
-                self._repo_id = "/".join(parts[:-1])
-                self._filename = parts[-1]
-                self._resolved_model_path = os.path.abspath(os.path.join(models_dir, model_path))
 
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "refinement_prompt.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
@@ -53,48 +34,13 @@ class LlmRefiner(BaseRefiner):
 
     @property
     def is_loaded(self) -> bool:
-        return self._model is not None
+        return self._runner.is_loaded
 
     def load_model(self) -> None:
-        from llama_cpp import Llama
-
-        # Check if resolved path exists, download if not and repo info is available
-        if not os.path.exists(self._resolved_model_path):
-            if self._repo_id and self._filename:
-                self.logger.info(
-                    f"Model file not found locally. Downloading {self._filename} "
-                    f"from HF repo {self._repo_id}..."
-                )
-                target_dir = os.path.dirname(self._resolved_model_path)
-                os.makedirs(target_dir, exist_ok=True)
-                from huggingface_hub import hf_hub_download
-
-                hf_hub_download(
-                    repo_id=self._repo_id,
-                    filename=self._filename,
-                    local_dir=target_dir,
-                )
-            else:
-                raise FileNotFoundError(f"Model path does not exist: {self._resolved_model_path}")
-
-        self.logger.info(f"Loading GGUF model from {self._resolved_model_path}...")
-        self._model = Llama(
-            model_path=self._resolved_model_path,
-            n_ctx=self._max_length,
-            n_threads=os.cpu_count(),
-            verbose=False,
-        )
-        self.logger.info("Model loaded successfully!")
+        self._runner.load_model()
 
     def free_model(self) -> None:
-        if self._model is not None:
-            self.logger.info("Freeing model from memory...")
-            del self._model
-            self._model = None
-            import gc
-
-            gc.collect()
-            self.logger.info("Model freed successfully!")
+        self._runner.free_model()
 
     def refine(
         self,
@@ -104,24 +50,23 @@ class LlmRefiner(BaseRefiner):
         description: str | None,
         requirements: str | None,
     ) -> RefinementResult:
-        if self._model is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
-
-        if not description and not requirements:
-            return RefinementResult(
-                url=url,
-                required_skills=[],
-                education_level=None,
-                city=None,
-                country=None,
-            )
-
         extracted = self._run_inference(title, location, description, requirements)
 
         required_skills = extracted.get("required_skills", [])
+        if not isinstance(required_skills, list):
+            required_skills = []
+
         education_level = extracted.get("education_level")
+        if not isinstance(education_level, str):
+            education_level = None
+
         city = extracted.get("city")
+        if not isinstance(city, str):
+            city = None
+
         country = extracted.get("country")
+        if not isinstance(country, str):
+            country = None
 
         return RefinementResult(
             url=url,
@@ -132,16 +77,11 @@ class LlmRefiner(BaseRefiner):
         )
 
     def refine_cv(self, text: str) -> dict:
-        if self._model is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
-
-        # Truncate input text to max length of chars
         truncated_text = text[: self._max_text_chars]
 
-        assert self._model is not None
         try:
             cv_schema = CandidateCvExtraction.model_json_schema()
-            response = self._model.create_chat_completion(
+            response_text = self._runner.create_chat_completion(
                 messages=[
                     {"role": "system", "content": self._cv_system_prompt},
                     {
@@ -150,19 +90,12 @@ class LlmRefiner(BaseRefiner):
                     },
                 ],
                 max_tokens=2048,
-                temperature=self._temperature,
                 response_format={"type": "json_object", "schema": cv_schema},
             )
-            if isinstance(response, dict):
-                choices = response.get("choices", [])
-                if choices and isinstance(choices[0], dict):
-                    msg = choices[0].get("message", {})
-                    if isinstance(msg, dict):
-                        content = msg.get("content", "")
-                        if isinstance(content, str):
-                            parsed = self._parse_json_response(content.strip())
-                            validated = CandidateCvExtraction.model_validate(parsed)
-                            return validated.model_dump()
+            if response_text:
+                parsed = self._parse_json_response(response_text.strip())
+                validated = CandidateCvExtraction.model_validate(parsed)
+                return validated.model_dump()
             return {}
         except Exception as e:
             self.logger.warning(f"GGUF CV inference failed: {e}")
@@ -177,28 +110,20 @@ class LlmRefiner(BaseRefiner):
     ) -> dict:
         text = self._build_input_text(title, location, description, requirements)
 
-        assert self._model is not None
         try:
             job_schema = JobRefinementExtraction.model_json_schema()
-            response = self._model.create_chat_completion(
+            response_text = self._runner.create_chat_completion(
                 messages=[
                     {"role": "system", "content": self._system_prompt},
                     {"role": "user", "content": text},
                 ],
                 max_tokens=1024,
-                temperature=self._temperature,
                 response_format={"type": "json_object", "schema": job_schema},
             )
-            if isinstance(response, dict):
-                choices = response.get("choices", [])
-                if choices and isinstance(choices[0], dict):
-                    msg = choices[0].get("message", {})
-                    if isinstance(msg, dict):
-                        content = msg.get("content", "")
-                        if isinstance(content, str):
-                            parsed = self._parse_json_response(content.strip())
-                            validated = JobRefinementExtraction.model_validate(parsed)
-                            return validated.model_dump()
+            if response_text:
+                parsed = self._parse_json_response(response_text.strip())
+                validated = JobRefinementExtraction.model_validate(parsed)
+                return validated.model_dump()
             return {}
         except Exception as e:
             self.logger.warning(f"GGUF inference failed: {e}")

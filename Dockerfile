@@ -17,6 +17,7 @@ COPY packages/agents/refinement/pyproject.toml packages/agents/refinement/
 COPY packages/agents/translation/pyproject.toml packages/agents/translation/
 COPY packages/agents/cv-parsing/pyproject.toml packages/agents/cv-parsing/
 COPY packages/agents/matching/pyproject.toml packages/agents/matching/
+COPY packages/agents/llm-runner/pyproject.toml packages/agents/llm-runner/
 
 RUN echo 'find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
     find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + && \
@@ -81,6 +82,17 @@ FROM base AS matching
 COPY --from=builder-matching /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package matching
+
+FROM builder-base AS builder-llm-runner
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace --no-dev --package llm-runner && \
+    sh /app/prune.sh
+
+FROM base AS llm-runner
+COPY --from=builder-llm-runner /app/.venv /app/.venv
+COPY . .
+RUN uv sync --frozen --no-dev --package llm-runner
+CMD ["uv", "run", "--package", "llm-runner", "python", "-m", "agent_llm_runner.main"]
 
 FROM base AS cv-parsing
 RUN apt-get update && apt-get install -y --no-install-recommends \
