@@ -63,6 +63,7 @@ class LlmExplainer:
             f"- Title: {job.title}\n"
             f"- Required Skills: {', '.join(job.required_skills or [])}\n"
             f"- Education Requirement: {job.education_level or 'None'}\n\n"
+            f"Extract structured key matching reasons for {candidate.name} and this job."
         )
 
         schema = MatchExplanationExtraction.model_json_schema()
