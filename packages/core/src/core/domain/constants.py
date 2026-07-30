@@ -10,3 +10,16 @@ class JobStatus(StrEnum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+
+
+class EducationLevel(StrEnum):
+    BACHELOR = "Bachelor"
+    MASTER = "Master"
+    PHD = "PhD"
+
+
+class LanguageProficiencyLevel(StrEnum):
+    NATIVE = "Native"
+    FLUENT = "Fluent"
+    INTERMEDIATE = "Intermediate"
+    BASIC = "Basic"

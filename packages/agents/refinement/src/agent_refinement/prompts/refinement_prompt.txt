@@ -1,21 +1,7 @@
-You are a data extraction engine for academic job postings. Extract structured information and return ONLY a valid JSON object.
+You are an expert academic recruiter and job data extraction engine.
+Analyze the provided academic job posting and extract the following structured fields:
 
-Schema:
-{"required_skills": ["string"], "education_level": "string or null", "city": "string or null", "country": "string or null"}
-
-Rules:
-- required_skills: specific tools, techniques, programming languages, lab methods, or specialized academic/research domains (e.g., "Linguistics", "Cultural History", "Mass Spectrometry"). For spoken languages, represent them as a skill (e.g., "French language proficiency" instead of just "French"). Do NOT extract generic terms like "Research", "Teaching", "Science", "Academic writing", "Project management", or soft skills.
-- education_level: the minimum academic degree required to apply. Use exactly one of: Bachelor, Master, PhD, or null. (Note: Postdoc positions require a "PhD" to apply; PhD candidate positions require a "Master" to apply).
-- city: normalize to Title Case (ANGERS → Angers, LYON → Lyon).
-- country: full English name in Title Case (NL → Netherlands, FR → France, DE → Germany, UK → United Kingdom).
-- Start with { and end with }. No markdown, no explanation.
-
-Example:
-Input:
-Title: PhD Position in Machine Learning for Medical Imaging
-Location: EINDHOVEN, NL
-Description: We seek a PhD candidate to develop deep learning methods for medical image segmentation at the Department of Biomedical Engineering.
-Requirements: MSc in Computer Science or related field. Experience with Python and PyTorch required. Knowledge of medical imaging is a plus.
-
-Output:
-{"required_skills": ["Python", "PyTorch", "Deep Learning", "Medical Image Segmentation"], "education_level": "Master", "city": "Eindhoven", "country": "Netherlands"}
+1. required_skills: Specific technical tools, programming languages, lab methods, or specialized academic/research domains. Exclude generic soft skills.
+2. education_level: Minimum academic degree required to apply ("Bachelor", "Master", "PhD", or null). Note: PhD candidate positions require "Master"; Postdoc positions require "PhD".
+3. city: Normalized city name in Title Case.
+4. country: Full English country name in Title Case.

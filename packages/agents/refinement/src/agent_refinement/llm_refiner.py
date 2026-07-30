@@ -3,7 +3,11 @@ import logging
 import os
 
 from core.domain.interfaces.refiners import BaseRefiner
-from core.domain.models.schemas import RefinementResult
+from core.domain.models.schemas import (
+    CandidateCvExtraction,
+    JobRefinementExtraction,
+    RefinementResult,
+)
 
 
 class LlmRefiner(BaseRefiner):
@@ -136,6 +140,7 @@ class LlmRefiner(BaseRefiner):
 
         assert self._model is not None
         try:
+            cv_schema = CandidateCvExtraction.model_json_schema()
             response = self._model.create_chat_completion(
                 messages=[
                     {"role": "system", "content": self._cv_system_prompt},
@@ -146,6 +151,7 @@ class LlmRefiner(BaseRefiner):
                 ],
                 max_tokens=2048,
                 temperature=self._temperature,
+                response_format={"type": "json_object", "schema": cv_schema},
             )
             if isinstance(response, dict):
                 choices = response.get("choices", [])
@@ -154,7 +160,9 @@ class LlmRefiner(BaseRefiner):
                     if isinstance(msg, dict):
                         content = msg.get("content", "")
                         if isinstance(content, str):
-                            return self._parse_json_response(content.strip())
+                            parsed = self._parse_json_response(content.strip())
+                            validated = CandidateCvExtraction.model_validate(parsed)
+                            return validated.model_dump()
             return {}
         except Exception as e:
             self.logger.warning(f"GGUF CV inference failed: {e}")
@@ -171,6 +179,7 @@ class LlmRefiner(BaseRefiner):
 
         assert self._model is not None
         try:
+            job_schema = JobRefinementExtraction.model_json_schema()
             response = self._model.create_chat_completion(
                 messages=[
                     {"role": "system", "content": self._system_prompt},
@@ -178,6 +187,7 @@ class LlmRefiner(BaseRefiner):
                 ],
                 max_tokens=1024,
                 temperature=self._temperature,
+                response_format={"type": "json_object", "schema": job_schema},
             )
             if isinstance(response, dict):
                 choices = response.get("choices", [])
@@ -186,7 +196,9 @@ class LlmRefiner(BaseRefiner):
                     if isinstance(msg, dict):
                         content = msg.get("content", "")
                         if isinstance(content, str):
-                            return self._parse_json_response(content.strip())
+                            parsed = self._parse_json_response(content.strip())
+                            validated = JobRefinementExtraction.model_validate(parsed)
+                            return validated.model_dump()
             return {}
         except Exception as e:
             self.logger.warning(f"GGUF inference failed: {e}")
