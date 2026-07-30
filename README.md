@@ -376,3 +376,25 @@ classDiagram
     LlmExplainer ..> Job : Explains
     LlmExplainer ..> CandidateProfile : Explains
 ```
+
+---
+
+## 8. Code Quality & Contribution Guidelines
+
+Before submitting pull requests or committing code, ensure all linting, formatting, and type-checking verification steps pass cleanly:
+
+### A. Auto-Fix Lint Errors (Ruff)
+```bash
+uv run --with ruff ruff check . --fix
+```
+
+### B. Workspace Formatting (Ruff)
+```bash
+uv run --with ruff ruff format .
+```
+
+### C. Static Type Checking (Pyright)
+```bash
+uv run --with pyright --with docling --with pypdfium2 --with boto3 pyright .
+```
+
