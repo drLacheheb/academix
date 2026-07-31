@@ -17,11 +17,11 @@ def get_config() -> dict:
     )
     models_dir = os.environ.get("MODELS_DIR", "models")
     max_context_tokens = int(
-        os.environ.get("MAX_CONTEXT_TOKENS", os.environ.get("MAX_LENGTH", "32768"))
+        os.environ.get("MAX_CONTEXT_TOKENS", os.environ.get("MAX_LENGTH", "8192"))
     )
     temperature = float(os.environ.get("TEMPERATURE", "0.0"))
-    max_input_tokens = int(os.environ.get("MAX_INPUT_TOKENS", "15000"))
-    max_output_tokens = int(os.environ.get("MAX_OUTPUT_TOKENS", "10000"))
+    max_input_tokens = int(os.environ.get("MAX_INPUT_TOKENS", "6000"))
+    max_output_tokens = int(os.environ.get("MAX_OUTPUT_TOKENS", "2000"))
     return {
         "model_path": model_path,
         "models_dir": models_dir,

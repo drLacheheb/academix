@@ -16,8 +16,8 @@ class LlmRefiner(BaseRefiner):
     def __init__(
         self,
         runner: BaseLlmRunner,
-        max_input_tokens: int = 15000,
-        max_output_tokens: int = 10000,
+        max_input_tokens: int = 6000,
+        max_output_tokens: int = 2000,
         logger: logging.Logger | None = None,
     ):
         self._runner = runner
