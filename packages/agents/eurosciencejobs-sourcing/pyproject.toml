@@ -1,0 +1,21 @@
+[project]
+name = "eurosciencejobs-sourcing"
+version = "0.1.0"
+description = "Autonomous EuroScienceJobs details sourcing agent: claims stubs, parses page details, and uploads details"
+requires-python = ">=3.11"
+dependencies = [
+    "core",
+    "httpx>=0.28.0",
+    "python-dotenv>=1.2.2",
+    "beautifulsoup4>=4.12.0",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eurosciencejobs_sourcing"]
