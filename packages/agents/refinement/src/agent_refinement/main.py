@@ -74,10 +74,19 @@ def run():
                     f"Successfully claimed candidate profile for refinement: ID {profile_id}"
                 )
 
-                has_structured_fields = bool(
-                    profile_data.get("skills")
-                    or profile_data.get("highest_degree")
-                    or profile_data.get("research_interests")
+                def _is_valid_field(val) -> bool:
+                    if not val:
+                        return False
+                    if isinstance(val, str) and val.strip().lower() in ("none", "null", "[]", "{}"):
+                        return False
+                    if isinstance(val, list) and len(val) == 0:
+                        return False
+                    return True
+
+                has_structured_fields = (
+                    _is_valid_field(profile_data.get("skills"))
+                    or _is_valid_field(profile_data.get("highest_degree"))
+                    or _is_valid_field(profile_data.get("research_interests"))
                 )
 
                 if has_structured_fields or not raw_text:
