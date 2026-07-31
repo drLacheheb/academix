@@ -426,3 +426,10 @@ uv run --with ruff ruff format .
 uv run --with pyright --with docling --with pypdfium2 --with boto3 pyright .
 ```
 
+### D. Database Schema Migrations (Alembic)
+When modifying SQLAlchemy models in `packages/core/src/core/infrastructure/db/models.py`, auto-generate a new database migration script using:
+```bash
+uv run --package api alembic -c packages/api/alembic.ini revision --autogenerate -m "describe_your_change"
+```
+Alembic is pre-configured with `render_as_batch=True` in `env.py` for universal SQLite and PostgreSQL migration support. Migrations are automatically executed on API startup.
+
