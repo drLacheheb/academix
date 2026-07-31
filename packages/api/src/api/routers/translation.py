@@ -14,7 +14,7 @@ router = APIRouter(dependencies=[Depends(verify_token)])
 
 
 @router.post("/jobs/claim-translate")
-@limiter.limit("60/minute")
+@limiter.limit("1200/minute")
 async def claim_translation_job(
     request: Request,
     body: ClaimRequest,
@@ -27,7 +27,7 @@ async def claim_translation_job(
 
 
 @router.put("/jobs/translate")
-@limiter.limit("60/minute")
+@limiter.limit("1200/minute")
 async def submit_translation(
     request: Request,
     result: TranslationResult,

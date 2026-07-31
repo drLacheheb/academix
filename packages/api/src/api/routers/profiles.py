@@ -233,7 +233,7 @@ async def complete_profile_detect(
 
 
 @router.post("/profiles/claim-translate")
-@limiter.limit("60/minute")
+@limiter.limit("1200/minute")
 async def claim_profile_translate(
     request: Request,
     body: ClaimRequest,
