@@ -14,15 +14,28 @@ class EuraxessDiscovery(ConcreteDiscovery):
     def _start_page(self) -> int:
         return 0
 
+    def extract_total_count(self, html_content: str) -> int | None:
+        soup = BeautifulSoup(html_content, "html.parser")
+        h2 = soup.find("h2", class_=re.compile(r"heading-2"))
+        if h2:
+            text = h2.get_text(strip=True)
+            m = re.search(r"(\d+)", text.replace(",", "").replace(".", ""))
+            if m:
+                return int(m.group(1))
+        return None
+
     def _parse_search_page(self, html_content: str) -> list[Job]:
         soup = BeautifulSoup(html_content, "html.parser")
         jobs: list[Job] = []
+        seen_urls: set[str] = set()
         for a in soup.find_all("a", href=re.compile(r"^/jobs/\d+$")):
             span = a.find("span")
             if span:
                 title = span.get_text(strip=True)
                 link = "https://euraxess.ec.europa.eu" + str(a["href"])
-                jobs.append(Job(title=title, url=link, source=self.SOURCE_NAME))
+                if link not in seen_urls:
+                    seen_urls.add(link)
+                    jobs.append(Job(title=title, url=link, source=self.SOURCE_NAME))
 
         self.logger.info(f"  -> Found {len(jobs)} listings")
         return jobs

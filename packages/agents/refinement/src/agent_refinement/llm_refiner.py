@@ -9,6 +9,7 @@ from core.domain.models.schemas import (
     JobRefinementExtraction,
     RefinementResult,
 )
+from core.infrastructure.logging.logger import get_logger
 
 
 class LlmRefiner(BaseRefiner):
@@ -20,7 +21,7 @@ class LlmRefiner(BaseRefiner):
     ):
         self._runner = runner
         self._max_text_chars = max_text_chars
-        self.logger = logger or logging.getLogger("agent.refinement.refiner")
+        self.logger = logger or get_logger("refinement-llm-refiner")
 
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "refinement_prompt.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
@@ -89,7 +90,7 @@ class LlmRefiner(BaseRefiner):
                         "content": f"Candidate CV Text:\n\n{truncated_text}",
                     },
                 ],
-                max_tokens=2048,
+                max_tokens=512,
                 response_format={"type": "json_object", "schema": cv_schema},
             )
             if response_text:
@@ -117,9 +118,10 @@ class LlmRefiner(BaseRefiner):
                     {"role": "system", "content": self._system_prompt},
                     {"role": "user", "content": text},
                 ],
-                max_tokens=1024,
+                max_tokens=256,
                 response_format={"type": "json_object", "schema": job_schema},
             )
+
             if response_text:
                 parsed = self._parse_json_response(response_text.strip())
                 validated = JobRefinementExtraction.model_validate(parsed)

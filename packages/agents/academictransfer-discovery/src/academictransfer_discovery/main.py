@@ -11,64 +11,48 @@ from academictransfer_discovery.scraper import AcademicTransferDiscovery
 load_dotenv()
 
 
-def get_config() -> dict:
-    api_url = os.environ.get("API_URL", "http://localhost:8000")
-    api_secret_key = os.environ.get("API_SECRET_KEY", "")
-    max_pages = int(os.environ.get("MAX_PAGES", "5"))
-    return {
-        "api_url": api_url,
-        "api_secret_key": api_secret_key,
-        "max_pages": max_pages,
-    }
-
-
 def run():
     agent_name = get_agent_name("academictransfer-discovery-worker")
     logger = get_logger(agent_name)
-    config = get_config()
     api = make_api_client(timeout=30.0)
 
     http = HttpClient()
-    scraper = AcademicTransferDiscovery(http, max_pages=config["max_pages"])
+    scraper = AcademicTransferDiscovery(http)
 
-    logger.info(f"Starting AcademicTransfer crawler discovery agent (name: {agent_name})")
+    logger.info(f"Starting AcademicTransfer XML Sitemap discovery agent (name: {agent_name})")
 
-    def cycle():
-        logger.info("Fetching recent known URLs and checkpoint to optimize pagination...")
-        known_resp = api.get(f"/jobs/urls?source={scraper.SOURCE_NAME}&limit=500")
-        known_resp.raise_for_status()
-        known_urls = set(known_resp.json().get("urls", []))
+    def cycle() -> bool:
+        logger.info("Fetching all active job URLs from AcademicTransfer XML sitemap...")
+        all_jobs = scraper.fetch_all_jobs_from_sitemap()
 
-        checkpoint_resp = api.get(f"/jobs/checkpoint?source={scraper.SOURCE_NAME}")
-        checkpoint_resp.raise_for_status()
-        checkpoint_url = checkpoint_resp.json().get("checkpoint_url")
+        if not all_jobs:
+            logger.warning("No jobs retrieved from sitemap XML")
+            return False
 
-        logger.info(f"Loaded {len(known_urls)} known URLs. Checkpoint URL: {checkpoint_url}")
-        new_jobs = scraper.search_all(known_urls, checkpoint_url=checkpoint_url)
+        found_urls = [j.url for j in all_jobs]
+        check_resp = api.post("/jobs/known-urls", json={"urls": found_urls})
+        check_resp.raise_for_status()
+        already_known = set(check_resp.json().get("known_urls", []))
 
-        if new_jobs:
-            found_urls = [j.url for j in new_jobs]
-            check_resp = api.post("/jobs/known-urls", json={"urls": found_urls})
-            check_resp.raise_for_status()
-            already_known = set(check_resp.json().get("known_urls", []))
+        truly_new = [j for j in all_jobs if j.url not in already_known]
+        logger.info(f"Retrieved {len(all_jobs)} total sitemap jobs, {len(truly_new)} are truly new")
 
-            truly_new = [j for j in new_jobs if j.url not in already_known]
-            logger.info(f"Found {len(new_jobs)} listings, {len(truly_new)} are truly new")
+        if truly_new:
+            stubs = [{"title": j.title, "url": j.url, "source": j.source} for j in truly_new]
+            resp = api.post("/jobs", json=stubs)
+            resp.raise_for_status()
+            logger.info(f"Submitted {len(truly_new)} new job stubs to API")
 
-            if truly_new:
-                stubs = [{"title": j.title, "url": j.url, "source": j.source} for j in truly_new]
-                resp = api.post("/jobs", json=stubs)
-                resp.raise_for_status()
-                logger.info(f"Submitted {len(truly_new)} new job stubs to API")
+        # Always update checkpoint to newest job URL found in sitemap
+        checkpoint_payload = {
+            "source": scraper.SOURCE_NAME,
+            "url": all_jobs[0].url,
+        }
+        update_resp = api.put("/jobs/checkpoint", json=checkpoint_payload)
+        update_resp.raise_for_status()
+        logger.info(f"Updated crawler checkpoint to: {all_jobs[0].url}")
 
-                # Update crawler checkpoint
-                checkpoint_payload = {
-                    "source": scraper.SOURCE_NAME,
-                    "url": new_jobs[0].url,
-                }
-                update_resp = api.put("/jobs/checkpoint", json=checkpoint_payload)
-                update_resp.raise_for_status()
-                logger.info(f"Updated crawler checkpoint to: {new_jobs[0].url}")
+        return len(truly_new) > 0
 
     try:
         crawl_once = os.environ.get("CRAWL_ONCE", "false").lower() == "true"

@@ -71,19 +71,32 @@ def run():
                     f"Successfully claimed candidate profile for refinement: ID {profile_id}"
                 )
 
-                load_refiner_if_needed()
+                has_structured_fields = bool(
+                    profile_data.get("skills")
+                    or profile_data.get("highest_degree")
+                    or profile_data.get("research_interests")
+                )
 
-                logger.info("Running LLM skills and metadata extraction...")
-                extracted = refiner.refine_cv(raw_text)
+                if has_structured_fields or not raw_text:
+                    logger.info(
+                        f"[{profile_id}] Profile has pre-existing structured fields. "
+                        f"Encoding embeddings directly..."
+                    )
+                    profile = CandidateProfile.from_dict(profile_data)
+                else:
+                    load_refiner_if_needed()
+                    logger.info("Running LLM skills and metadata extraction...")
+                    extracted = refiner.refine_cv(raw_text)
 
-                # Merge with metadata from candidate upload if any
-                extracted["cv_file_path"] = profile_data.get("cv_file_path")
-                if not extracted.get("name") and profile_data.get("name"):
-                    extracted["name"] = profile_data.get("name")
-                if not extracted.get("email") and profile_data.get("email"):
-                    extracted["email"] = profile_data.get("email")
+                    # Merge with metadata from candidate upload if any
+                    extracted["cv_file_path"] = profile_data.get("cv_file_path")
+                    if not extracted.get("name") and profile_data.get("name"):
+                        extracted["name"] = profile_data.get("name")
+                    if not extracted.get("email") and profile_data.get("email"):
+                        extracted["email"] = profile_data.get("email")
 
-                profile = CandidateProfile.from_dict(extracted)
+                    profile = CandidateProfile.from_dict(extracted)
+
                 profile.skill_embedding = embedding_service.encode_skills(profile.skills or [])
                 profile.research_embedding = embedding_service.encode_research(
                     profile.research_interests or []
