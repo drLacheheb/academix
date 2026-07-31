@@ -57,7 +57,9 @@ def get_llm_config() -> dict:
         "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf",
     )
     models_dir = os.environ.get("MODELS_DIR", "models")
-    max_length = int(os.environ.get("MAX_LENGTH", "4096"))
+    max_length = int(
+        os.environ.get("MAX_CONTEXT_TOKENS", os.environ.get("MAX_LENGTH", "8192"))
+    )
     temperature = float(os.environ.get("TEMPERATURE", "0.0"))
     idle_timeout = float(os.environ.get("MODEL_IDLE_TIMEOUT", "60.0"))
     return {
