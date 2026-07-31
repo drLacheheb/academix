@@ -32,7 +32,7 @@ class HttpLlmRunner(BaseLlmRunner):
         try:
             resp = self._client.get(f"{self._service_url}/health")
             if resp.status_code == 200:
-                return bool(resp.json().get("is_loaded", False))
+                return resp.json().get("status") == "ok"
             return False
         except Exception:
             return False
