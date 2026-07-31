@@ -100,7 +100,11 @@ async def lifespan(app: FastAPI):
         max_context=config["max_length"],
         temperature=config["temperature"],
     )
-    logger.info(f"LLM Service initialized with model path '{config['model_path']}'")
+    logger.info(
+        f"LLM Service pre-loading model weights from '{config['model_path']}'..."
+    )
+    runner.load_model()
+    logger.info("LLM Service model pre-loaded successfully!")
     checker_task = asyncio.create_task(idle_checker_loop())
     yield
     checker_task.cancel()
