@@ -13,7 +13,7 @@ class LocalLlmRunner(BaseLlmRunner):
         self,
         model_path: str,
         models_dir: str = "models",
-        max_context: int = 16384,
+        max_context: int = 32768,
         temperature: float = 0.0,
     ):
         self.model_path = model_path
