@@ -16,9 +16,9 @@ def get_config() -> dict:
         "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf",
     )
     models_dir = os.environ.get("MODELS_DIR", "models")
-    max_length = int(os.environ.get("MAX_LENGTH", "4096"))
+    max_length = int(os.environ.get("MAX_LENGTH", "16384"))
     temperature = float(os.environ.get("TEMPERATURE", "0.0"))
-    max_text_chars = int(os.environ.get("MAX_TEXT_CHARS", "15000"))
+    max_text_chars = int(os.environ.get("MAX_TEXT_CHARS", "60000"))
     return {
         "model_path": model_path,
         "models_dir": models_dir,
