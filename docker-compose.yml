@@ -393,7 +393,30 @@ services:
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
-  # 18. Matching and Explanations worker
+  # 18. Dedicated Vector Embedding worker
+  embedding-worker:
+    build:
+      context: .
+      target: embedding
+    command: ["uv", "run", "--package", "embedding-worker", "python", "-m", "agent_embedding.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+      - ./models:/app/models
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/embedding-worker.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-ai/nomic-embed-text-v1.5}
+      - MODELS_DIR=/app/models
+    restart: unless-stopped
+
+  # 19. Matching and Explanations worker
   matching-worker:
     build:
       context: .

@@ -25,6 +25,7 @@ COPY packages/agents/refinement/pyproject.toml packages/agents/refinement/
 COPY packages/agents/translation/pyproject.toml packages/agents/translation/
 COPY packages/agents/cv-parsing/pyproject.toml packages/agents/cv-parsing/
 COPY packages/agents/matching/pyproject.toml packages/agents/matching/
+COPY packages/agents/embedding-worker/pyproject.toml packages/agents/embedding-worker/
 COPY packages/agents/llm-runner/pyproject.toml packages/agents/llm-runner/
 
 RUN echo 'find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
@@ -60,6 +61,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM builder-base AS builder-matching
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-workspace --no-dev --package matching && \
+    sh /app/prune.sh
+
+FROM builder-base AS builder-embedding
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace --no-dev --package embedding-worker && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-cv-parsing
@@ -101,6 +107,11 @@ FROM base AS matching
 COPY --from=builder-matching /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package matching
+
+FROM base AS embedding
+COPY --from=builder-embedding /app/.venv /app/.venv
+COPY . .
+RUN uv sync --frozen --no-dev --package embedding-worker
 
 FROM builder-base AS builder-llm-runner
 RUN --mount=type=cache,target=/root/.cache/uv \

@@ -16,11 +16,22 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 │       ├── euraxess-sourcing/             # EURAXESS page details fetcher agent
 │       ├── academictransfer-discovery/    # AcademicTransfer search pagination discovery agent
 │       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher agent
+│       ├── abg-discovery/                 # ABG L'Intelli'agence discovery agent
+│       ├── abg-sourcing/                  # ABG L'Intelli'agence page details fetcher agent
+│       ├── naturecareers-discovery/       # Nature Careers search pagination discovery agent
+│       ├── naturecareers-sourcing/        # Nature Careers page details fetcher agent
+│       ├── researchgate-discovery/        # ResearchGate search pagination discovery agent
+│       ├── researchgate-sourcing/         # ResearchGate page details fetcher agent
+│       ├── eurosciencejobs-discovery/     # EuroScienceJobs search pagination discovery agent
+│       ├── eurosciencejobs-sourcing/      # EuroScienceJobs page details fetcher agent
 │       ├── lang-detection/                # Standalone local language detection agent
 │       ├── translation/                   # Standalone local NLLB-200 translation agent
 │       ├── refinement/                    # Local Gemma-4 metadata extractor & refiner agent
+│       ├── embedding-worker/              # Dedicated nomic vector embedding generation agent
 │       ├── matching/                      # Candidate CV matching & LLM explanation agent
-│       └── cv-parsing/                    # Background CV ingest and layout parsing agent
+│       ├── cv-parsing/                    # Background CV ingest and layout parsing agent
+│       ├── llm-runner/                    # Dedicated HTTP LLM inference microservice
+│       └── telegram-bot/                  # Telegram Bot candidate interaction interface agent
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
@@ -103,14 +114,25 @@ All agents are run from the workspace root. Settings are loaded automatically fr
 | Agent Package | Main Module | Agent Role |
 | :--- | :--- | :--- |
 | `euraxess-discovery` | `euraxess_discovery.main` | Pagination crawl discovery (EURAXESS) |
-| `academictransfer-discovery` | `academictransfer_discovery.main` | Pagination crawl discovery (AcademicTransfer) |
 | `euraxess-sourcing` | `euraxess_sourcing.main` | Page details fetcher (EURAXESS) |
+| `academictransfer-discovery` | `academictransfer_discovery.main` | Pagination crawl discovery (AcademicTransfer) |
 | `academictransfer-sourcing` | `academictransfer_sourcing.main` | Page details fetcher (AcademicTransfer) |
+| `abg-discovery` | `abg_discovery.main` | Pagination crawl discovery (ABG) |
+| `abg-sourcing` | `abg_sourcing.main` | Page details fetcher (ABG) |
+| `naturecareers-discovery` | `naturecareers_discovery.main` | Pagination crawl discovery (Nature Careers) |
+| `naturecareers-sourcing` | `naturecareers_sourcing.main` | Page details fetcher (Nature Careers) |
+| `researchgate-discovery` | `researchgate_discovery.main` | Pagination crawl discovery (ResearchGate) |
+| `researchgate-sourcing` | `researchgate_sourcing.main` | Page details fetcher (ResearchGate) |
+| `eurosciencejobs-discovery` | `eurosciencejobs_discovery.main` | Pagination crawl discovery (EuroScienceJobs) |
+| `eurosciencejobs-sourcing` | `eurosciencejobs_sourcing.main` | Page details fetcher (EuroScienceJobs) |
 | `lang-detection` | `agent_lang_detection.main` | Language Detection (All Sources) |
 | `translation` | `agent_translation.main` | Local NLLB-200 Translation (All Sources) |
 | `refinement` | `agent_refinement.main` | Gemma-4 Skills Extraction (All Sources) |
+| `embedding-worker` | `agent_embedding.main` | Local Nomic Vector Embeddings (All Sources) |
 | `matching` | `agent_matching.main` | Candidate CV Matcher & Explainer (All Sources) |
 | `cv-parsing` | `agent_cv_parsing.main` | Background CV Ingest and Layout Parsing |
+| `llm-runner` | `agent_llm_runner.main` | HTTP LLM Service Runner (Gemma GGUF) |
+| `telegram-bot` | `telegram_bot.main` | Telegram Bot User Interface Agent |
 
 Run any agent using:
 ```bash
@@ -189,57 +211,63 @@ Discovery, sourcing, detection, translation, refinement, and matching agents run
 
 ```mermaid
 graph TD
-    subgraph Discovery Nodes
-        ED[euraxess-discovery]
-        ATD[academictransfer-discovery]
+    subgraph Sourcing & Crawling Nodes
+        Sources["6 Job Boards<br/>(EURAXESS, AcademicTransfer, ABG,<br/>NatureCareers, ResearchGate, EuroScienceJobs)"]
+        Disc["Discovery Agents (*-discovery)"]
+        Sourc["Sourcing Agents (*-sourcing)"]
     end
 
-    subgraph Sourcing Nodes
-        ES[euraxess-sourcing]
-        ATS[academictransfer-sourcing]
+    subgraph User & Ingestion Layer
+        TG[telegram-bot Agent]
+        CV[cv-parsing Agent]
     end
 
-    subgraph Gateway Layer
+    subgraph Gateway & DB Layer
         API[FastAPI Gateway /packages/api]
         DB[(Database SQLite/PostgreSQL)]
     end
 
-    subgraph Language Processing
-        LD[lang-detection]
-        Trans[translation]
-        NLLB[NLLB-200 Local Model]
+    subgraph Language Processing Stage
+        LD[lang-detection Agent]
+        Trans[translation Agent]
+        NLLB[NLLB-200 Model]
     end
 
-    subgraph Refinement & Matching
-        Refine[refinement]
-        GGUF[Gemma-4 GGUF Local Model]
-        Match[matching]
+    subgraph LLM & Vector Pipeline
+        Refine[refinement Agent]
+        Embed[embedding-worker Agent]
+        Match[matching Agent]
+        LLM[llm-service Microservice]
+        Nomic[Nomic Embed Model]
     end
 
-    ED -->|POST /jobs stubs| API
-    ATD -->|POST /jobs stubs| API
+    Sources --> Disc
+    Disc -->|POST /jobs stubs| API
+    Sourc -->|GET /jobs/pending-details| API
+    Sourc -->|PUT /jobs/details| API
 
-    ES -->|GET /jobs/pending-details| API
-    ATS -->|GET /jobs/pending-details| API
-    ES -->|PUT /jobs/details| API
-    ATS -->|PUT /jobs/details| API
+    TG -->|POST /profiles/upload-cv| API
+    CV -->|Claim & parse PDF| API
 
     LD -->|POST /jobs/claim-detect| API
     LD -->|PUT /jobs/detect| API
 
     Trans -->|POST /jobs/claim-translate| API
     Trans -->|PUT /jobs/translate| API
-    Trans -->|Inference request| NLLB
+    Trans -.->|Inference| NLLB
 
-    Refine -->|POST /jobs/claim-refine CAS lease| API
-    Refine -->|PUT /jobs/refine upload| API
-    Refine -->|Inference request| GGUF
+    Refine -->|POST /jobs/claim-refine| API
+    Refine -->|PUT /jobs/refine| API
+    Refine -->|HTTP Chat Completions| LLM
+
+    Embed -->|POST /jobs/claim-embed| API
+    Embed -->|PUT /jobs/embed| API
+    Embed -.->|Generate Vectors| Nomic
 
     Match -->|POST /matches/claim| API
     Match -->|PUT /matches/complete| API
-    Match -->|POST /matches/claim-explain| API
-    Match -->|PUT /matches/complete-explain| API
-    
+    Match -->|HTTP Chat Completions| LLM
+
     API <-->|SQLAlchemy ORM| DB
 ```
 
