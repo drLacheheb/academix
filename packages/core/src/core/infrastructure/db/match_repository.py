@@ -200,3 +200,61 @@ class MatchRepository(BaseMatchRepository):
             raise
         finally:
             session.close()
+
+    def get_unnotified_matches(self, limit: int = 10) -> list[dict]:
+        from core.infrastructure.db.models import CandidateProfileModel, JobModel
+
+        session = self._SessionLocal()
+        try:
+            results = (
+                session.query(MatchModel, JobModel, CandidateProfileModel)
+                .join(JobModel, MatchModel.job_url == JobModel.url)
+                .join(CandidateProfileModel, MatchModel.candidate_id == CandidateProfileModel.id)
+                .filter(
+                    MatchModel.telegram_notified == False,  # noqa: E712
+                    MatchModel.explanation_status == "completed",
+                    CandidateProfileModel.telegram_chat_id.isnot(None),
+                )
+                .order_by(desc(MatchModel.score))
+                .limit(limit)
+                .all()
+            )
+            unnotified = []
+            for match, job, profile in results:
+                unnotified.append(
+                    {
+                        "match_id": match.id,
+                        "candidate_id": match.candidate_id,
+                        "telegram_chat_id": profile.telegram_chat_id,
+                        "job_url": match.job_url,
+                        "score": match.score,
+                        "job_title": job.title,
+                        "employer": job.employer,
+                        "location": job.location,
+                        "deadline": job.deadline,
+                        "explanation": match.explanation,
+                    }
+                )
+            return unnotified
+        finally:
+            session.close()
+
+    def mark_as_notified(self, match_ids: list[int]) -> None:
+        if not match_ids:
+            return
+        session = self._SessionLocal()
+        try:
+            session.execute(
+                update(MatchModel)
+                .where(MatchModel.id.in_(match_ids))
+                .values(
+                    telegram_notified=True,
+                    telegram_notified_at=datetime.now(UTC).replace(tzinfo=None),
+                )
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()

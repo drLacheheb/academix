@@ -1,7 +1,7 @@
-import logging
 import os
 
 from core.domain.models.schemas import ClaimRequest
+from core.infrastructure.logging.logger import get_logger
 from core.usecases import (
     ClaimIngestionUseCase,
     ClaimProfileDetectionUseCase,
@@ -32,12 +32,14 @@ from api.dependencies import (
     get_fail_ingestion_usecase,
     get_ingest_profile_usecase,
     get_list_profiles_usecase,
+    get_repo,
     get_submit_raw_text_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
 
-logger = logging.getLogger(__name__)
+logger = get_logger("api-profiles")
+
 
 # Create the uploads directory if it does not exist
 UPLOADS_DIR = os.path.abspath(
@@ -77,6 +79,15 @@ class ProfileRefinementResult(BaseModel):
     profile: dict
 
 
+class ProfileFieldsUpdate(BaseModel):
+    name: str | None = None
+    highest_degree: str | None = None
+    skills: list[str] | str | None = None
+    research_interests: list[str] | str | None = None
+    preferred_locations: list[str] | str | None = None
+    languages: list[dict[str, str]] | str | None = None
+
+
 @router.post("/profiles/upload-cv", status_code=202)
 @limiter.limit("5/minute")
 async def upload_cv(
@@ -84,6 +95,7 @@ async def upload_cv(
     file: UploadFile = File(...),
     email: str | None = Form(None),
     name: str | None = Form(None),
+    telegram_chat_id: str | None = Form(None),
     usecase: IngestCandidateProfileUseCase = Depends(get_ingest_profile_usecase),
 ):
     filename = file.filename or "cv.pdf"
@@ -107,6 +119,7 @@ async def upload_cv(
             file_content=content,
             email=email,
             name=name,
+            telegram_chat_id=telegram_chat_id,
         )
         logger.info(f"Successfully registered CV ingestion for profile ID: {saved_profile.id}")
         return saved_profile.to_dict()
@@ -274,3 +287,33 @@ async def complete_profile_refine(
     profile_domain = CandidateProfile.from_dict(body.profile)
     final_id = usecase.execute(body.profile_id, profile_domain)
     return {"status": "success", "profile_id": final_id}
+
+
+@router.get("/profiles/by-chat-id/{chat_id}")
+@limiter.limit("60/minute")
+async def get_profiles_by_chat_id(
+    request: Request,
+    chat_id: str,
+    repo=Depends(get_repo),
+):
+    profiles = repo.profiles.get_by_telegram_chat_id(chat_id)
+    return [p.to_dict() for p in profiles]
+
+
+@router.patch("/profiles/{profile_id}")
+@limiter.limit("30/minute")
+async def update_profile_fields(
+    request: Request,
+    profile_id: int,
+    body: ProfileFieldsUpdate,
+    repo=Depends(get_repo),
+):
+    fields = body.model_dump(exclude_unset=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields provided for update.")
+    updated = repo.profiles.update_profile_fields(profile_id, fields)
+    if not updated:
+        raise HTTPException(
+            status_code=404, detail=f"Candidate profile with ID {profile_id} not found."
+        )
+    return updated.to_dict()

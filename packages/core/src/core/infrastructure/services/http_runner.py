@@ -1,11 +1,11 @@
-import logging
 import os
 from collections.abc import Sequence
 
 import httpx
 from core.domain.interfaces.services import BaseLlmRunner
+from core.infrastructure.logging.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("core-http-runner")
 
 
 class HttpLlmRunner(BaseLlmRunner):
@@ -17,8 +17,9 @@ class HttpLlmRunner(BaseLlmRunner):
     def __init__(
         self,
         service_url: str | None = None,
-        timeout: float = 120.0,
+        timeout: float = 300.0,
     ):
+
         self._service_url = service_url or os.environ.get(
             "LLM_SERVICE_URL", "http://localhost:8001"
         )

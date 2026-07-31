@@ -214,6 +214,13 @@ class DatabaseJobRepository(BaseJobRepository):
         finally:
             session.close()
 
+    def get_total_count(self, source: str) -> int:
+        session = self._SessionLocal()
+        try:
+            return session.query(JobModel).filter(JobModel.source == source).count()
+        finally:
+            session.close()
+
     def get_crawler_checkpoint(self, source: str) -> str | None:
         from core.infrastructure.db.models import CrawlerCheckpointModel
 

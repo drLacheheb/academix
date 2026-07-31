@@ -21,6 +21,7 @@ class IngestCandidateProfileUseCase:
         file_content: bytes,
         email: str | None = None,
         name: str | None = None,
+        telegram_chat_id: str | None = None,
     ) -> CandidateProfile:
         # Upload the CV file using our storage abstraction layer
         url_or_path = self._storage_service.upload(file_name, file_content)
@@ -30,6 +31,7 @@ class IngestCandidateProfileUseCase:
             name=name,
             email=email,
             cv_file_path=url_or_path,
+            telegram_chat_id=telegram_chat_id,
             status="INGESTING",
             status_message="CV Uploaded. Ingestion task registered.",
         )

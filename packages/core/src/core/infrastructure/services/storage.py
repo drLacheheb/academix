@@ -1,12 +1,12 @@
-import logging
 import os
 from pathlib import Path
 from uuid import uuid4
 
 import httpx
 from core.domain.interfaces.services import BaseStorageService
+from core.infrastructure.logging.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("core-storage")
 
 
 def _build_safe_storage_name(filename: str) -> str:

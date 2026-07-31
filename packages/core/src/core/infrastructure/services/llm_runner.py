@@ -1,11 +1,11 @@
 import gc
-import logging
 import os
 from collections.abc import Sequence
 
 from core.domain.interfaces.services import BaseLlmRunner
+from core.infrastructure.logging.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("core-llm-runner")
 
 
 class LocalLlmRunner(BaseLlmRunner):
@@ -62,14 +62,26 @@ class LocalLlmRunner(BaseLlmRunner):
             else:
                 raise FileNotFoundError(f"Model path does not exist: {self._resolved_path}")
 
-        logger.info(f"Loading local GGUF model from {self._resolved_path}...")
+        n_gpu_layers = int(os.environ.get("N_GPU_LAYERS", "0"))
+        cpu_cores = os.cpu_count() or 4
+        logger.info(
+            f"Loading local GGUF model from {self._resolved_path} "
+            f"(threads: {cpu_cores}, n_gpu_layers: {n_gpu_layers})..."
+        )
         self.model = Llama(
             model_path=self._resolved_path,
-            n_ctx=self.max_context,
-            n_threads=os.cpu_count(),
+            n_ctx=2048,
+            n_batch=1024,
+            n_threads=cpu_cores,
+            n_threads_batch=cpu_cores,
+            n_gpu_layers=n_gpu_layers,
+            type_k=8,
+            type_v=8,
+            mlock=True,
             verbose=False,
         )
         logger.info("Local GGUF model loaded successfully!")
+
 
     def free_model(self) -> None:
         if self.model is not None:
@@ -102,8 +114,10 @@ class LocalLlmRunner(BaseLlmRunner):
             messages=chat_messages,
             max_tokens=max_tokens,
             temperature=self.temperature,
+            stop=["}\n\n", "```"],
             **kwargs,
         )
+
         if isinstance(response, dict):
             choices = response.get("choices", [])
             if choices and isinstance(choices[0], dict):

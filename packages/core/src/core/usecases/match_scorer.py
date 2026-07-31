@@ -1,11 +1,12 @@
-import logging
 from collections.abc import Sequence
 
 from core.domain.models.job import Job
 from core.domain.models.match import Match
 from core.domain.models.profile import CandidateProfile
+from core.infrastructure.logging.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("core-match-scorer")
+
 
 LANGUAGE_NAMES = {
     "de": ["german", "deutsch", "de"],
@@ -97,10 +98,6 @@ class MatchScorer:
         job: Job,
         threshold: float = 0.3,
     ) -> Match | None:
-        """
-        Runs hard filters and computes soft scores for candidate-job pair.
-        Returns a Match object if eligible and score >= threshold, otherwise None.
-        """
         # 1. Hard Filter: Degree Eligibility
         degree_ok = check_degree_eligibility(candidate.highest_degree, job.education_level)
         if not degree_ok:

@@ -1,12 +1,12 @@
-import logging
 import os
 from io import BytesIO
 
 import pypdfium2 as pdfium
+from core.infrastructure.logging.logger import get_logger
 from docling.datamodel.base_models import DocumentStream
 from docling.document_converter import DocumentConverter
 
-logger = logging.getLogger(__name__)
+logger = get_logger("core-pdf-parser")
 
 
 _converter: DocumentConverter | None = None

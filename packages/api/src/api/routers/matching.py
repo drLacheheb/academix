@@ -1,12 +1,12 @@
-import logging
-
 from core.domain.models.match import Match
 from core.domain.models.schemas import (
     ClaimRequest,
     MatchExplanationComplete,
     MatchingTaskComplete,
 )
+from core.infrastructure.logging.logger import get_logger
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel
 
 from api.dependencies import (
     ClaimMatchExplanationUseCase,
@@ -22,14 +22,20 @@ from api.dependencies import (
     get_complete_match_explanation_usecase,
     get_fail_match_explanation_usecase,
     get_fail_matching_task_usecase,
+    get_repo,
     get_submit_task_matches_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
 
-logger = logging.getLogger(__name__)
+logger = get_logger("api-matching")
+
 
 router = APIRouter(dependencies=[Depends(verify_token)])
+
+
+class MarkNotifiedRequest(BaseModel):
+    match_ids: list[int]
 
 
 @router.post("/matches/claim")
@@ -125,3 +131,25 @@ async def get_candidate_matches(
 ):
     matches = usecase.execute(profile_id, limit)
     return {"matches": [m.to_dict() for m in matches]}
+
+
+@router.get("/matches/unnotified")
+@limiter.limit("60/minute")
+async def get_unnotified_matches(
+    request: Request,
+    limit: int = 10,
+    repo=Depends(get_repo),
+):
+    unnotified = repo.matches.get_unnotified_matches(limit=limit)
+    return unnotified
+
+
+@router.put("/matches/mark-notified")
+@limiter.limit("60/minute")
+async def mark_matches_notified(
+    request: Request,
+    body: MarkNotifiedRequest,
+    repo=Depends(get_repo),
+):
+    repo.matches.mark_as_notified(body.match_ids)
+    return {"status": "updated", "count": len(body.match_ids)}

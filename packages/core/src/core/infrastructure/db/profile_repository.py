@@ -121,6 +121,93 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
         finally:
             session.close()
 
+    def get_by_telegram_chat_id(self, chat_id: str) -> list[CandidateProfile]:
+        if not chat_id:
+            return []
+        session = self._SessionLocal()
+        try:
+            models = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.telegram_chat_id == str(chat_id))
+                .order_by(CandidateProfileModel.created_at.desc())
+                .all()
+            )
+            return [m.to_domain() for m in models]
+        finally:
+            session.close()
+
+    def update_profile_fields(self, profile_id: int, fields: dict) -> CandidateProfile | None:
+        session = self._SessionLocal()
+        try:
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
+            if not existing:
+                return None
+
+            clear_embeddings = False
+            if "name" in fields:
+                existing.name = fields["name"]
+            if "highest_degree" in fields:
+                existing.highest_degree = fields["highest_degree"]
+            if "skills" in fields:
+                skills_val = fields["skills"]
+                existing.skills = (
+                    json.dumps(skills_val, ensure_ascii=False)
+                    if isinstance(skills_val, list)
+                    else skills_val
+                )
+                clear_embeddings = True
+            if "research_interests" in fields:
+                ri_val = fields["research_interests"]
+                existing.research_interests = (
+                    json.dumps(ri_val, ensure_ascii=False) if isinstance(ri_val, list) else ri_val
+                )
+                clear_embeddings = True
+            if "preferred_locations" in fields:
+                loc_val = fields["preferred_locations"]
+                existing.preferred_locations = (
+                    json.dumps(loc_val, ensure_ascii=False)
+                    if isinstance(loc_val, list)
+                    else loc_val
+                )
+            if "languages" in fields:
+                lang_val = fields["languages"]
+                existing.languages = (
+                    json.dumps(lang_val, ensure_ascii=False)
+                    if isinstance(lang_val, list)
+                    else lang_val
+                )
+
+            if clear_embeddings:
+                existing.skill_embedding = None
+                existing.research_embedding = None
+
+            # Purge existing matches and matching queue entries for this candidate
+            from core.infrastructure.db.models import MatchingQueueModel, MatchModel
+
+            session.query(MatchModel).filter(MatchModel.candidate_id == profile_id).delete()
+            session.query(MatchingQueueModel).filter(
+                MatchingQueueModel.entity_type == "candidate",
+                MatchingQueueModel.entity_id == str(profile_id),
+            ).delete()
+
+            existing.status = "PENDING_REFINEMENT"
+            existing.status_message = (
+                "Updated manually via Telegram. Pending embedding re-generation."
+            )
+
+            session.commit()
+            session.refresh(existing)
+            return existing.to_domain()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def claim_next_for_ingestion(
         self, agent_name: str, stale_cutoff: datetime
     ) -> CandidateProfile | None:
@@ -526,6 +613,9 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     )
                     existing_email.language_code = (
                         placeholder.language_code or existing_email.language_code
+                    )
+                    existing_email.telegram_chat_id = (
+                        placeholder.telegram_chat_id or existing_email.telegram_chat_id
                     )
                 existing_email.highest_degree = (
                     profile.highest_degree if profile.highest_degree else None

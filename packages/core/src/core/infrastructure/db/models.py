@@ -185,6 +185,7 @@ class CandidateProfileModel(Base):
     status_message: Mapped[str | None] = mapped_column(String, nullable=True)
     claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    telegram_chat_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now(), nullable=False
@@ -211,6 +212,7 @@ class CandidateProfileModel(Base):
             status_message=self.status_message,
             claimed_by=self.claimed_by,
             claimed_at=self.claimed_at,
+            telegram_chat_id=self.telegram_chat_id,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
@@ -280,6 +282,7 @@ class CandidateProfileModel(Base):
             status_message=profile.status_message,
             claimed_by=profile.claimed_by,
             claimed_at=profile.claimed_at,
+            telegram_chat_id=profile.telegram_chat_id,
         )
 
 
@@ -324,6 +327,10 @@ class MatchModel(Base):
     )
     explanation_claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
     explanation_claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    telegram_notified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, index=True
+    )
+    telegram_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
@@ -342,6 +349,8 @@ class MatchModel(Base):
             research_score=self.research_score,
             explanation=self.explanation,
             explanation_status=self.explanation_status,
+            telegram_notified=self.telegram_notified,
+            telegram_notified_at=self.telegram_notified_at,
             created_at=self.created_at,
         )
 

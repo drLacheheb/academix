@@ -10,6 +10,8 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "abg-discovery",
+    "abg-sourcing",
     "academic",
     "academictransfer-discovery",
     "academictransfer-sourcing",
@@ -18,13 +20,58 @@ members = [
     "cv-parsing",
     "euraxess-discovery",
     "euraxess-sourcing",
+    "eurosciencejobs-discovery",
+    "eurosciencejobs-sourcing",
     "lang-detection",
     "llm-runner",
     "matching",
+    "naturecareers-discovery",
+    "naturecareers-sourcing",
     "refinement",
+    "researchgate-discovery",
+    "researchgate-sourcing",
+    "telegram-bot",
     "translation",
 ]
 overrides = [{ name = "numpy", specifier = "==2.1.2" }]
+
+[[package]]
+name = "abg-discovery"
+version = "0.1.0"
+source = { editable = "packages/agents/abg-discovery" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
+
+[[package]]
+name = "abg-sourcing"
+version = "0.1.0"
+source = { editable = "packages/agents/abg-sourcing" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
 
 [[package]]
 name = "academic"
@@ -628,6 +675,44 @@ requires-dist = [
 name = "euraxess-sourcing"
 version = "0.1.0"
 source = { editable = "packages/agents/euraxess-sourcing" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
+
+[[package]]
+name = "eurosciencejobs-discovery"
+version = "0.1.0"
+source = { editable = "packages/agents/eurosciencejobs-discovery" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
+
+[[package]]
+name = "eurosciencejobs-sourcing"
+version = "0.1.0"
+source = { editable = "packages/agents/eurosciencejobs-sourcing" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "core" },
@@ -1253,6 +1338,42 @@ wheels = [
 ]
 
 [[package]]
+name = "naturecareers-discovery"
+version = "0.1.0"
+source = { editable = "packages/agents/naturecareers-discovery" }
+dependencies = [
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
+
+[[package]]
+name = "naturecareers-sourcing"
+version = "0.1.0"
+source = { editable = "packages/agents/naturecareers-sourcing" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
+
+[[package]]
 name = "networkx"
 version = "3.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1644,6 +1765,18 @@ wheels = [
 ]
 
 [[package]]
+name = "python-telegram-bot"
+version = "22.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ba/77/153517bb1ac1bba670c6fb1dbf09e1fd0730494b1705934e715391413a0d/python_telegram_bot-22.8.tar.gz", hash = "sha256:f9d3847fcb23ee603477e442800b33bb4adf851a73e0619d2050be879decf1ef", size = 1551700, upload-time = "2026-06-12T08:10:29.1Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/60/7c/ed7d4dd94280bd434173cae9f7a7aedaaab9af128ae4f494423a5687c820/python_telegram_bot-22.8-py3-none-any.whl", hash = "sha256:42373918097f1b837cc4e717d588c19ea79651497ec712bb5b0c76e5e63c50e1", size = 769397, upload-time = "2026-06-12T08:10:27.066Z" },
+]
+
+[[package]]
 name = "pywin32"
 version = "312"
 source = { registry = "https://pypi.org/simple" }
@@ -1711,14 +1844,14 @@ name = "refinement"
 version = "0.1.0"
 source = { editable = "packages/agents/refinement" }
 dependencies = [
-    { name = "core", extra = ["embeddings"] },
+    { name = "core" },
     { name = "httpx" },
     { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "core", extras = ["embeddings"], editable = "packages/core" },
+    { name = "core", editable = "packages/core" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
 ]
@@ -1760,6 +1893,44 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ac/c3/e2a2b89f2d3e2179abd6d00ebd70bff6273f37fb3e0cc209f48b39d00cbf/requests-2.34.2.tar.gz", hash = "sha256:f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed", size = 142856, upload-time = "2026-05-14T19:25:27.735Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl", hash = "sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0", size = 73075, upload-time = "2026-05-14T19:25:26.443Z" },
+]
+
+[[package]]
+name = "researchgate-discovery"
+version = "0.1.0"
+source = { editable = "packages/agents/researchgate-discovery" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
+
+[[package]]
+name = "researchgate-sourcing"
+version = "0.1.0"
+source = { editable = "packages/agents/researchgate-sourcing" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
 ]
 
 [[package]]
@@ -2134,6 +2305,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/46/58/8c37dea7bbf769b20d58e7ace7e5edfe65b849442b00ffcdd56be88697c6/tabulate-0.10.0.tar.gz", hash = "sha256:e2cfde8f79420f6deeffdeda9aaec3b6bc5abce947655d17ac662b126e48a60d", size = 91754, upload-time = "2026-03-04T18:55:34.402Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/99/55/db07de81b5c630da5cbf5c7df646580ca26dfaefa593667fc6f2fe016d2e/tabulate-0.10.0-py3-none-any.whl", hash = "sha256:f0b0622e567335c8fabaaa659f1b33bcb6ddfe2e496071b743aa113f8774f2d3", size = 39814, upload-time = "2026-03-04T18:55:31.284Z" },
+]
+
+[[package]]
+name = "telegram-bot"
+version = "0.1.0"
+source = { editable = "packages/agents/telegram-bot" }
+dependencies = [
+    { name = "core" },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+    { name = "python-telegram-bot" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "core", editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "python-telegram-bot", specifier = ">=21.0" },
 ]
 
 [[package]]

@@ -16,6 +16,8 @@ class Match:
     id: int | None = None
     explanation: str | None = None
     explanation_status: str = "pending"
+    telegram_notified: bool = False
+    telegram_notified_at: datetime | None = None
     created_at: datetime | None = None
 
     def to_dict(self) -> dict:

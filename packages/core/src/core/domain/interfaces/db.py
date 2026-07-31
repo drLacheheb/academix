@@ -42,6 +42,10 @@ class BaseJobRepository(ABC):
         pass
 
     @abstractmethod
+    def get_total_count(self, source: str) -> int:
+        pass
+
+    @abstractmethod
     def get_crawler_checkpoint(self, source: str) -> str | None:
         pass
 

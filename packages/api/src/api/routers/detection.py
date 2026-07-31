@@ -14,7 +14,7 @@ router = APIRouter(dependencies=[Depends(verify_token)])
 
 
 @router.post("/jobs/claim-detect")
-@limiter.limit("60/minute")
+@limiter.limit("600/minute")
 async def claim_detection_job(
     request: Request,
     body: ClaimRequest,
@@ -27,7 +27,7 @@ async def claim_detection_job(
 
 
 @router.put("/jobs/detect")
-@limiter.limit("60/minute")
+@limiter.limit("600/minute")
 async def submit_detection(
     request: Request,
     result: DetectionResult,

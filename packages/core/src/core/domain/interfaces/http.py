@@ -7,5 +7,14 @@ class BaseHttpClient(ABC):
         pass
 
     @abstractmethod
+    def post(
+        self,
+        url: str,
+        data: dict | str | None = None,
+        headers: dict | None = None,
+    ) -> bytes | None:
+        pass
+
+    @abstractmethod
     def close(self) -> None:
         pass

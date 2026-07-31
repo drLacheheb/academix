@@ -88,8 +88,8 @@ async def get_recent_urls(
     limit: int = 500,
     usecase=Depends(get_recent_urls_usecase),
 ):
-    urls = usecase.execute(source=source, limit=limit)
-    return {"urls": urls}
+    urls, total_count = usecase.execute(source=source, limit=limit)
+    return {"urls": urls, "total_count": total_count}
 
 
 @router.get("/jobs/checkpoint")

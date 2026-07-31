@@ -1,9 +1,9 @@
-import logging
 import math
 
 from core.domain.interfaces.services import BaseEmbeddingService
+from core.infrastructure.logging.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("core-embedding-service")
 
 
 def l2_normalize(vector: list[float]) -> list[float]:

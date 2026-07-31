@@ -1,11 +1,13 @@
-import logging
 import os
 import signal
 import socket
 import threading
 from collections.abc import Callable
 
-logger = logging.getLogger("core.agent")
+from core.infrastructure.logging.logger import get_logger
+
+logger = get_logger("core-agent")
+
 
 # Global event for coordinating process termination
 shutdown_event = threading.Event()
