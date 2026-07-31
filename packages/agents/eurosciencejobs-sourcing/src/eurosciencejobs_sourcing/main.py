@@ -67,7 +67,7 @@ def run():
         else:
             from core.utils.agent import run_agent_loop
 
-            crawl_interval = float(os.environ.get("CRAWL_INTERVAL", "15.0"))
+            crawl_interval = float(os.environ.get("SOURCING_INTERVAL", "15.0"))
             run_agent_loop(cycle, default_interval=crawl_interval)
     except Exception as e:
         logger.error(f"Agent error: {e}")
