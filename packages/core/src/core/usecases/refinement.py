@@ -2,7 +2,6 @@ from datetime import UTC, datetime, timedelta
 
 from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
 from core.domain.interfaces.db import (
-    BaseMatchingQueueRepository,
     BaseRefinementRepository,
 )
 from core.domain.models.job import Job
@@ -20,9 +19,8 @@ class ClaimRefinementJobUseCase:
 
 
 class CompleteRefinementUseCase:
-    def __init__(self, repo: BaseRefinementRepository, queue_repo: BaseMatchingQueueRepository):
+    def __init__(self, repo: BaseRefinementRepository):
         self._repo = repo
-        self._queue_repo = queue_repo
 
     def execute(
         self,
@@ -43,7 +41,6 @@ class CompleteRefinementUseCase:
             city,
             country,
         )
-        self._queue_repo.enqueue("job", url)
 
 
 class FailRefinementUseCase:

@@ -117,6 +117,29 @@ class BaseRefinementRepository(ABC):
         pass
 
 
+class BaseEmbeddingRepository(ABC):
+    @abstractmethod
+    def claim_next(self, agent_name: str, stale_cutoff: datetime) -> Job | None:
+        pass
+
+    @abstractmethod
+    def complete(
+        self,
+        url: str,
+        skill_embedding: list[float] | None = None,
+        research_embedding: list[float] | None = None,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def fail(self, url: str) -> None:
+        pass
+
+    @abstractmethod
+    def recover_stale(self, stale_cutoff: datetime) -> int:
+        pass
+
+
 class BaseStatusQueryRepository(ABC):
     @abstractmethod
     def get_status(self) -> dict:
@@ -192,6 +215,21 @@ class BaseCandidateProfileRepository(ABC):
 
     @abstractmethod
     def complete_refinement(self, profile_id: int, profile: CandidateProfile) -> int:
+        pass
+
+    @abstractmethod
+    def claim_next_for_embedding(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        pass
+
+    @abstractmethod
+    def complete_embedding(
+        self,
+        profile_id: int,
+        skill_embedding: list[float] | None,
+        research_embedding: list[float] | None,
+    ) -> None:
         pass
 
 

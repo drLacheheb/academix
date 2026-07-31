@@ -115,6 +115,18 @@ class RefinementResult(BaseModel):
     research_embedding: list[float] | None = None
 
 
+class EmbeddingJobResult(BaseModel):
+    url: str
+    skill_embedding: list[float] | None = None
+    research_embedding: list[float] | None = None
+
+
+class ProfileEmbeddingResult(BaseModel):
+    profile_id: int
+    skill_embedding: list[float] | None = None
+    research_embedding: list[float] | None = None
+
+
 class ClaimRequest(BaseModel):
     agent_name: str
 

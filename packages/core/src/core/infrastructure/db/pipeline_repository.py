@@ -6,6 +6,7 @@ from core.domain.constants import (
 from core.domain.interfaces.db import BaseStatusQueryRepository
 from core.domain.models.job import Job
 from core.infrastructure.db.detection import LanguageDetectionRepository
+from core.infrastructure.db.embedding import EmbeddingRepository
 from core.infrastructure.db.match_repository import MatchRepository
 from core.infrastructure.db.matching_queue import MatchingQueueRepository
 from core.infrastructure.db.profile_repository import DatabaseCandidateProfileRepository
@@ -21,6 +22,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         self.detection = LanguageDetectionRepository(self._SessionLocal)
         self.translation = TranslationRepository(self._SessionLocal)
         self.refinement = RefinementRepository(self._SessionLocal)
+        self.embedding = EmbeddingRepository(self._SessionLocal)
         self.status = StatusQueryRepository(self._SessionLocal)
         self.profiles = DatabaseCandidateProfileRepository(self._SessionLocal)
         self.matching_queue = MatchingQueueRepository(self._SessionLocal)
@@ -84,6 +86,23 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
     def fail_refinement(self, url: str) -> None:
         return self.refinement.fail(url)
 
+    def claim_next_for_embedding(self, agent_name: str) -> Job | None:
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
+            minutes=STALE_CLAIM_TIMEOUT_MINUTES
+        )
+        return self.embedding.claim_next(agent_name, cutoff)
+
+    def complete_embedding(
+        self,
+        url: str,
+        skill_embedding: list[float] | None = None,
+        research_embedding: list[float] | None = None,
+    ) -> None:
+        return self.embedding.complete(url, skill_embedding, research_embedding)
+
+    def fail_embedding(self, url: str) -> None:
+        return self.embedding.fail(url)
+
     def _recover_stale_claims(self, session) -> int:
         stale_cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(
             minutes=STALE_CLAIM_TIMEOUT_MINUTES
@@ -92,6 +111,7 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
         recovered += self.detection.recover_stale(stale_cutoff)
         recovered += self.translation.recover_stale(stale_cutoff)
         recovered += self.refinement.recover_stale(stale_cutoff)
+        recovered += self.embedding.recover_stale(stale_cutoff)
         recovered += self.matching_queue.recover_stale(stale_cutoff)
         recovered += self.matches.recover_stale_explanations(stale_cutoff)
         return recovered

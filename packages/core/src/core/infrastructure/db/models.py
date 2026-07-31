@@ -153,6 +153,12 @@ class JobOrchestrationModel(Base):
     claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
+    embedding_status: Mapped[str] = mapped_column(
+        String, nullable=False, default=JobStatus.PENDING, index=True
+    )
+    embedding_claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    embedding_claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
 
 def _safe_json_loads(val: str | None, default: Any = None) -> Any:
     if not val:

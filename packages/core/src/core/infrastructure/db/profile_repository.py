@@ -684,18 +684,10 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     if profile.research_interests
                     else None
                 )
-                existing_email.skill_embedding = (
-                    json.dumps(profile.skill_embedding, ensure_ascii=False)
-                    if profile.skill_embedding
-                    else None
-                )
-                existing_email.research_embedding = (
-                    json.dumps(profile.research_embedding, ensure_ascii=False)
-                    if profile.research_embedding
-                    else None
-                )
-                existing_email.status = "COMPLETED"
-                existing_email.status_message = "Updated successfully via newer CV upload"
+                existing_email.skill_embedding = None
+                existing_email.research_embedding = None
+                existing_email.status = "PENDING_EMBEDDING"
+                existing_email.status_message = "Refinement completed, awaiting embedding"
                 existing_email.claimed_by = None
                 existing_email.claimed_at = None
 
@@ -781,22 +773,103 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                         if profile.research_interests
                         else None
                     )
-                    placeholder.skill_embedding = (
-                        json.dumps(profile.skill_embedding, ensure_ascii=False)
-                        if profile.skill_embedding
-                        else None
-                    )
-                    placeholder.research_embedding = (
-                        json.dumps(profile.research_embedding, ensure_ascii=False)
-                        if profile.research_embedding
-                        else None
-                    )
-                    placeholder.status = "COMPLETED"
-                    placeholder.status_message = "Parsed and refined successfully"
+                    placeholder.skill_embedding = None
+                    placeholder.research_embedding = None
+                    placeholder.status = "PENDING_EMBEDDING"
+                    placeholder.status_message = "Refinement completed, awaiting embedding"
                     placeholder.claimed_by = None
                     placeholder.claimed_at = None
                 session.commit()
                 return profile_id
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def claim_next_for_embedding(
+        self, agent_name: str, stale_cutoff: datetime
+    ) -> CandidateProfile | None:
+        session = self._SessionLocal()
+        try:
+            # Recover stale embedding claims
+            session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.status == "EMBEDDING_CLAIMED",
+                    CandidateProfileModel.claimed_at < stale_cutoff,
+                )
+                .values(
+                    status="PENDING_EMBEDDING",
+                    claimed_by=None,
+                    claimed_at=None,
+                )
+            )
+            candidate = (
+                session.query(CandidateProfileModel)
+                .filter(
+                    CandidateProfileModel.status == "PENDING_EMBEDDING",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .first()
+            )
+            if not candidate:
+                session.commit()
+                return None
+
+            result = session.execute(
+                update(CandidateProfileModel)
+                .where(
+                    CandidateProfileModel.id == candidate.id,
+                    CandidateProfileModel.status == "PENDING_EMBEDDING",
+                    CandidateProfileModel.claimed_by.is_(None),
+                )
+                .values(
+                    status="EMBEDDING_CLAIMED",
+                    claimed_by=agent_name,
+                    claimed_at=datetime.now(),
+                )
+            )
+            session.commit()
+            if getattr(result, "rowcount", 0) > 0:
+                session.refresh(candidate)
+                return candidate.to_domain()
+            return None
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def complete_embedding(
+        self,
+        profile_id: int,
+        skill_embedding: list[float] | None,
+        research_embedding: list[float] | None,
+    ) -> None:
+        session = self._SessionLocal()
+        try:
+            existing = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
+            if existing:
+                existing.skill_embedding = (
+                    json.dumps(skill_embedding, ensure_ascii=False)
+                    if skill_embedding is not None
+                    else None
+                )
+                existing.research_embedding = (
+                    json.dumps(research_embedding, ensure_ascii=False)
+                    if research_embedding is not None
+                    else None
+                )
+                existing.status = "COMPLETED"
+                existing.status_message = "Embedding completed successfully"
+                existing.claimed_by = None
+                existing.claimed_at = None
+                session.commit()
         except Exception:
             session.rollback()
             raise

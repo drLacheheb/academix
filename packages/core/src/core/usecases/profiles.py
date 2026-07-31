@@ -1,6 +1,5 @@
 from core.domain.interfaces.db import (
     BaseCandidateProfileRepository,
-    BaseMatchingQueueRepository,
 )
 from core.domain.interfaces.services import BaseStorageService
 from core.domain.models.profile import CandidateProfile
@@ -162,13 +161,9 @@ class CompleteProfileRefinementUseCase:
     def __init__(
         self,
         repo: BaseCandidateProfileRepository,
-        queue_repo: BaseMatchingQueueRepository,
     ):
         self._repo = repo
-        self._queue_repo = queue_repo
 
     def execute(self, profile_id: int, profile: CandidateProfile) -> int:
         final_id = self._repo.complete_refinement(profile_id, profile)
-        # Enqueue the active profile ID for matching task
-        self._queue_repo.enqueue("candidate", str(final_id))
         return final_id
