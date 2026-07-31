@@ -51,7 +51,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-euraxess-discovery.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - MAX_PAGES=${MAX_PAGES:-5}
       - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
@@ -74,7 +74,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-academictransfer-discovery.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - MAX_PAGES=${MAX_PAGES:-5}
       - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
@@ -97,7 +97,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-euraxess-sourcing.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
       - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
     restart: unless-stopped
@@ -118,12 +118,184 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/crawler-academictransfer-sourcing.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - CRAWL_ONCE=${CRAWL_ONCE:-false}
       - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
     restart: unless-stopped
 
-  # 6. Language Detection worker
+  # 6. ABG Discovery Scraper (Continuous schedule)
+  crawler-abg-discovery:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "abg-discovery", "python", "-m", "abg_discovery.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-abg-discovery.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - MAX_PAGES=${MAX_PAGES:-5}
+      - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-3600}
+    restart: unless-stopped
+
+  # 7. ABG Sourcing Scraper (Continuous polling queue)
+  crawler-abg-sourcing:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "abg-sourcing", "python", "-m", "abg_sourcing.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-abg-sourcing.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
+    restart: unless-stopped
+
+  # 8. Nature Careers Discovery Scraper (Continuous schedule)
+  crawler-naturecareers-discovery:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "naturecareers-discovery", "python", "-m", "naturecareers_discovery.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-naturecareers-discovery.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-21600}
+    restart: unless-stopped
+
+  # 9. Nature Careers Sourcing Scraper (Continuous polling queue)
+  crawler-naturecareers-sourcing:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "naturecareers-sourcing", "python", "-m", "naturecareers_sourcing.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-naturecareers-sourcing.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
+    restart: unless-stopped
+
+  # 10. ResearchGate Discovery Scraper (Continuous schedule)
+  crawler-researchgate-discovery:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "researchgate-discovery", "python", "-m", "researchgate_discovery.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-researchgate-discovery.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - MAX_PAGES=${MAX_PAGES:-5}
+      - MAX_SAFETY_PAGES=${MAX_SAFETY_PAGES:-500}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-21600}
+    restart: unless-stopped
+
+  # 11. ResearchGate Sourcing Scraper (Continuous polling queue)
+  crawler-researchgate-sourcing:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "researchgate-sourcing", "python", "-m", "researchgate_sourcing.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-researchgate-sourcing.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
+    restart: unless-stopped
+
+  # 12. EuroScienceJobs Discovery Scraper (Continuous schedule)
+  crawler-eurosciencejobs-discovery:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "eurosciencejobs-discovery", "python", "-m", "eurosciencejobs_discovery.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-eurosciencejobs-discovery.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-21600}
+    restart: unless-stopped
+
+  # 13. EuroScienceJobs Sourcing Scraper (Continuous polling queue)
+  crawler-eurosciencejobs-sourcing:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "eurosciencejobs-sourcing", "python", "-m", "eurosciencejobs_sourcing.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/crawler-eurosciencejobs-sourcing.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - CRAWL_ONCE=${CRAWL_ONCE:-false}
+      - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
+    restart: unless-stopped
+
+  # 14. Language Detection worker
   lang-detection-worker:
     build:
       context: .
@@ -139,12 +311,12 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/lang-detection-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
       - FTLANG_CACHE=/app/${HF_HOME:-models}
     restart: unless-stopped
 
-  # 7. Local NLLB Translation worker
+  # 15. Local NLLB Translation worker
   translation-worker:
     build:
       context: .
@@ -163,18 +335,20 @@ services:
       - HF_HUB_DISABLE_SYMLINKS_WARNING=${HF_HUB_DISABLE_SYMLINKS_WARNING:-1}
       - LOG_FILE=/app/logs/translation-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - MODELS_DIR=/app/${MODELS_DIR:-models}
       - NLLB_MODEL_PATH=${NLLB_MODEL_PATH:-mijuanlo/nllb-200-distilled-600M-ct2-int8}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
-  # 8. Centralized High-Performance GGUF LLM Runner Service
+  # 16. Centralized High-Performance GGUF LLM Runner Service
   llm-service:
     build:
       context: .
       target: llm-runner
     command: ["uv", "run", "--package", "llm-runner", "python", "-m", "agent_llm_runner.main"]
+    deploy:
+      replicas: ${LLM_SERVICE_REPLICAS:-1}
     volumes:
       - ./${HF_HOME:-models}:/app/models
       - ./logs:/app/logs
@@ -190,14 +364,17 @@ services:
       - LLM_SERVICE_PORT=8001
       - LLM_SERVICE_HOST=0.0.0.0
     restart: unless-stopped
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
 
-  # 9. Gemma-4 Metadata Refinement worker
+  # 17. Gemma-4 Metadata Refinement worker
   refinement-worker:
     build:
       context: .
       target: refinement
+    deploy:
+      replicas: ${REFINEMENT_WORKER_REPLICAS:-1}
+
     command: ["uv", "run", "--package", "refinement", "python", "-m", "agent_refinement.main"]
     depends_on:
       api:
@@ -211,12 +388,12 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/refinement-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - LLM_SERVICE_URL=http://llm-service:8001
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
-  # 10. Matching and Explanations worker
+  # 18. Matching and Explanations worker
   matching-worker:
     build:
       context: .
@@ -235,12 +412,12 @@ services:
       - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.7}
       - LOG_FILE=/app/logs/matching-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - LLM_SERVICE_URL=http://llm-service:8001
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-15}
     restart: unless-stopped
 
-  # 10. CV Ingestion and Parsing worker
+  # 19. CV Ingestion and Parsing worker
   cv-parsing-worker:
     build:
       context: .
@@ -257,7 +434,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - LOG_FILE=/app/logs/cv-parsing-worker.log
       - API_URL=http://api:8000
-      - API_TOKEN=${API_SECRET_KEY:-dev_secret_key}
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
       - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
@@ -267,4 +444,28 @@ services:
       - S3_REGION=${S3_REGION:-us-east-1}
     restart: unless-stopped
 
+  # 20. Multi-User Telegram Bot Interface & Notifier
+  telegram-bot:
+    build:
+      context: .
+      target: slim
+    command: ["uv", "run", "--package", "telegram-bot", "python", "-m", "telegram_bot.main"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/telegram-bot.log
+      - API_URL=http://api:8000
+      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+    restart: unless-stopped
+
+
+
+
 # Local host directories ./logs and ./models are used for storage and model persistence
+

@@ -12,6 +12,14 @@ COPY packages/agents/academictransfer-discovery/pyproject.toml packages/agents/a
 COPY packages/agents/academictransfer-sourcing/pyproject.toml packages/agents/academictransfer-sourcing/
 COPY packages/agents/euraxess-discovery/pyproject.toml packages/agents/euraxess-discovery/
 COPY packages/agents/euraxess-sourcing/pyproject.toml packages/agents/euraxess-sourcing/
+COPY packages/agents/abg-discovery/pyproject.toml packages/agents/abg-discovery/
+COPY packages/agents/abg-sourcing/pyproject.toml packages/agents/abg-sourcing/
+COPY packages/agents/naturecareers-discovery/pyproject.toml packages/agents/naturecareers-discovery/
+COPY packages/agents/naturecareers-sourcing/pyproject.toml packages/agents/naturecareers-sourcing/
+COPY packages/agents/researchgate-discovery/pyproject.toml packages/agents/researchgate-discovery/
+COPY packages/agents/researchgate-sourcing/pyproject.toml packages/agents/researchgate-sourcing/
+COPY packages/agents/eurosciencejobs-discovery/pyproject.toml packages/agents/eurosciencejobs-discovery/
+COPY packages/agents/eurosciencejobs-sourcing/pyproject.toml packages/agents/eurosciencejobs-sourcing/
 COPY packages/agents/lang-detection/pyproject.toml packages/agents/lang-detection/
 COPY packages/agents/refinement/pyproject.toml packages/agents/refinement/
 COPY packages/agents/translation/pyproject.toml packages/agents/translation/
@@ -27,7 +35,11 @@ FROM builder-base AS builder-api
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-workspace --no-dev --package api \
     --package academictransfer-discovery --package academictransfer-sourcing \
-    --package euraxess-discovery --package euraxess-sourcing && \
+    --package euraxess-discovery --package euraxess-sourcing \
+    --package abg-discovery --package abg-sourcing \
+    --package naturecareers-discovery --package naturecareers-sourcing \
+    --package researchgate-discovery --package researchgate-sourcing \
+    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-lang-detection
@@ -60,7 +72,14 @@ COPY --from=builder-api /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package api \
     --package academictransfer-discovery --package academictransfer-sourcing \
-    --package euraxess-discovery --package euraxess-sourcing
+    --package euraxess-discovery --package euraxess-sourcing \
+    --package abg-discovery --package abg-sourcing \
+    --package naturecareers-discovery --package naturecareers-sourcing \
+    --package researchgate-discovery --package researchgate-sourcing \
+    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing
+
+
+
 CMD ["uv", "run", "--package", "api", "fastapi", "run", "packages/api/src/api/main.py", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM base AS lang-detection
