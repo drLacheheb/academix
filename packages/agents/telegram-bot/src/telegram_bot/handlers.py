@@ -47,7 +47,10 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     chat_id = str(update.effective_chat.id)
-    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    try:
+        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    except Exception:
+        pass
     api = context.bot_data.get("api")
     if not api:
         await update.message.reply_text("❌ API service unavailable.")
