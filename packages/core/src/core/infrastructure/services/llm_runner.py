@@ -70,14 +70,11 @@ class LocalLlmRunner(BaseLlmRunner):
         )
         self.model = Llama(
             model_path=self._resolved_path,
-            n_ctx=2048,
+            n_ctx=self.max_context,
             n_batch=1024,
             n_threads=cpu_cores,
             n_threads_batch=cpu_cores,
             n_gpu_layers=n_gpu_layers,
-            type_k=8,
-            type_v=8,
-            mlock=True,
             verbose=False,
         )
         logger.info("Local GGUF model loaded successfully!")
@@ -114,7 +111,7 @@ class LocalLlmRunner(BaseLlmRunner):
             messages=chat_messages,
             max_tokens=max_tokens,
             temperature=self.temperature,
-            stop=["}\n\n", "```"],
+            stop=["```"],
             **kwargs,
         )
 
