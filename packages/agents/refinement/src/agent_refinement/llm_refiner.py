@@ -16,11 +16,14 @@ class LlmRefiner(BaseRefiner):
     def __init__(
         self,
         runner: BaseLlmRunner,
-        max_text_chars: int = 60000,
+        max_input_tokens: int = 15000,
+        max_output_tokens: int = 10000,
         logger: logging.Logger | None = None,
     ):
         self._runner = runner
-        self._max_text_chars = max_text_chars
+        self._max_input_tokens = max_input_tokens
+        self._max_output_tokens = max_output_tokens
+        self._max_input_chars = max_input_tokens * 4
         self.logger = logger or get_logger("refinement-llm-refiner")
 
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "refinement_prompt.txt")
@@ -78,7 +81,7 @@ class LlmRefiner(BaseRefiner):
         )
 
     def refine_cv(self, text: str) -> dict:
-        truncated_text = text[: self._max_text_chars]
+        truncated_text = text[: self._max_input_chars]
 
         try:
             cv_schema = CandidateCvExtraction.model_json_schema()
@@ -90,7 +93,7 @@ class LlmRefiner(BaseRefiner):
                         "content": f"Candidate CV Text:\n\n{truncated_text}",
                     },
                 ],
-                max_tokens=10000,
+                max_tokens=self._max_output_tokens,
                 response_format={"type": "json_object", "schema": cv_schema},
             )
             if response_text:
@@ -118,7 +121,7 @@ class LlmRefiner(BaseRefiner):
                     {"role": "system", "content": self._system_prompt},
                     {"role": "user", "content": text},
                 ],
-                max_tokens=10000,
+                max_tokens=self._max_output_tokens,
                 response_format={"type": "json_object", "schema": job_schema},
             )
 
@@ -142,7 +145,7 @@ class LlmRefiner(BaseRefiner):
         loc_block = f"Location: {location}\n" if location else ""
 
         # Calculate available budget for desc and req
-        avail_budget = self._max_text_chars - len(title_block) - len(loc_block) - 100
+        avail_budget = self._max_input_chars - len(title_block) - len(loc_block) - 100
         avail_budget = max(avail_budget, 500)
 
         desc_str = description or ""

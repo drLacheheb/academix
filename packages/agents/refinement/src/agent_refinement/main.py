@@ -16,15 +16,19 @@ def get_config() -> dict:
         "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf",
     )
     models_dir = os.environ.get("MODELS_DIR", "models")
-    max_length = int(os.environ.get("MAX_LENGTH", "32768"))
+    max_context_tokens = int(
+        os.environ.get("MAX_CONTEXT_TOKENS", os.environ.get("MAX_LENGTH", "32768"))
+    )
     temperature = float(os.environ.get("TEMPERATURE", "0.0"))
-    max_text_chars = int(os.environ.get("MAX_TEXT_CHARS", "60000"))
+    max_input_tokens = int(os.environ.get("MAX_INPUT_TOKENS", "15000"))
+    max_output_tokens = int(os.environ.get("MAX_OUTPUT_TOKENS", "10000"))
     return {
         "model_path": model_path,
         "models_dir": models_dir,
-        "max_length": max_length,
+        "max_context_tokens": max_context_tokens,
         "temperature": temperature,
-        "max_text_chars": max_text_chars,
+        "max_input_tokens": max_input_tokens,
+        "max_output_tokens": max_output_tokens,
     }
 
 
@@ -40,7 +44,8 @@ def run():
     runner = HttpLlmRunner()
     refiner = LlmRefiner(
         runner=runner,
-        max_text_chars=config["max_text_chars"],
+        max_input_tokens=config["max_input_tokens"],
+        max_output_tokens=config["max_output_tokens"],
     )
 
     from core.domain.models.profile import CandidateProfile
