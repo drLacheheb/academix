@@ -100,10 +100,10 @@ class LlmRefiner(BaseRefiner):
                 parsed = self._parse_json_response(response_text.strip())
                 validated = CandidateCvExtraction.model_validate(parsed)
                 return validated.model_dump()
-            return {}
+            raise RuntimeError("LLM service returned empty completion response")
         except Exception as e:
-            self.logger.warning(f"GGUF CV inference failed: {e}")
-            return {}
+            self.logger.error(f"GGUF CV inference failed: {e}")
+            raise RuntimeError(f"GGUF CV inference failed: {e}") from e
 
     def _run_inference(
         self,
@@ -129,10 +129,10 @@ class LlmRefiner(BaseRefiner):
                 parsed = self._parse_json_response(response_text.strip())
                 validated = JobRefinementExtraction.model_validate(parsed)
                 return validated.model_dump()
-            return {}
+            raise RuntimeError("LLM service returned empty completion response")
         except Exception as e:
-            self.logger.warning(f"GGUF inference failed: {e}")
-            return {}
+            self.logger.error(f"GGUF inference failed: {e}")
+            raise RuntimeError(f"GGUF inference failed: {e}") from e
 
     def _build_input_text(
         self,
