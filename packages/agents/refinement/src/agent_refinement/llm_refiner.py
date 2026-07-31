@@ -16,7 +16,7 @@ class LlmRefiner(BaseRefiner):
     def __init__(
         self,
         runner: BaseLlmRunner,
-        max_text_chars: int = 3000,
+        max_text_chars: int = 15000,
         logger: logging.Logger | None = None,
     ):
         self._runner = runner
@@ -90,7 +90,7 @@ class LlmRefiner(BaseRefiner):
                         "content": f"Candidate CV Text:\n\n{truncated_text}",
                     },
                 ],
-                max_tokens=512,
+                max_tokens=2048,
                 response_format={"type": "json_object", "schema": cv_schema},
             )
             if response_text:
