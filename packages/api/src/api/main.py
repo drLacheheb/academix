@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from api.limiter_config import limiter
 from api.routers import (
     detection,
+    embedding,
     jobs,
     matching,
     profiles,
@@ -94,5 +95,6 @@ app.include_router(jobs.router)
 app.include_router(detection.router)
 app.include_router(translation.router)
 app.include_router(refinement.router)
+app.include_router(embedding.router)
 app.include_router(profiles.router)
 app.include_router(matching.router)

@@ -3,24 +3,29 @@ from core.infrastructure.db.pipeline_repository import PipelineJobRepository
 from core.usecases import (
     CheckKnownUrlsUseCase,
     ClaimDetectionJobUseCase,
+    ClaimEmbeddingJobUseCase,
     ClaimIngestionUseCase,
     ClaimMatchExplanationUseCase,
     ClaimMatchingTaskUseCase,
     ClaimProfileDetectionUseCase,
+    ClaimProfileEmbeddingUseCase,
     ClaimProfileRefinementUseCase,
     ClaimProfileTranslationUseCase,
     ClaimRefinementJobUseCase,
     ClaimTranslationJobUseCase,
     CompleteDetectionUseCase,
+    CompleteEmbeddingJobUseCase,
     CompleteIngestionUseCase,
     CompleteMatchExplanationUseCase,
     CompleteProfileDetectionUseCase,
+    CompleteProfileEmbeddingUseCase,
     CompleteProfileRefinementUseCase,
     CompleteProfileTranslationUseCase,
     CompleteRefinementUseCase,
     CompleteTranslationUseCase,
     CreateJobsUseCase,
     FailDetectionUseCase,
+    FailEmbeddingJobUseCase,
     FailIngestionUseCase,
     FailMatchExplanationUseCase,
     FailMatchingTaskUseCase,
@@ -105,13 +110,31 @@ def get_refine_claim_usecase(
 def get_refine_complete_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> CompleteRefinementUseCase:
-    return CompleteRefinementUseCase(repo.refinement, repo.matching_queue)
+    return CompleteRefinementUseCase(repo.refinement)
 
 
 def get_refine_fail_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> FailRefinementUseCase:
     return FailRefinementUseCase(repo.refinement)
+
+
+def get_embed_claim_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimEmbeddingJobUseCase:
+    return ClaimEmbeddingJobUseCase(repo.embedding)
+
+
+def get_embed_complete_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteEmbeddingJobUseCase:
+    return CompleteEmbeddingJobUseCase(repo.embedding, repo.matching_queue)
+
+
+def get_embed_fail_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> FailEmbeddingJobUseCase:
+    return FailEmbeddingJobUseCase(repo.embedding)
 
 
 def get_status_usecase(
@@ -307,4 +330,16 @@ def get_claim_profile_refine_usecase(
 def get_complete_profile_refine_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> CompleteProfileRefinementUseCase:
-    return CompleteProfileRefinementUseCase(repo.profiles, repo.matching_queue)
+    return CompleteProfileRefinementUseCase(repo.profiles)
+
+
+def get_claim_profile_embed_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> ClaimProfileEmbeddingUseCase:
+    return ClaimProfileEmbeddingUseCase(repo.profiles)
+
+
+def get_complete_profile_embed_usecase(
+    repo: PipelineJobRepository = Depends(get_repo),
+) -> CompleteProfileEmbeddingUseCase:
+    return CompleteProfileEmbeddingUseCase(repo.profiles, repo.matching_queue)
