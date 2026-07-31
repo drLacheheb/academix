@@ -18,6 +18,7 @@ members = [
     "api",
     "core",
     "cv-parsing",
+    "embedding-worker",
     "euraxess-discovery",
     "euraxess-sourcing",
     "eurosciencejobs-discovery",
@@ -644,6 +645,23 @@ wheels = [
 ]
 
 [[package]]
+name = "embedding-worker"
+version = "0.1.0"
+source = { editable = "packages/agents/embedding-worker" }
+dependencies = [
+    { name = "core", extra = ["embeddings"] },
+    { name = "httpx" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "core", extras = ["embeddings"], editable = "packages/core" },
+    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
+
+[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1264,14 +1282,14 @@ name = "matching"
 version = "0.1.0"
 source = { editable = "packages/agents/matching" }
 dependencies = [
-    { name = "core", extra = ["embeddings"] },
+    { name = "core" },
     { name = "httpx" },
     { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "core", extras = ["embeddings"], editable = "packages/core" },
+    { name = "core", editable = "packages/core" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
 ]

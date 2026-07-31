@@ -70,8 +70,10 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "DETECTION_CLAIMED": "🔍 Detecting Language...",
             "PENDING_TRANSLATION": "🌍 Translating Profile...",
             "TRANSLATION_CLAIMED": "🌍 Translating Profile...",
-            "PENDING_REFINEMENT": "🔬 Structuring & Embedding Profile...",
+            "PENDING_REFINEMENT": "🔬 Structuring Profile...",
             "REFINEMENT_CLAIMED": "🔬 Structuring Profile...",
+            "PENDING_EMBEDDING": "⚡ Generating Vector Embeddings...",
+            "EMBEDDING_CLAIMED": "⚡ Generating Vector Embeddings...",
             "COMPLETED": "✅ Ready & Matched!",
             "FAILED": "❌ Processing Failed",
         }

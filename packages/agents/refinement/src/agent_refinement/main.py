@@ -1,7 +1,6 @@
 import os
 
 from core.infrastructure.logging.logger import get_logger
-from core.infrastructure.services.embedding_service import EmbeddingService
 from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
@@ -33,7 +32,6 @@ def run():
     agent_name = get_agent_name("refinement-worker")
     logger = get_logger(agent_name)
     config = get_config()
-    embedding_service = EmbeddingService()
 
     logger.info(f"Starting Job Refinement Agent (name: {agent_name})")
 
@@ -80,7 +78,7 @@ def run():
                 if has_structured_fields or not raw_text:
                     logger.info(
                         f"[{profile_id}] Profile has pre-existing structured fields. "
-                        f"Encoding embeddings directly..."
+                        f"Passing to embedding stage..."
                     )
                     profile = CandidateProfile.from_dict(profile_data)
                 else:
@@ -96,11 +94,6 @@ def run():
                         extracted["email"] = profile_data.get("email")
 
                     profile = CandidateProfile.from_dict(extracted)
-
-                profile.skill_embedding = embedding_service.encode_skills(profile.skills or [])
-                profile.research_embedding = embedding_service.encode_research(
-                    profile.research_interests or []
-                )
 
                 logger.info("Finished CV refinement. Submitting results to API...")
                 submit_resp = api.put(
@@ -156,12 +149,6 @@ def run():
             logger.info(f"Refinement completed for {job_title}")
             logger.info(f"  -> Skills: {result.required_skills}")
             logger.info(f"  -> Education: {result.education_level}")
-
-            result.skill_embedding = embedding_service.encode_skills(result.required_skills or [])
-            result.research_embedding = embedding_service.encode_research(
-                result.required_skills or [],
-                title=job_title,
-            )
 
             submit_resp = api.put("/jobs/refine", json=result.model_dump())
             submit_resp.raise_for_status()
