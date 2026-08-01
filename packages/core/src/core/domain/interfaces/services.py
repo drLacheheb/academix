@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 
 
 class BaseEmbeddingService(ABC):
@@ -21,30 +20,6 @@ class BaseLanguageDetector(ABC):
 class BaseTranslator(ABC):
     @abstractmethod
     def translate(self, text: str, source_lang: str) -> str:
-        pass
-
-
-class BaseLlmRunner(ABC):
-    @property
-    @abstractmethod
-    def is_loaded(self) -> bool:
-        pass
-
-    @abstractmethod
-    def load_model(self) -> None:
-        pass
-
-    @abstractmethod
-    def free_model(self) -> None:
-        pass
-
-    @abstractmethod
-    def create_chat_completion(
-        self,
-        messages: Sequence[dict[str, str]],
-        max_tokens: int = 512,
-        response_format: dict | None = None,
-    ) -> str:
         pass
 
 

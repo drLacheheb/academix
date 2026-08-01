@@ -1,9 +1,10 @@
 import os
 
-from core.domain.interfaces.services import BaseLlmRunner
 from core.domain.models.job import Job
 from core.domain.models.profile import CandidateProfile
 from core.infrastructure.logging.logger import get_logger
+from core.infrastructure.services.instructor_client import InstructorLlmClient
+from core.usecases.match_explanation import ExplainMatchUseCase
 from core.usecases.match_scorer import MatchScorer
 from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
@@ -13,80 +14,10 @@ load_dotenv()
 
 
 def get_config() -> dict:
-    model_path = os.environ.get(
-        "MODEL_PATH",
-        "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf",
-    )
-    models_dir = os.environ.get("MODELS_DIR", "models")
-    max_length = int(os.environ.get("MAX_LENGTH", "4096"))
-    temperature = float(os.environ.get("TEMPERATURE", "0.0"))
     match_threshold = float(os.environ.get("MATCH_THRESHOLD", "0.7"))
     return {
-        "model_path": model_path,
-        "models_dir": models_dir,
-        "max_length": max_length,
-        "temperature": temperature,
         "match_threshold": match_threshold,
     }
-
-
-class LlmExplainer:
-    def __init__(self, runner: BaseLlmRunner):
-        self._runner = runner
-
-        prompt_path = os.path.join(
-            os.path.dirname(__file__), "prompts", "match_explanation_prompt.txt"
-        )
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            self._system_prompt = f.read().strip()
-
-    @property
-    def is_loaded(self) -> bool:
-        return self._runner.is_loaded
-
-    def load_model(self) -> None:
-        self._runner.load_model()
-
-    def free_model(self) -> None:
-        self._runner.free_model()
-
-    def generate_explanation(self, candidate: CandidateProfile, job: Job) -> str:
-        from core.domain.models.schemas import MatchExplanationExtraction
-
-        user_content = (
-            f"### Candidate Profile\n"
-            f"- Name: {candidate.name}\n"
-            f"- Highest Degree: {candidate.highest_degree or 'None'}\n"
-            f"- Skills: {', '.join(candidate.skills or [])}\n"
-            f"- Research Interests: {', '.join(candidate.research_interests or [])}\n\n"
-            f"### Job Details\n"
-            f"- Title: {job.title}\n"
-            f"- Required Skills: {', '.join(job.required_skills or [])}\n"
-            f"- Education Requirement: {job.education_level or 'None'}\n\n"
-            f"Extract structured key matching reasons for {candidate.name} and this job."
-        )
-
-        schema = MatchExplanationExtraction.model_json_schema()
-        raw_output = self._runner.create_chat_completion(
-            messages=[
-                {"role": "system", "content": self._system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            max_tokens=256,
-            response_format={"type": "json_object", "schema": schema},
-        )
-
-        if raw_output:
-            try:
-                import json
-
-                parsed = json.loads(raw_output)
-                validated = MatchExplanationExtraction.model_validate(parsed)
-                if validated.reasons:
-                    return " ".join(r.description for r in validated.reasons)
-            except Exception:
-                return raw_output.strip()
-        return ""
 
 
 def run():
@@ -96,10 +27,8 @@ def run():
 
     logger.info(f"Starting Job Matching Agent (name: {agent_name})")
 
-    from core.infrastructure.services.http_runner import HttpLlmRunner
-
-    runner = HttpLlmRunner()
-    explainer = LlmExplainer(runner=runner)
+    client = InstructorLlmClient()
+    explainer = ExplainMatchUseCase(llm=client)
 
     api = make_api_client(timeout=60.0)
 
@@ -239,12 +168,8 @@ def run():
                     raise ValueError(f"Job not found for explanation: {job_url}")
                 job = Job.from_dict(job_dict)
 
-                # Lazy-load LLM model
-                if not explainer.is_loaded:
-                    explainer.load_model()
-
-                # Generate explanation
-                explanation = explainer.generate_explanation(candidate, job)
+                # Generate explanation using domain usecase
+                explanation = explainer.execute(candidate, job)
                 logger.info(f"Generated explanation: {explanation}")
 
                 # Submit explanation
@@ -266,15 +191,11 @@ def run():
         # If no tasks or explanations were processed
         if not task_processed:
             logger.info("No matching tasks or pending explanations available.")
-            if explainer.is_loaded:
-                explainer.free_model()
         return False
 
     try:
         run_agent_loop(cycle, default_interval=15.0)
     finally:
-        if explainer.is_loaded:
-            explainer.free_model()
         api.close()
 
 

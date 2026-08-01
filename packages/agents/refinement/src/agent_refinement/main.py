@@ -1,62 +1,29 @@
-import os
-
+from core.domain.models.profile import CandidateProfile
 from core.infrastructure.logging.logger import get_logger
+from core.infrastructure.services.instructor_client import InstructorLlmClient
+from core.usecases.cv_extraction import ExtractCvUseCase
+from core.usecases.job_refinement_llm import RefineJobUseCase
 from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 
-from agent_refinement.llm_refiner import LlmRefiner
-
 load_dotenv()
-
-
-def get_config() -> dict:
-    model_path = os.environ.get(
-        "MODEL_PATH",
-        "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf",
-    )
-    models_dir = os.environ.get("MODELS_DIR", "models")
-    max_context_tokens = int(
-        os.environ.get("MAX_CONTEXT_TOKENS", os.environ.get("MAX_LENGTH", "8192"))
-    )
-    temperature = float(os.environ.get("TEMPERATURE", "0.0"))
-    max_input_tokens = int(os.environ.get("MAX_INPUT_TOKENS", "6000"))
-    max_output_tokens = int(os.environ.get("MAX_OUTPUT_TOKENS", "2000"))
-    return {
-        "model_path": model_path,
-        "models_dir": models_dir,
-        "max_context_tokens": max_context_tokens,
-        "temperature": temperature,
-        "max_input_tokens": max_input_tokens,
-        "max_output_tokens": max_output_tokens,
-    }
 
 
 def run():
     agent_name = get_agent_name("refinement-worker")
     logger = get_logger(agent_name)
-    config = get_config()
 
     logger.info(f"Starting Job Refinement Agent (name: {agent_name})")
 
-    from core.infrastructure.services.http_runner import HttpLlmRunner
-
-    runner = HttpLlmRunner()
-    refiner = LlmRefiner(
-        runner=runner,
-        max_input_tokens=config["max_input_tokens"],
-        max_output_tokens=config["max_output_tokens"],
-    )
-
-    from core.domain.models.profile import CandidateProfile
+    client = InstructorLlmClient()
+    cv_extractor = ExtractCvUseCase(llm=client)
+    job_refiner = RefineJobUseCase(llm=client)
 
     api = make_api_client(timeout=60.0)
 
-    def load_refiner_if_needed():
-        pass
-
     def cycle() -> bool:
-        nonlocal refiner, api, logger
+        nonlocal cv_extractor, job_refiner, api, logger
         # 1. Try to claim candidate profile refinement task
         profile_data = None
         try:
@@ -96,18 +63,18 @@ def run():
                     )
                     profile = CandidateProfile.from_dict(profile_data)
                 else:
-                    load_refiner_if_needed()
                     logger.info("Running LLM skills and metadata extraction...")
-                    extracted = refiner.refine_cv(raw_text)
+                    extracted = cv_extractor.execute(raw_text)
+                    extracted_dict = extracted.model_dump()
 
                     # Merge with metadata from candidate upload if any
-                    extracted["cv_file_path"] = profile_data.get("cv_file_path")
-                    if not extracted.get("name") and profile_data.get("name"):
-                        extracted["name"] = profile_data.get("name")
-                    if not extracted.get("email") and profile_data.get("email"):
-                        extracted["email"] = profile_data.get("email")
+                    extracted_dict["cv_file_path"] = profile_data.get("cv_file_path")
+                    if not extracted_dict.get("name") and profile_data.get("name"):
+                        extracted_dict["name"] = profile_data.get("name")
+                    if not extracted_dict.get("email") and profile_data.get("email"):
+                        extracted_dict["email"] = profile_data.get("email")
 
-                    profile = CandidateProfile.from_dict(extracted)
+                    profile = CandidateProfile.from_dict(extracted_dict)
 
                 logger.info("Finished CV refinement. Submitting results to API...")
                 submit_resp = api.put(
@@ -137,8 +104,6 @@ def run():
 
         if not job_data:
             logger.info("No pending jobs available for refinement.")
-            if refiner.is_loaded:
-                refiner.free_model()
             return False
 
         job_title = job_data.get("title")
@@ -149,10 +114,8 @@ def run():
 
         logger.info(f"Successfully claimed job: {job_title} ({job_url})")
 
-        load_refiner_if_needed()
-
         try:
-            result = refiner.refine(
+            result = job_refiner.execute(
                 url=job_url,
                 title=job_title,
                 location=job_location,
@@ -175,8 +138,6 @@ def run():
     try:
         run_agent_loop(cycle, default_interval=10.0)
     finally:
-        if refiner.is_loaded:
-            refiner.free_model()
         api.close()
 
 

@@ -8,6 +8,8 @@ dependencies = [
     "curl-cffi>=0.15.0",
     "pydantic>=2.13.0",
     "sentencex>=1.0.30",
+    "instructor>=1.7.0",
+    "openai>=1.60.0",
 ]
 
 [project.optional-dependencies]
@@ -17,7 +19,6 @@ embeddings = [
 ]
 vision = [
     "docling>=2.113.0",
-    "onnxruntime>=1.27.0",
     "torch",
     "torchvision",
 ]
