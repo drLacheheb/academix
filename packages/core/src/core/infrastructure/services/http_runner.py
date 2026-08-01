@@ -17,7 +17,7 @@ class HttpLlmRunner(BaseLlmRunner):
     def __init__(
         self,
         service_url: str | None = None,
-        timeout: float = 600.0,
+        timeout: float = 900.0,
     ):
 
         self._service_url = service_url or os.environ.get(
