@@ -1,6 +1,6 @@
 # Academic Job Sourcing & Refinement
 
-Automated academic job sourcing, metadata refinement, and CV matching pipeline. Uses local, CPU-optimized models (Gemma-4, SentenceTransformers, and NLLB-200) to translate, detect languages, extract structured skills, prerequisite degrees, and match candidates against positions.
+Automated academic job sourcing, metadata refinement, and CV matching pipeline. Uses local, high-performance models (SentenceTransformers, NLLB-200, and Ollama with instructor) to translate, detect languages, extract structured skills, prerequisite degrees, and match candidates against positions.
 
 ---
 
@@ -8,8 +8,8 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 
 ```text
 ├── packages/
-│   ├── core/                          # Shared domain models, DB repositories, and SDK utilities
-│   │   └── src/core/utils/agent.py    # Standardized signal-aware agent loop utility
+│   ├── core/                          # Shared domain models, DB repositories, Use Cases, & Instructor LLM Client
+│   │   └── src/core/usecases/         # Domain use case experts (ExtractCvUseCase, RefineJobUseCase, ExplainMatchUseCase)
 │   ├── api/                           # FastAPI gateway server and database coordinator
 │   └── agents/                        # Isolated worker packages running in parallel
 │       ├── euraxess-discovery/            # EURAXESS search pagination discovery agent
@@ -26,17 +26,17 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 │       ├── eurosciencejobs-sourcing/      # EuroScienceJobs page details fetcher agent
 │       ├── lang-detection/                # Standalone local language detection agent
 │       ├── translation/                   # Standalone local NLLB-200 translation agent
-│       ├── refinement/                    # Local Gemma-4 metadata extractor & refiner agent
+│       ├── refinement/                    # Metadata refinement worker (Ollama + instructor)
 │       ├── embedding-worker/              # Dedicated nomic vector embedding generation agent
 │       ├── matching/                      # Candidate CV matching & LLM explanation agent
 │       ├── cv-parsing/                    # Background CV ingest and layout parsing agent
-│       ├── llm-runner/                    # Dedicated HTTP LLM inference microservice
 │       └── telegram-bot/                  # Telegram Bot candidate interaction interface agent
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
 ├── Dockerfile                         # Unified multi-purpose Dockerfile
-├── docker-compose.yml                 # Unified Docker Compose orchestration config
+├── docker-compose.yml                 # Unified Docker Compose orchestration config (CPU default)
+├── docker-compose.gpu.yml             # Optional NVIDIA GPU hardware reservation override
 ├── docker-compose.override.yml        # Dev-mode port mapping override
 ├── docker-compose.prod.yml            # Production scaled mode with NGINX
 └── nginx.conf                         # NGINX reverse proxy config
@@ -46,58 +46,57 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 
 ## 2. Requirements
 
-*   **Docker & Docker Compose** (highly recommended for unified execution)
-*   **Python**: `>= 3.12` (if running locally without containers)
-*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (for local CLI runs)
+*   **Docker & Docker Compose** (recommended for unified execution)
+*   **Python**: `== 3.12.*` (if running locally without containers)
+*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (for local workspace CLI runs)
 *   **Hardware requirements**:
-    *   **Refinement Agent**: ~2.8GB RAM to load the `gemma-4-E2B-it-Q4_K_M` GGUF model via llama-cpp-python (idle RAM drops to ~40MB with auto-unload).
+    *   **LLM Service (Ollama)**: Centralized Ollama container running `gemma4` (or any model configured via `OLLAMA_MODEL`).
     *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
-    *   **Matching Agent**: Loads the `Gemma-4` GGUF explainer model on demand and uses `nomic-embed-text-v1.5` for candidate matching.
+    *   **Matching Agent**: Uses `nomic-embed-text-v1.5` for vector similarities and delegates structured reasoning to Ollama via `InstructorLlmClient`.
 *   **Database**: SQLite (default local file `jobs.db` mounted in containers) or PostgreSQL.
 
 ---
 
 ## 3. Quick Start with Docker Compose (Recommended)
 
-Running the entire stack (API server + crawlers + NLP workers) takes a single command:
+Running the entire stack (API server + crawlers + NLP workers + Ollama) takes a single command:
 
 ### A. Configure Environment
 Create your local `.env` file from the template:
 ```bash
 cp .env.example .env
 ```
-Edit `.env` to verify your variables.
 
 ### B. Boot the Stack
 
-You can run the stack in two modes:
-
-#### 1. Local Development Mode (Exposes API directly to port 8000)
-Simply run:
+#### 1. CPU Mode (Default - Works out-of-the-box on any machine)
 ```bash
 docker compose up --build -d
 ```
-This automatically merges `docker-compose.yml` and `docker-compose.override.yml`, mapping the `api` service directly to host port `8000`.
 
-#### 2. Production Scaled Mode (Behind NGINX Load Balancer)
-To test or deploy in production topology with scaled API server instances:
+#### 2. GPU Mode (NVIDIA Hardware Acceleration)
+If you have an NVIDIA GPU and NVIDIA Container Toolkit installed:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+```
+*Tip: Set `COMPOSE_FILE=docker-compose.yml:docker-compose.gpu.yml` in `.env` to enable GPU mode automatically with standard `docker compose up`.*
+
+#### 3. Production Scaled Mode (Behind NGINX Load Balancer)
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d --scale api=3
 ```
-This launches 3 independent stateless API server containers and puts an **NGINX Reverse Proxy** load balancer in front of them, mapping host port `8000` to distribute traffic dynamically across the API replicas.
 
 ### C. Graceful Terminations
 To stop the stack cleanly:
 ```bash
 docker compose down
 ```
-All containers intercept the `SIGTERM` signal, executing graceful SDK cleanup steps (releasing database locks, deallocating LLM models) in milliseconds.
 
 ---
 
 ## 4. Running Locally with UV (Development Mode)
 
-If you prefer to run services manually without Docker, synchronize your dependencies first:
+Synchronize your workspace dependencies first:
 ```bash
 uv sync --all-packages
 ```
@@ -109,7 +108,6 @@ uv run --package api fastapi run packages/api/src/api/main.py --port 8000
 ```
 
 ### B. Run Workspace Agents
-All agents are run from the workspace root. Settings are loaded automatically from your `.env` file.
 
 | Agent Package | Main Module | Agent Role |
 | :--- | :--- | :--- |
@@ -127,30 +125,23 @@ All agents are run from the workspace root. Settings are loaded automatically fr
 | `eurosciencejobs-sourcing` | `eurosciencejobs_sourcing.main` | Page details fetcher (EuroScienceJobs) |
 | `lang-detection` | `agent_lang_detection.main` | Language Detection (All Sources) |
 | `translation` | `agent_translation.main` | Local NLLB-200 Translation (All Sources) |
-| `refinement` | `agent_refinement.main` | Gemma-4 Skills Extraction (All Sources) |
-| `embedding-worker` | `agent_embedding.main` | Local Nomic Vector Embeddings (All Sources) |
-| `matching` | `agent_matching.main` | Candidate CV Matcher & Explainer (All Sources) |
+| `refinement` | `agent_refinement.main` | Skills & Metadata Refinement Worker |
+| `embedding-worker` | `agent_embedding.main` | Local Nomic Vector Embeddings |
+| `matching` | `agent_matching.main` | Candidate CV Matcher & Explainer |
 | `cv-parsing` | `agent_cv_parsing.main` | Background CV Ingest and Layout Parsing |
-| `llm-runner` | `agent_llm_runner.main` | HTTP LLM Service Runner (Gemma GGUF) |
 | `telegram-bot` | `telegram_bot.main` | Telegram Bot User Interface Agent |
 
 Run any agent using:
 ```bash
 uv run --package <Agent Package> python -m <Main Module>
 ```
-*Example (Matching Worker):*
-```bash
-uv run --package matching python -m agent_matching.main
-```
 
 ---
 
 ## 5. Core API & Pipeline Workflow
 
-All requests to the FastAPI Gateway require the `Authorization` header matching the `API_SECRET_KEY` configured in `.env`.
-
-### A. Ingest a Candidate CV (Fully Asynchronous)
-Upload a candidate's CV (PDF format). The API saves the CV bytes to the configured storage service (local or S3/MinIO) and returns a `202 Accepted` status code immediately. The `cv-parsing` background agent then picks up the ingestion task, parses the PDF into raw text, and submits that text back to the API for downstream language detection, translation, and refinement:
+### A. Ingest a Candidate CV
+Upload a candidate's CV (PDF format). The API saves the file and queues it for asynchronous parsing, language detection, translation, and structured field extraction:
 ```bash
 curl -X POST http://localhost:8000/profiles/upload-cv \
   -H "Authorization: Bearer dev_secret_key" \
@@ -158,56 +149,34 @@ curl -X POST http://localhost:8000/profiles/upload-cv \
   -F "email=candidate@example.com" \
   -F "name=John Doe"
 ```
-**Response**: Returns the created placeholder profile object with the database `id`, upload status, and storage path. The `email` and `name` fields are optional.
 
-### B. Background Processing
-Once jobs are discovered, details are sourced, language is detected, and translations (if non-English) are run. The refinement agent then extracts structured skills from job requirements. Candidate profiles follow the same detect, translate, and refine flow before being queued for matching. Finally, the matching agent computes similarities and drafts matching explanations. These pipeline steps run concurrently and automatically.
-
-### C. Retrieve Matched Jobs & Explanations
-Retrieve a list of qualified academic positions for a candidate (ranked by nomic embedding similarities). The payload includes skill match alignment, degree/language eligibility checks, and LLM-generated explanations:
+### B. Retrieve Matched Jobs & Explanations
+Retrieve a list of qualified academic positions for a candidate (ranked by vector similarity with LLM-generated explanations):
 ```bash
 curl -X GET http://localhost:8000/profiles/1/matches?limit=10 \
   -H "Authorization: Bearer dev_secret_key"
 ```
-**Response**: Returns `{"matches": [...]}` where each match contains `score`, `skill_score`, `research_score`, `degree_eligible`, `language_eligible`, and `explanation`.
 
 ---
 
 ## 6. Configuration Settings
 
-Settings configured via the `.env` file:
+Key `.env` options:
 
 | Environment Variable | Default Value | Description |
 |---|---|---|
 | `API_URL` | `http://localhost:8000` | Target URL of the FastAPI gateway |
 | `API_SECRET_KEY` | *None* | Shared bearer credential and API validation key |
 | `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
-| `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model name |
-| `CRAWL_ONCE` | `false` | If `true`, crawlers execute once and stop. If `false` (default), they loop continuously. |
-| `CRAWL_INTERVAL` | `3600` | Period between crawler sweeps in seconds (e.g. `3600` = hourly) |
-| `AGENT_POLL_INTERVAL`| `10` | Frequency in seconds that NLP workers poll the API for new tasks |
-| `MAX_PAGES` | `5` | Pagination crawl depth (set to `0` or negative for infinite crawl until no more listings are found or checkpoint is hit) |
-| `MODEL_PATH` | `unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf` | Path to Gemma-4 GGUF file relative to `MODELS_DIR` |
-| `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Path to NLLB translation model folder relative to `MODELS_DIR` |
-| `MODELS_DIR` | `models` | Global folder name to store downloaded models |
-| `MAX_LENGTH` | `4096` | LLM maximum generation length |
-| `TEMPERATURE` | `0.0` | Model generation temperature |
-| `MAX_TEXT_CHARS` | `3000` | Max characters sent to context window |
-| `STORAGE_PROVIDER` | `local` | Storage backend: `local` for filesystem or `s3` for S3/MinIO |
-| `STALE_CLAIM_TIMEOUT_MINUTES` | `10` | Minutes before a claimed task is considered stale and recoverable |
-| `MAX_SAFETY_PAGES` | `500` | Circuit breaker limit for infinite crawl depth |
-| `S3_BUCKET_NAME` | *None* | S3 bucket name (when `STORAGE_PROVIDER=s3`) |
-| `S3_ACCESS_KEY_ID` | *None* | S3 access key (when `STORAGE_PROVIDER=s3`) |
-| `S3_SECRET_ACCESS_KEY` | *None* | S3 secret key (when `STORAGE_PROVIDER=s3`) |
-| `S3_ENDPOINT_URL` | *None* | S3/MinIO endpoint URL (when `STORAGE_PROVIDER=s3`) |
-| `S3_REGION` | `us-east-1` | S3 region (when `STORAGE_PROVIDER=s3`) |
+| `LLM_SERVICE_URL` | `http://ollama:11434/v1` | OpenAI-compatible endpoint for Ollama service |
+| `OLLAMA_MODEL` | `gemma4` | Target Ollama model name |
+| `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model |
+| `MATCH_THRESHOLD` | `0.7` | Minimum score threshold for candidate-job match |
+| `STORAGE_PROVIDER` | `local` | Storage backend: `local` filesystem or `s3` |
 
 ---
 
-## 7. System Architecture & Diagrams
-
-### Data Flow
-Discovery, sourcing, detection, translation, refinement, and matching agents run independently and communicate only with the API server.
+## 7. System Architecture (Clean Architecture)
 
 ```mermaid
 graph TD
@@ -227,18 +196,12 @@ graph TD
         DB[(Database SQLite/PostgreSQL)]
     end
 
-    subgraph Language Processing Stage
-        LD[lang-detection Agent]
-        Trans[translation Agent]
-        NLLB[NLLB-200 Model]
-    end
-
-    subgraph LLM & Vector Pipeline
-        Refine[refinement Agent]
-        Embed[embedding-worker Agent]
-        Match[matching Agent]
-        LLM[llm-service Microservice]
-        Nomic[Nomic Embed Model]
+    subgraph Core Domain Use Cases & Infrastructure
+        ExtractCV[ExtractCvUseCase]
+        RefineJob[RefineJobUseCase]
+        ExplainMatch[ExplainMatchUseCase]
+        InstructorClient[InstructorLlmClient Adapter]
+        Ollama[Ollama Container Service /v1]
     end
 
     Sources --> Disc
@@ -249,187 +212,32 @@ graph TD
     TG -->|POST /profiles/upload-cv| API
     CV -->|Claim & parse PDF| API
 
-    LD -->|POST /jobs/claim-detect| API
-    LD -->|PUT /jobs/detect| API
-
-    Trans -->|POST /jobs/claim-translate| API
-    Trans -->|PUT /jobs/translate| API
-    Trans -.->|Inference| NLLB
-
-    Refine -->|POST /jobs/claim-refine| API
-    Refine -->|PUT /jobs/refine| API
-    Refine -->|HTTP Chat Completions| LLM
-
-    Embed -->|POST /jobs/claim-embed| API
-    Embed -->|PUT /jobs/embed| API
-    Embed -.->|Generate Vectors| Nomic
-
-    Match -->|POST /matches/claim| API
-    Match -->|PUT /matches/complete| API
-    Match -->|HTTP Chat Completions| LLM
+    ExtractCV --> InstructorClient
+    RefineJob --> InstructorClient
+    ExplainMatch --> InstructorClient
+    InstructorClient -->|OpenAI API /v1| Ollama
 
     API <-->|SQLAlchemy ORM| DB
 ```
 
-### Class Structures
-Shared models, core interfaces, NLP services, and matching business logic reside in the core package.
-
-```mermaid
-classDiagram
-    class BaseHttpClient {
-        <<Interface>>
-        +fetch(url: str)* bytes
-        +close()* void
-    }
-    class HttpClient {
-        +fetch(url: str) bytes
-        +close() void
-    }
-    class BaseDiscovery {
-        <<Abstract>>
-        +http_client: BaseHttpClient
-        +max_pages: int
-        +search_all(known_urls: set, checkpoint_url: str|None) list
-        #_build_browse_url(page: int)* str
-        #_parse_search_page(html_content: str)* list
-    }
-    class BaseSourcing {
-        <<Abstract>>
-        +http_client: BaseHttpClient
-        +source_detail(url: str) JobDetailUpdate
-        #_parse_detail_page(html_content: str, url: str)* JobDetailUpdate
-    }
-    class EuraxessDiscovery {
-        +SOURCE_NAME: str
-        #_build_browse_url(page: int) str
-        #_parse_search_page(html_content: str) list
-    }
-    class EuraxessSourcing {
-        +SOURCE_NAME: str
-        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
-    }
-    class AcademicTransferDiscovery {
-        +SOURCE_NAME: str
-        #_build_browse_url(page: int) str
-        #_parse_search_page(html_content: str) list
-    }
-    class AcademicTransferSourcing {
-        +SOURCE_NAME: str
-        #_parse_detail_page(html_content: str, url: str) JobDetailUpdate
-    }
-    class BaseRefiner {
-        <<Abstract>>
-        +refine(url: str, title: str, location: str|None, description: str|None, requirements: str|None)* RefinementResult
-    }
-    class LlmRefiner {
-        -_system_prompt: str
-        -_model_path: str
-        +load_model() void
-        +refine(url: str, title: str, location: str|None, description: str|None, requirements: str|None) RefinementResult
-    }
-    class NllbTranslator {
-        -_model_dir: str
-        +translate(text: str, source_lang: str) str
-    }
-    class BaseEmbeddingService {
-        <<Interface>>
-        +encode_text(text: str)* list~float~
-        +encode_research(interests: list, title: str)* list~float~
-    }
-    class EmbeddingService {
-        +get_model() SentenceTransformer
-        +encode_text(text: str) list~float~
-        +encode_skills(skills: list) list~float~
-        +encode_research(interests: list, title: str) list~float~
-    }
-    class MatchScorer {
-        +score_candidate_against_job(candidate: CandidateProfile, job: Job, threshold: float) Match
-    }
-    class LlmExplainer {
-        -_system_prompt: str
-        +generate_explanation(candidate: CandidateProfile, job: Job) str
-    }
-    class Job {
-        +title: str
-        +url: str
-        +source: str
-        +deadline: str
-        +employer: str
-        +location: str
-        +description: str
-        +requirements: str
-        +required_skills: list
-        +education_level: str
-        +city: str
-        +country: str
-        +language_code: str
-        +description_en: str
-        +requirements_en: str
-        +skill_embedding: list~float~
-        +research_embedding: list~float~
-    }
-    class CandidateProfile {
-        +id: int
-        +name: str
-        +email: str
-        +cv_file_path: str
-        +raw_text: str
-        +language_code: str
-        +raw_text_en: str
-        +highest_degree: str
-        +skills: list
-        +languages: list
-        +experience: list
-        +preferred_locations: list
-        +research_interests: list
-        +skill_embedding: list~float~
-        +research_embedding: list~float~
-        +status: str
-    }
-
-    BaseHttpClient <|-- HttpClient
-    BaseDiscovery ..> BaseHttpClient : Uses
-    BaseSourcing ..> BaseHttpClient : Uses
-    BaseDiscovery <|-- EuraxessDiscovery
-    BaseDiscovery <|-- AcademicTransferDiscovery
-    BaseSourcing <|-- EuraxessSourcing
-    BaseSourcing <|-- AcademicTransferSourcing
-    BaseRefiner <|-- LlmRefiner
-    BaseEmbeddingService <|-- EmbeddingService
-    EuraxessSourcing ..> Job : Sources Details
-    AcademicTransferSourcing ..> Job : Sources Details
-    LlmRefiner ..> Job : Refines
-    MatchScorer ..> Job : Scores
-    MatchScorer ..> CandidateProfile : Scores
-    LlmExplainer ..> Job : Explains
-    LlmExplainer ..> CandidateProfile : Explains
-```
-
 ---
 
-## 8. Code Quality & Contribution Guidelines
+## 8. Code Quality & Verification
 
-Before submitting pull requests or committing code, ensure all linting, formatting, and type-checking verification steps pass cleanly:
+Ensure all linting and static type checks pass cleanly before committing code:
 
-### A. Auto-Fix Lint Errors (Ruff)
+### A. Code Formatting & Linting (Ruff)
 ```bash
-uv run --with ruff ruff check . --fix
+uv run ruff check .
+uv run ruff format .
 ```
 
-### B. Workspace Formatting (Ruff)
+### B. Static Type Checking (Pyright)
 ```bash
-uv run --with ruff ruff format .
+uv run pyright .
 ```
 
-### C. Static Type Checking (Pyright)
-```bash
-uv run --with pyright --with docling --with pypdfium2 --with boto3 pyright .
-```
-
-### D. Database Schema Migrations (Alembic)
-When modifying SQLAlchemy models in `packages/core/src/core/infrastructure/db/models.py`, auto-generate a new database migration script using:
+### C. Database Schema Migrations (Alembic)
 ```bash
 uv run --package api alembic -c packages/api/alembic.ini revision --autogenerate -m "describe_your_change"
 ```
-Alembic is pre-configured with `render_as_batch=True` in `env.py` for universal SQLite and PostgreSQL migration support. Migrations are automatically executed on API startup.
-

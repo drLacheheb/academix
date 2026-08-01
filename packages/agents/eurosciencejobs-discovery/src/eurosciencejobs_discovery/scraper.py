@@ -20,9 +20,7 @@ class EuroScienceJobsDiscovery(ConcreteDiscovery):
         xml_text = raw.decode("utf-8-sig", errors="ignore")
         locs = re.findall(r"<loc>(.*?)</loc>", xml_text)
 
-        category_urls = [
-            loc for loc in locs if "/jobs/" in loc or "/jobs_at/" in loc
-        ]
+        category_urls = [loc for loc in locs if "/jobs/" in loc or "/jobs_at/" in loc]
 
         self.logger.info(f"Discovered {len(category_urls)} category & employer sitemap URLs")
 

@@ -52,9 +52,7 @@ def run():
                 submit_resp.raise_for_status()
                 logger.info(f"[{profile_id}] Successfully uploaded profile embeddings")
             except Exception as e:
-                logger.error(
-                    f"Error during profile embedding processing for ID {profile_id}: {e}"
-                )
+                logger.error(f"Error during profile embedding processing for ID {profile_id}: {e}")
             return True
 
         # 2. Fallback to claiming job embedding task

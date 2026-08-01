@@ -68,13 +68,7 @@ def run():
         from telegram.request import HTTPXRequest
 
         req = HTTPXRequest(connect_timeout=30.0, read_timeout=30.0, write_timeout=30.0)
-        app = (
-            ApplicationBuilder()
-            .token(token)
-            .request(req)
-            .post_init(post_init)
-            .build()
-        )
+        app = ApplicationBuilder().token(token).request(req).post_init(post_init).build()
         app.bot_data["api"] = api
         app.add_error_handler(global_error_handler)
 
