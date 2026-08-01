@@ -13,15 +13,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_name = update.effective_user.first_name if update.effective_user else "Researcher"
     welcome_text = (
         f"👋 Welcome <b>{html.escape(user_name)}</b> to Academic Career Engine!\n\n"
-        "I am your personal AI research career assistant. Here is how I can help you:\n\n"
-        "📎 <b>Upload CV</b> — Send me your CV as a PDF file to begin matching\n"
-        "📊 <b>/status</b> — Track your CV processing pipeline progress\n"
-        "👤 <b>/profile</b> — View your extracted profile (skills, degree, research)\n"
-        "✏️ <b>/edit</b> — Edit your parsed skills, degree, or interests\n"
-        "📄 <b>/newcv</b> — Upload a new or updated CV\n"
-        "🎯 <b>/matches</b> — Browse your top academic job matches\n"
-        "❓ <b>/help</b> — Show available commands\n\n"
-        "<i>Send me your CV (PDF document) to get started!</i>"
+        "I am your personal AI research career assistant.\n\n"
+        "<b>Available Commands:</b>\n"
+        "📤 <b>/upload_cv</b> — Upload your CV (PDF document)\n"
+        "📊 <b>/status</b> — Check your CV processing pipeline status\n"
+        "👤 <b>/profile</b> — View your parsed skills, degree & research interests\n"
+        "✏️ <b>/edit</b> — Edit profile skills, degree, or locations\n"
+        "🎯 <b>/matches</b> — View your top academic job matches\n"
+        "❓ <b>/help</b> — Show command guide"
     )
     if update.message:
         await update.message.reply_text(welcome_text, parse_mode="HTML")
@@ -30,11 +29,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
         "<b>Available Commands:</b>\n\n"
-        "📎 Send a PDF file directly to upload a new CV\n"
+        "📤 <b>/upload_cv</b> (or /uploadcv) — Prompt to upload a CV document\n"
         "📊 <b>/status</b> — View pipeline stage for your uploaded CVs\n"
         "👤 <b>/profile</b> — See your parsed skills, research interests, and degree\n"
         "✏️ <b>/edit</b> — Edit skills, research interests, degree, or locations\n"
-        "📄 <b>/newcv</b> — Prompts to upload a new CV document\n"
         "🎯 <b>/matches</b> — View your top matched academic vacancies\n"
         "❓ <b>/help</b> — Show this help message"
     )
@@ -190,12 +188,16 @@ async def matches_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text("⚠️ Failed to fetch matches.")
 
 
-async def newcv_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def upload_cv_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message:
         await update.message.reply_text(
-            "📎 Please send your new CV as a <b>PDF document</b> in this chat.",
+            "📎 Please send your CV as a <b>PDF document</b> in this chat.",
             parse_mode="HTML",
         )
+
+
+async def newcv_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await upload_cv_command(update, context)
 
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

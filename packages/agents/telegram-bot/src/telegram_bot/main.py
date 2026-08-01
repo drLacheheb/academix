@@ -20,10 +20,10 @@ from telegram_bot.handlers import (
     handle_document,
     help_command,
     matches_command,
-    newcv_command,
     profile_command,
     start_command,
     status_command,
+    upload_cv_command,
 )
 from telegram_bot.notifier import check_notifications
 
@@ -33,10 +33,10 @@ load_dotenv()
 async def post_init(application: Application) -> None:
     commands = [
         BotCommand("start", "Start the bot & view instructions"),
+        BotCommand("upload_cv", "Upload a new or updated CV document"),
         BotCommand("status", "Track your CV pipeline processing progress"),
         BotCommand("profile", "View your parsed skills, degree & interests"),
         BotCommand("edit", "Edit profile skills, degree, or locations"),
-        BotCommand("newcv", "Upload a new or updated CV document"),
         BotCommand("matches", "Browse your top academic job matches"),
         BotCommand("help", "Show available commands & guide"),
     ]
@@ -78,7 +78,7 @@ def run():
         app.add_handler(CommandHandler("status", status_command))
         app.add_handler(CommandHandler("profile", profile_command))
         app.add_handler(CommandHandler("matches", matches_command))
-        app.add_handler(CommandHandler("newcv", newcv_command))
+        app.add_handler(CommandHandler(["upload_cv", "uploadcv", "newcv"], upload_cv_command))
 
         # Register Edit Conversation Handler
         app.add_handler(get_edit_handler())
