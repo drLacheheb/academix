@@ -50,7 +50,7 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 *   **Python**: `== 3.12.*` (if running locally without containers)
 *   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (for local workspace CLI runs)
 *   **Hardware requirements**:
-    *   **LLM Service (Ollama)**: Centralized Ollama container running `gemma4` (or any model configured via `OLLAMA_MODEL`).
+    *   **LLM Service (Ollama)**: Centralized Ollama container running `gemma4` (or any model configured via `LLM_MODEL`).
     *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
     *   **Matching Agent**: Uses `nomic-embed-text-v1.5` for vector similarities and delegates structured reasoning to Ollama via `InstructorLlmClient`.
 *   **Database**: SQLite (default local file `jobs.db` mounted in containers) or PostgreSQL.
@@ -169,7 +169,7 @@ Key `.env` options:
 | `API_SECRET_KEY` | *None* | Shared bearer credential and API validation key |
 | `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
 | `LLM_SERVICE_URL` | `http://ollama:11434/v1` | OpenAI-compatible endpoint for Ollama service |
-| `OLLAMA_MODEL` | `gemma4` | Target Ollama model name |
+| `LLM_MODEL` | `hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M` | Target model name |
 | `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model |
 | `MATCH_THRESHOLD` | `0.7` | Minimum score threshold for candidate-job match |
 | `STORAGE_PROVIDER` | `local` | Storage backend: `local` filesystem or `s3` |

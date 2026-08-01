@@ -16,11 +16,11 @@ T = TypeVar("T", bound=BaseModel)
 class InstructorLlmClient(LlmClient):
     def __init__(
         self,
-        model_name: str = "gemma4",
+        model_name: str = "hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M",
         base_url: str | None = None,
         temperature: float = 0.0,
     ):
-        self.model_name = os.environ.get("OLLAMA_MODEL", model_name)
+        self.model_name = os.environ.get("LLM_MODEL", model_name)
         url = base_url or os.environ.get("LLM_SERVICE_URL", "http://localhost:11434/v1")
         url = url.rstrip("/")
         if not url.endswith("/v1"):

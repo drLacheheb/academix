@@ -376,6 +376,7 @@ services:
       - API_URL=http://api:8000
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - LLM_SERVICE_URL=${LLM_SERVICE_URL:-http://ollama:11434}
+      - LLM_MODEL=${LLM_MODEL:-hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
@@ -423,6 +424,7 @@ services:
       - API_URL=http://api:8000
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - LLM_SERVICE_URL=${LLM_SERVICE_URL:-http://ollama:11434}
+      - LLM_MODEL=${LLM_MODEL:-hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-15}
     restart: unless-stopped
 
