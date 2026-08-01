@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.6.0",
     "huggingface-hub>=0.23.0",
     "onnxruntime-genai>=0.4.0",
+    "transformers>=4.40.0",
     "python-dotenv>=1.0.0",
 ]
 

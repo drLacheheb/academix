@@ -1177,6 +1177,8 @@ dependencies = [
     { name = "onnxruntime-genai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+    { name = "transformers", version = "5.8.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
+    { name = "transformers", version = "5.14.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'darwin'" },
     { name = "uvicorn" },
 ]
 
@@ -1189,6 +1191,7 @@ requires-dist = [
     { name = "onnxruntime-genai", specifier = ">=0.4.0" },
     { name = "pydantic", specifier = ">=2.6.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "transformers", specifier = ">=4.40.0" },
     { name = "uvicorn", specifier = ">=0.28.0" },
 ]
 
