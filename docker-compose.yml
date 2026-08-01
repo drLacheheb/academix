@@ -347,9 +347,18 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ./${MODELS_DIR:-models}:/models
+      - ./${MODELS_DIR:-models}:/root/.ollama
     environment:
       - OLLAMA_KEEP_ALIVE=24h
+    entrypoint: >
+      /bin/sh -c "
+      /bin/ollama serve &
+      PID=$$!
+      while [ \"$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:11434/api/tags)\" != \"200\" ]; do sleep 1; done
+      echo 'Ensuring LLM model $${LLM_MODEL:-hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M} is ready...'
+      ollama pull $${LLM_MODEL:-hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M}
+      wait $$PID
+      "
     restart: unless-stopped
 
 
