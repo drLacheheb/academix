@@ -9,6 +9,7 @@ dependencies = [
     "llama-cpp-python>=0.2.70",
     "pydantic>=2.6.0",
     "huggingface-hub>=0.23.0",
+    "onnxruntime-genai>=0.4.0",
     "python-dotenv>=1.0.0",
 ]
 

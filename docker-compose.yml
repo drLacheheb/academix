@@ -358,9 +358,10 @@ services:
       - HF_HOME=/app/${HF_HOME:-models}
       - HF_HUB_DISABLE_SYMLINKS_WARNING=${HF_HUB_DISABLE_SYMLINKS_WARNING:-1}
       - LOG_FILE=/app/logs/llm-service.log
+      - LLM_ENGINE=${LLM_ENGINE:-onnx}
       - MODELS_DIR=/app/${MODELS_DIR:-models}
-      - MODEL_PATH=${MODEL_PATH:-unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf}
-      - MODEL_IDLE_TIMEOUT=${MODEL_IDLE_TIMEOUT:-60.0}
+      - MODEL_PATH=${MODEL_PATH:-onnx-community/gemma-4-E2B-it-ONNX}
+      - MODEL_IDLE_TIMEOUT=${MODEL_IDLE_TIMEOUT:-3600.0}
       - LLM_SERVICE_PORT=8001
       - LLM_SERVICE_HOST=0.0.0.0
     restart: unless-stopped

@@ -124,3 +124,97 @@ class LocalLlmRunner(BaseLlmRunner):
                     if isinstance(content, str):
                         return content.strip()
         return ""
+
+
+class OnnxLlmRunner(BaseLlmRunner):
+    def __init__(
+        self,
+        model_path: str = "onnx-community/gemma-4-E2B-it-ONNX",
+        models_dir: str = "models",
+        max_context: int = 8192,
+        temperature: float = 0.0,
+    ):
+        self.model_path = model_path
+        self.models_dir = models_dir
+        self.max_context = max_context
+        self.temperature = temperature
+        self.model = None
+        self.tokenizer = None
+
+        self._resolved_path = (
+            os.path.abspath(os.path.join(models_dir, model_path))
+            if not os.path.isabs(model_path)
+            else model_path
+        )
+
+    @property
+    def is_loaded(self) -> bool:
+        return self.model is not None
+
+    def load_model(self) -> None:
+        if self.model is not None:
+            return
+
+        import onnxruntime_genai as og
+
+        if not os.path.exists(self._resolved_path):
+            logger.info(
+                f"ONNX Model directory not found at {self._resolved_path}. "
+                f"Downloading onnx-community/gemma-4-E2B-it-ONNX..."
+            )
+            os.makedirs(self._resolved_path, exist_ok=True)
+            from huggingface_hub import snapshot_download
+
+            snapshot_download(
+                repo_id="onnx-community/gemma-4-E2B-it-ONNX",
+                local_dir=self._resolved_path,
+            )
+
+        logger.info(f"Loading local ONNX model from {self._resolved_path}...")
+        self.model = og.Model(self._resolved_path)
+        self.tokenizer = og.Tokenizer(self.model)
+        logger.info("Local ONNX model loaded successfully!")
+
+    def free_model(self) -> None:
+        if self.model is not None:
+            logger.info("Freeing ONNX model from memory...")
+            del self.model
+            del self.tokenizer
+            self.model = None
+            self.tokenizer = None
+            gc.collect()
+            logger.info("ONNX model memory freed successfully!")
+
+    def create_chat_completion(
+        self,
+        messages: Sequence[dict[str, str]],
+        max_tokens: int = 512,
+        response_format: dict | None = None,
+    ) -> str:
+        self.load_model()
+        if self.model is None or self.tokenizer is None:
+            raise RuntimeError("ONNX model failed to load.")
+
+        import onnxruntime_genai as og
+
+        prompt_parts = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            prompt_parts.append(f"<|im_start|>{role}\n{content}<|im_end|>")
+        prompt_parts.append("<|im_start|>assistant\n")
+        full_prompt = "\n".join(prompt_parts)
+
+        params = og.GeneratorParams(self.model)
+        params.set_search_options(max_length=max_tokens, temperature=self.temperature)
+        tokens = self.tokenizer.encode(full_prompt)
+        params.set_inputs(tokens)
+
+        generator = og.Generator(self.model, params)
+        output_tokens = []
+        while not generator.is_done():
+            generator.generate_next_token()
+            new_token = generator.get_next_tokens()[0]
+            output_tokens.append(new_token)
+
+        return self.tokenizer.decode(output_tokens).strip()

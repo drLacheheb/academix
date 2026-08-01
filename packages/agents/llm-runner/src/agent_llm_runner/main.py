@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from core.infrastructure.logging.logger import get_logger
-from core.infrastructure.services.llm_runner import LocalLlmRunner
+from core.infrastructure.services.llm_runner import LocalLlmRunner, OnnxLlmRunner
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -16,7 +16,7 @@ load_dotenv()
 logger = get_logger("agent-llm-runner")
 
 # Global singleton runner and concurrency lock
-runner: LocalLlmRunner | None = None
+runner: LocalLlmRunner | OnnxLlmRunner | None = None
 inference_lock = asyncio.Lock()
 last_used_time = time.time()
 active_requests_count = 0
@@ -39,7 +39,7 @@ class ChatCompletionResponse(BaseModel):
     id: str = "chatcmpl-local"
     object: str = "chat.completion"
     created: int = Field(default_factory=lambda: int(time.time()))
-    model: str = "local-gguf"
+    model: str = "local-llm"
     choices: list[ChatCompletionChoice]
 
 
@@ -52,17 +52,21 @@ class HealthResponse(BaseModel):
 
 
 def get_llm_config() -> dict:
-    model_path = os.environ.get(
-        "MODEL_PATH",
-        "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf",
+    llm_engine = os.environ.get("LLM_ENGINE", "gguf").lower()
+    default_path = (
+        "onnx-community/gemma-4-E2B-it-ONNX"
+        if llm_engine == "onnx"
+        else "unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf"
     )
+    model_path = os.environ.get("MODEL_PATH", default_path)
     models_dir = os.environ.get("MODELS_DIR", "models")
     max_length = int(
         os.environ.get("MAX_CONTEXT_TOKENS", os.environ.get("MAX_LENGTH", "8192"))
     )
     temperature = float(os.environ.get("TEMPERATURE", "0.0"))
-    idle_timeout = float(os.environ.get("MODEL_IDLE_TIMEOUT", "60.0"))
+    idle_timeout = float(os.environ.get("MODEL_IDLE_TIMEOUT", "3600.0"))
     return {
+        "engine": llm_engine,
         "model_path": model_path,
         "models_dir": models_dir,
         "max_length": max_length,
@@ -94,14 +98,24 @@ async def idle_checker_loop():
 async def lifespan(app: FastAPI):
     global runner
     config = get_llm_config()
-    runner = LocalLlmRunner(
-        model_path=config["model_path"],
-        models_dir=config["models_dir"],
-        max_context=config["max_length"],
-        temperature=config["temperature"],
-    )
+    if config["engine"] == "onnx":
+        runner = OnnxLlmRunner(
+            model_path=config["model_path"],
+            models_dir=config["models_dir"],
+            max_context=config["max_length"],
+            temperature=config["temperature"],
+        )
+    else:
+        runner = LocalLlmRunner(
+            model_path=config["model_path"],
+            models_dir=config["models_dir"],
+            max_context=config["max_length"],
+            temperature=config["temperature"],
+        )
+
+    engine_name = config["engine"].upper()
     logger.info(
-        f"LLM Service pre-loading model weights from '{config['model_path']}'..."
+        f"LLM Service ({engine_name}) pre-loading model weights from '{config['model_path']}'..."
     )
     runner.load_model()
     logger.info("LLM Service model pre-loaded successfully!")
