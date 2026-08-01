@@ -26,7 +26,6 @@ COPY packages/agents/translation/pyproject.toml packages/agents/translation/
 COPY packages/agents/cv-parsing/pyproject.toml packages/agents/cv-parsing/
 COPY packages/agents/matching/pyproject.toml packages/agents/matching/
 COPY packages/agents/embedding-worker/pyproject.toml packages/agents/embedding-worker/
-COPY packages/agents/llm-runner/pyproject.toml packages/agents/llm-runner/
 
 RUN echo 'find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
     find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + && \
