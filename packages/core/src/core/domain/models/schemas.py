@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.domain.constants import (
     EducationLevel,
@@ -42,6 +42,25 @@ class JobRefinementExtraction(BaseModel):
         default=None,
         description="Full English country name in Title Case.",
     )
+
+    @field_validator("required_skills", mode="before")
+    @classmethod
+    def default_none_to_list(cls, v: list[str] | None) -> list[str]:
+        return v if v is not None else []
+
+    @field_validator("education_level", mode="before")
+    @classmethod
+    def normalize_education(cls, v: str | None) -> EducationLevel | None:
+        if not v or not isinstance(v, str):
+            return None
+        v_lower = v.strip().lower()
+        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license"]):
+            return EducationLevel.BACHELOR
+        if any(m in v_lower for m in ["master", "msc", "magister"]):
+            return EducationLevel.MASTER
+        if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
+            return EducationLevel.PHD
+        return None
 
 
 class LanguageProficiency(BaseModel):
@@ -91,6 +110,32 @@ class CandidateCvExtraction(BaseModel):
         default_factory=list,
         description="Core scientific research topics or specialized subfields.",
     )
+
+    @field_validator("highest_degree", mode="before")
+    @classmethod
+    def normalize_highest_degree(cls, v: str | None) -> EducationLevel | None:
+        if not v or not isinstance(v, str):
+            return None
+        v_lower = v.strip().lower()
+        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license"]):
+            return EducationLevel.BACHELOR
+        if any(m in v_lower for m in ["master", "msc", "magister"]):
+            return EducationLevel.MASTER
+        if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
+            return EducationLevel.PHD
+        return None
+
+    @field_validator(
+        "skills",
+        "languages",
+        "experience",
+        "preferred_locations",
+        "research_interests",
+        mode="before",
+    )
+    @classmethod
+    def default_none_to_list(cls, v: list | None) -> list:
+        return v if v is not None else []
 
 
 class MatchReason(BaseModel):
