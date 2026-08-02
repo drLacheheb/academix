@@ -17,7 +17,8 @@ services:
       - HF_HOME=/app/${HF_HOME:-models}
       - HF_HUB_DISABLE_SYMLINKS_WARNING=${HF_HUB_DISABLE_SYMLINKS_WARNING:-1}
       - LOG_FILE=/app/logs/api.log
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///file:/app/data/jobs.db?nolock=1&uri=true}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/jobs.db}
+      - STALE_CLAIM_TIMEOUT_MINUTES=${STALE_CLAIM_TIMEOUT_MINUTES:-5}
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-ai/nomic-embed-text-v1.5}
       - MODELS_DIR=/app/${MODELS_DIR:-models}
@@ -341,25 +342,6 @@ services:
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
-  # 16. Centralized High-Performance Ollama LLM Service
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./${MODELS_DIR:-models}:/root/.ollama
-    environment:
-      - OLLAMA_KEEP_ALIVE=24h
-    entrypoint: >
-      /bin/sh -c "
-      /bin/ollama serve &
-      PID=$$!
-      while [ \"$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:11434/api/tags)\" != \"200\" ]; do sleep 1; done
-      echo 'Ensuring LLM model $${LLM_MODEL:-hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M} is ready...'
-      ollama pull $${LLM_MODEL:-hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M}
-      wait $$PID
-      "
-    restart: unless-stopped
 
 
   # 17. Gemma-4 Metadata Refinement worker
@@ -386,6 +368,8 @@ services:
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - LLM_SERVICE_URL=${LLM_SERVICE_URL:-http://ollama:11434}
       - LLM_MODEL=${LLM_MODEL:-hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M}
+      - MAX_INPUT_TOKENS=${MAX_INPUT_TOKENS:-16000}
+      - MAX_OUTPUT_TOKENS=${MAX_OUTPUT_TOKENS:-8192}
       - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
     restart: unless-stopped
 
@@ -428,7 +412,7 @@ services:
       - ./packages:/app/packages
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
-      - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.7}
+      - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.85}
       - LOG_FILE=/app/logs/matching-worker.log
       - API_URL=http://api:8000
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
@@ -450,8 +434,10 @@ services:
       - ./data/uploads:/app/uploads
       - ./logs:/app/logs
       - ./packages:/app/packages
+      - ./${MODELS_DIR:-models}:/app/models
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - HF_HOME=/app/models
       - LOG_FILE=/app/logs/cv-parsing-worker.log
       - API_URL=http://api:8000
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}

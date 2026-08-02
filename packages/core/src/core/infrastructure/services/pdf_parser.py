@@ -9,6 +9,8 @@ from docling.document_converter import DocumentConverter
 logger = get_logger("core-pdf-parser")
 
 
+import time
+
 _converter: DocumentConverter | None = None
 
 
@@ -16,7 +18,15 @@ def get_document_converter() -> DocumentConverter:
     global _converter
     if _converter is None:
         logger.info("Initializing global Docling DocumentConverter (happens once)")
-        _converter = DocumentConverter()
+        for attempt in range(1, 4):
+            try:
+                _converter = DocumentConverter()
+                break
+            except Exception as e:
+                logger.warning(f"Docling initialization attempt {attempt}/3 failed: {e}")
+                if attempt == 3:
+                    raise
+                time.sleep(3 * attempt)
     return _converter
 
 
@@ -44,9 +54,19 @@ def parse_pdf_to_markdown(file_path: str) -> str:
                 # Wrap in DocumentStream
                 source = DocumentStream(name=f"page_{i}.png", stream=img_buffer)
 
-                # Convert page image
-                result = converter.convert(source)
-                markdown_pages.append(result.document.export_to_markdown())
+                # Convert page image with retry for CDN network glitches
+                for attempt in range(1, 4):
+                    try:
+                        result = converter.convert(source)
+                        markdown_pages.append(result.document.export_to_markdown())
+                        break
+                    except Exception as conv_err:
+                        logger.warning(
+                            f"Docling conversion attempt {attempt}/3 failed on page {i}: {conv_err}"
+                        )
+                        if attempt == 3:
+                            raise
+                        time.sleep(2 * attempt)
 
                 img_buffer.close()
 

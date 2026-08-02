@@ -1,7 +1,7 @@
 import os
 from enum import StrEnum
 
-STALE_CLAIM_TIMEOUT_MINUTES = int(os.getenv("STALE_CLAIM_TIMEOUT_MINUTES", "25"))
+STALE_CLAIM_TIMEOUT_MINUTES = int(os.getenv("STALE_CLAIM_TIMEOUT_MINUTES", "5"))
 
 
 class JobStatus(StrEnum):

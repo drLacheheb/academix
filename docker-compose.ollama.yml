@@ -1,0 +1,13 @@
+services:
+  # Standalone Centralized Ollama LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./${MODELS_DIR:-models}:/models
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_MODELS=/models
+      - OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH:-8192}
+    restart: unless-stopped

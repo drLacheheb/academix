@@ -1,0 +1,93 @@
+services:
+  # Standalone High-Performance PostgreSQL Server (Alpine Linux ~30MB RAM)
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-academix_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-academix_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-academix_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  crawler-abg-discovery:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-abg-sourcing:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-euraxess-discovery:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-euraxess-sourcing:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-naturecareers-discovery:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-naturecareers-sourcing:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-academictransfer-discovery:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-academictransfer-sourcing:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-researchgate-discovery:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-researchgate-sourcing:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-eurosciencejobs-discovery:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  crawler-eurosciencejobs-sourcing:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  cv-parsing-worker:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  embedding-worker:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  refinement-worker:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  matching-worker:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+
+  translation-worker:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
