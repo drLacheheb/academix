@@ -192,6 +192,7 @@ class CandidateProfileModel(Base):
     claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     telegram_chat_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    is_notified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), onupdate=func.now(), nullable=False
@@ -219,6 +220,7 @@ class CandidateProfileModel(Base):
             claimed_by=self.claimed_by,
             claimed_at=self.claimed_at,
             telegram_chat_id=self.telegram_chat_id,
+            is_notified=self.is_notified,
             created_at=self.created_at,
             updated_at=self.updated_at,
         )
@@ -289,6 +291,7 @@ class CandidateProfileModel(Base):
             claimed_by=profile.claimed_by,
             claimed_at=profile.claimed_at,
             telegram_chat_id=profile.telegram_chat_id,
+            is_notified=profile.is_notified,
         )
 
 

@@ -27,6 +27,7 @@ class CandidateProfile:
     claimed_by: str | None = None
     claimed_at: datetime | None = None
     telegram_chat_id: str | None = None
+    is_notified: bool = False
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

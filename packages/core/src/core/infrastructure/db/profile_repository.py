@@ -75,6 +75,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     existing.status_message = model.status_message
                     existing.claimed_by = model.claimed_by
                     existing.claimed_at = model.claimed_at
+                    existing.is_notified = model.is_notified
                     model = existing
                 else:
                     session.add(model)
@@ -133,6 +134,43 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 .all()
             )
             return [m.to_domain() for m in models]
+        finally:
+            session.close()
+
+    def get_unnotified_completed(self, limit: int = 10) -> list[CandidateProfile]:
+        session = self._SessionLocal()
+        try:
+            valid_statuses = ["PENDING_EMBEDDING", "EMBEDDING_CLAIMED", "COMPLETED"]
+            models = (
+                session.query(CandidateProfileModel)
+                .filter(
+                    CandidateProfileModel.telegram_chat_id.isnot(None),
+                    CandidateProfileModel.is_notified == False,  # noqa: E712
+                    CandidateProfileModel.status.in_(valid_statuses),
+                )
+                .order_by(CandidateProfileModel.updated_at.asc())
+                .limit(limit)
+                .all()
+            )
+            return [m.to_domain() for m in models]
+        finally:
+            session.close()
+
+    def mark_notified(self, profile_ids: list[int]) -> int:
+        if not profile_ids:
+            return 0
+        session = self._SessionLocal()
+        try:
+            count = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id.in_(profile_ids))
+                .update({"is_notified": True}, synchronize_session=False)
+            )
+            session.commit()
+            return count
+        except Exception:
+            session.rollback()
+            raise
         finally:
             session.close()
 

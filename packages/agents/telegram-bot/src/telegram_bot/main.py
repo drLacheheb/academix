@@ -42,6 +42,14 @@ async def post_init(application: Application) -> None:
     ]
     await application.bot.set_my_commands(commands)
 
+    if application.job_queue:
+        application.job_queue.run_repeating(
+            check_notifications,
+            interval=15.0,
+            first=5.0,
+            job_kwargs={"misfire_grace_time": 60},
+        )
+
 
 async def global_error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger = get_logger("telegram-bot-error-handler")
@@ -87,9 +95,9 @@ def run():
         app.add_handler(MessageHandler(filters.Document.PDF, handle_document))
         app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-        # Register Background Notification Loop (every 60s)
+        # Register Background Notification Loop (every 15s)
         if app.job_queue:
-            app.job_queue.run_repeating(check_notifications, interval=60.0, first=10.0)
+            app.job_queue.run_repeating(check_notifications, interval=15.0, first=5.0)
 
         logger.info("Telegram bot initialized and long-polling started.")
         app.run_polling()

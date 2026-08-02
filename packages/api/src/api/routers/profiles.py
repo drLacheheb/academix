@@ -168,6 +168,32 @@ async def fail_ingest_task(
     return {"status": "failed", "profile_id": profile_id}
 
 
+class MarkProfilesNotifiedRequest(BaseModel):
+    profile_ids: list[int]
+
+
+@router.get("/profiles/unnotified-completed")
+@limiter.limit("60/minute")
+async def get_unnotified_completed_profiles(
+    request: Request,
+    limit: int = 10,
+    repo=Depends(get_repo),
+):
+    profiles = repo.profiles.get_unnotified_completed(limit=limit)
+    return [p.to_dict() for p in profiles]
+
+
+@router.put("/profiles/mark-notified")
+@limiter.limit("60/minute")
+async def mark_profiles_notified(
+    request: Request,
+    body: MarkProfilesNotifiedRequest,
+    repo=Depends(get_repo),
+):
+    count = repo.profiles.mark_notified(body.profile_ids)
+    return {"status": "success", "marked_count": count}
+
+
 @router.get("/profiles/{profile_id}")
 @limiter.limit("30/minute")
 async def get_profile(
@@ -317,3 +343,5 @@ async def update_profile_fields(
             status_code=404, detail=f"Candidate profile with ID {profile_id} not found."
         )
     return updated.to_dict()
+
+

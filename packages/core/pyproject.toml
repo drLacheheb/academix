@@ -10,12 +10,14 @@ dependencies = [
     "sentencex>=1.0.30",
     "instructor>=1.7.0",
     "openai>=1.60.0",
+    "psycopg2-binary>=2.9.9",
 ]
 
 [project.optional-dependencies]
 embeddings = [
     "sentence-transformers>=3.4.0",
     "torch",
+    "einops>=0.8.0",
 ]
 vision = [
     "docling>=2.113.0",

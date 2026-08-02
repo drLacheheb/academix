@@ -54,7 +54,7 @@ def upgrade() -> None:
     with op.batch_alter_table("matches", schema=None) as batch_op:
         batch_op.add_column(
             sa.Column(
-                "telegram_notified", sa.Boolean(), nullable=False, server_default=sa.text("0")
+                "telegram_notified", sa.Boolean(), nullable=False, server_default=sa.text("false")
             )
         )
         batch_op.add_column(sa.Column("telegram_notified_at", sa.DateTime(), nullable=True))

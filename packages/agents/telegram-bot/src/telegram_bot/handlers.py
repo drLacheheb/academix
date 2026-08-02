@@ -98,6 +98,67 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("⚠️ Failed to retrieve profile status. Please try again.")
 
 
+def format_profile_card(p: dict) -> str:
+    name = html.escape(p.get("name") or "Candidate")
+    email = html.escape(p.get("email") or "Not specified")
+    degree = html.escape(p.get("highest_degree") or "Not specified")
+    skills_list = p.get("skills") or []
+    skills = ", ".join(skills_list[:25]) or "None extracted"
+    if len(skills_list) > 25:
+        skills += f" (+{len(skills_list) - 25} more)"
+
+    interests_list = p.get("research_interests") or []
+    interests = ", ".join(interests_list) or "None extracted"
+
+    locations = ", ".join(p.get("preferred_locations") or []) or "Any location"
+
+    langs = p.get("languages") or []
+    lang_str = "Not specified"
+    if langs:
+        lang_items = []
+        for lang in langs:
+            if isinstance(lang, dict):
+                lang_name = lang.get("language") or "Language"
+                prof = lang.get("proficiency") or ""
+                lang_items.append(f"{lang_name} ({prof})" if prof else lang_name)
+            elif isinstance(lang, str):
+                lang_items.append(lang)
+        if lang_items:
+            lang_str = ", ".join(lang_items)
+
+    exp_list = p.get("experience") or []
+    exp_lines = []
+    if exp_list:
+        for item in exp_list[:4]:
+            if isinstance(item, dict):
+                role = html.escape(item.get("role") or "Position")
+                org = html.escape(item.get("organization") or "")
+                from_d = html.escape(item.get("from_date") or "")
+                to_d = html.escape(item.get("to_date") or "")
+                dates = f" ({from_d} – {to_d})" if (from_d or to_d) else ""
+                org_str = f" at {org}" if org else ""
+                desc = html.escape(item.get("description") or "").strip()
+                desc_str = f"\n  └ <i>{desc}</i>" if desc else ""
+                exp_lines.append(f"• <b>{role}</b>{org_str}{dates}{desc_str}")
+            elif isinstance(item, str):
+                exp_lines.append(f"• {html.escape(item)}")
+
+    exp_str = "\n".join(exp_lines) if exp_lines else "None extracted"
+
+    return (
+        f"👤 <b>Candidate Profile Summary</b>\n\n"
+        f"🏷️ <b>Name:</b> {name}\n"
+        f"📧 <b>Email:</b> {email}\n"
+        f"🎓 <b>Highest Degree:</b> {degree}\n\n"
+        f"🛠️ <b>Key Skills:</b>\n{html.escape(skills)}\n\n"
+        f"🔬 <b>Research Domains:</b>\n{html.escape(interests)}\n\n"
+        f"💼 <b>Experience History:</b>\n{exp_str}\n\n"
+        f"🗣️ <b>Spoken Languages:</b>\n{html.escape(lang_str)}\n\n"
+        f"📍 <b>Preferred Locations:</b>\n{html.escape(locations)}\n\n"
+        f"<i>Use /edit to modify any of these fields!</i>"
+    )
+
+
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.effective_chat or not update.message:
         return
@@ -117,22 +178,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         profiles = resp.json()
         p = profiles[0]  # Latest profile
-
-        name = html.escape(p.get("name") or "Not specified")
-        degree = html.escape(p.get("highest_degree") or "Not specified")
-        skills = ", ".join(p.get("skills") or []) or "None extracted"
-        interests = ", ".join(p.get("research_interests") or []) or "None extracted"
-        locations = ", ".join(p.get("preferred_locations") or []) or "Any location"
-
-        profile_text = (
-            f"👤 <b>Candidate Profile</b>\n\n"
-            f"<b>Name:</b> {name}\n"
-            f"<b>Highest Degree:</b> {degree}\n\n"
-            f"🛠️ <b>Skills:</b>\n{html.escape(skills)}\n\n"
-            f"🔬 <b>Research Interests:</b>\n{html.escape(interests)}\n\n"
-            f"📍 <b>Preferred Locations:</b>\n{html.escape(locations)}\n\n"
-            f"<i>Use /edit to modify any of these fields!</i>"
-        )
+        profile_text = format_profile_card(p)
         await update.message.reply_text(profile_text, parse_mode="HTML")
 
     except Exception as e:

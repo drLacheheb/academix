@@ -30,7 +30,9 @@ class EmbeddingService(BaseEmbeddingService):
                 f"Loading embedding model '{embedding_model}' with cache_folder "
                 f"'{models_dir}' into memory..."
             )
-            cls._model = SentenceTransformer(embedding_model, cache_folder=models_dir)
+            cls._model = SentenceTransformer(
+                embedding_model, cache_folder=models_dir, trust_remote_code=True
+            )
             logger.info("Embedding model loaded successfully!")
         return cls._model
 

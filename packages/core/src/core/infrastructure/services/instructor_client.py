@@ -42,7 +42,7 @@ class InstructorLlmClient(LlmClient):
         self,
         messages: list[ChatCompletionMessageParam],
         response_model: type[T],
-        max_tokens: int = 2048,
+        max_tokens: int = 8192,
         max_retries: int = 3,
     ) -> T:
         try:

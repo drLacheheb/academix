@@ -16,7 +16,9 @@ class DatabaseJobRepository(BaseJobRepository):
     def __init__(self, database_url: str):
         self._database_url = database_url
         if database_url.startswith("sqlite"):
-            self._engine = create_engine(database_url, echo=False, connect_args={"timeout": 30})
+            self._engine = create_engine(
+                database_url, echo=False, connect_args={"timeout": 60, "check_same_thread": False}
+            )
         else:
             self._engine = create_engine(database_url, echo=False)
         self._SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self._engine)

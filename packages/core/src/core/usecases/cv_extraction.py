@@ -10,9 +10,10 @@ logger = get_logger("usecase-extract-cv")
 
 
 class ExtractCvUseCase:
-    def __init__(self, llm: LlmClient, max_output_tokens: int = 2000):
+    def __init__(self, llm: LlmClient, max_output_tokens: int | None = None):
         self._llm = llm
-        self._max_output_tokens = max_output_tokens
+        default_max = int(os.environ.get("MAX_OUTPUT_TOKENS", "8192"))
+        self._max_output_tokens = max_output_tokens or default_max
 
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "cv_extraction_prompt.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:

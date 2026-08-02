@@ -83,4 +83,64 @@ async def check_notifications(context: ContextTypes.DEFAULT_TYPE) -> None:
             logger.info(f"Marked {len(sent_ids)} matches as notified.")
 
     except Exception as e:
-        logger.error(f"Error in Telegram notification cycle: {e}")
+        logger.error(f"Error in Telegram match notification cycle: {e}")
+
+    try:
+        await check_profile_notifications(context)
+    except Exception as e:
+        logger.error(f"Error in profile notification execution: {e}")
+
+
+async def check_profile_notifications(context: ContextTypes.DEFAULT_TYPE) -> None:
+    api = context.bot_data.get("api")
+    if not api:
+        return
+
+    try:
+        resp = api.get("/profiles/unnotified-completed?limit=10")
+        if resp.status_code != 200 or not resp.json():
+            return
+
+        unnotified_profiles = resp.json()
+        sent_ids: list[int] = []
+
+        from telegram_bot.handlers import format_profile_card
+
+        for p in unnotified_profiles:
+            chat_id = p.get("telegram_chat_id")
+            prof_id = p.get("id")
+            if not chat_id or not prof_id:
+                continue
+
+            card_body = format_profile_card(p)
+            header = f"🎉 <b>CV Processing Complete! (Profile #{prof_id})</b>\n\n"
+            full_msg = f"{header}{card_body}"
+
+            try:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=full_msg,
+                    parse_mode="HTML",
+                )
+                sent_ids.append(prof_id)
+                logger.info(
+                    f"Sent profile completion notification for profile #{prof_id} "
+                    f"to chat_id {chat_id}"
+                )
+                await asyncio.sleep(0.05)
+            except Forbidden:
+                logger.warning(
+                    f"User {chat_id} blocked bot. Marking profile #{prof_id} as notified..."
+                )
+                sent_ids.append(prof_id)
+            except Exception as e:
+                logger.error(f"Error sending profile notification to {chat_id}: {e}")
+
+        if sent_ids:
+            mark_resp = api.put("/profiles/mark-notified", json={"profile_ids": sent_ids})
+            mark_resp.raise_for_status()
+            logger.info(f"Marked {len(sent_ids)} candidate profiles as notified.")
+
+    except Exception as e:
+        logger.error(f"Error in profile notification cycle: {e}")
+
