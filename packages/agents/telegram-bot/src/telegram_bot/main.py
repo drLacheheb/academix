@@ -25,7 +25,7 @@ from telegram_bot.handlers import (
     status_command,
     upload_cv_command,
 )
-from telegram_bot.notifier import check_notifications
+from telegram_bot.notifier import check_match_notifications, check_profile_notifications
 
 load_dotenv()
 
@@ -44,7 +44,13 @@ async def post_init(application: Application) -> None:
 
     if application.job_queue:
         application.job_queue.run_repeating(
-            check_notifications,
+            check_match_notifications,
+            interval=15.0,
+            first=5.0,
+            job_kwargs={"misfire_grace_time": 60},
+        )
+        application.job_queue.run_repeating(
+            check_profile_notifications,
             interval=15.0,
             first=5.0,
             job_kwargs={"misfire_grace_time": 60},
@@ -95,9 +101,7 @@ def run():
         app.add_handler(MessageHandler(filters.Document.PDF, handle_document))
         app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-        # Register Background Notification Loop (every 15s)
-        if app.job_queue:
-            app.job_queue.run_repeating(check_notifications, interval=15.0, first=5.0)
+        # Background notification jobs are registered in post_init above
 
         logger.info("Telegram bot initialized and long-polling started.")
         app.run_polling()

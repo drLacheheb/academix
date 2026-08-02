@@ -9,7 +9,7 @@ from telegram.ext import ContextTypes
 logger = get_logger("telegram-bot-notifier")
 
 
-async def check_notifications(context: ContextTypes.DEFAULT_TYPE) -> None:
+async def check_match_notifications(context: ContextTypes.DEFAULT_TYPE) -> None:
     api = context.bot_data.get("api")
     if not api:
         return
@@ -84,11 +84,6 @@ async def check_notifications(context: ContextTypes.DEFAULT_TYPE) -> None:
 
     except Exception as e:
         logger.error(f"Error in Telegram match notification cycle: {e}")
-
-    try:
-        await check_profile_notifications(context)
-    except Exception as e:
-        logger.error(f"Error in profile notification execution: {e}")
 
 
 async def check_profile_notifications(context: ContextTypes.DEFAULT_TYPE) -> None:
