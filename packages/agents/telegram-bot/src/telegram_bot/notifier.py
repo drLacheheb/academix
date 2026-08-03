@@ -138,4 +138,3 @@ async def check_profile_notifications(context: ContextTypes.DEFAULT_TYPE) -> Non
 
     except Exception as e:
         logger.error(f"Error in profile notification cycle: {e}")
-

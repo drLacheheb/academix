@@ -36,6 +36,7 @@ class JobModel(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
     required_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
+    research_interests: Mapped[str | None] = mapped_column(Text, nullable=True)
     education_level: Mapped[str | None] = mapped_column(String, nullable=True)
     city: Mapped[str | None] = mapped_column(String, nullable=True)
     country: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -58,6 +59,13 @@ class JobModel(Base):
                 required_skills_list = json.loads(self.required_skills)
             except Exception:
                 required_skills_list = None
+
+        research_interests_list: list[str] | None = None
+        if self.research_interests:
+            try:
+                research_interests_list = json.loads(self.research_interests)
+            except Exception:
+                research_interests_list = None
 
         skill_emb: list[float] | None = None
         if self.skill_embedding:
@@ -83,6 +91,7 @@ class JobModel(Base):
             description=self.description,
             requirements=self.requirements,
             required_skills=required_skills_list,
+            research_interests=research_interests_list,
             education_level=self.education_level,
             city=self.city,
             country=self.country,
@@ -100,6 +109,11 @@ class JobModel(Base):
             if job.required_skills is not None
             else None
         )
+        research_str = (
+            json.dumps([s for s in job.research_interests if s], ensure_ascii=False)
+            if job.research_interests is not None
+            else None
+        )
 
         return cls(
             title=job.title,
@@ -111,6 +125,7 @@ class JobModel(Base):
             description=job.description,
             requirements=job.requirements,
             required_skills=skills_str,
+            research_interests=research_str,
             education_level=job.education_level,
             city=job.city,
             country=job.country,
@@ -182,7 +197,6 @@ class CandidateProfileModel(Base):
     highest_degree: Mapped[str | None] = mapped_column(String, nullable=True)
     skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     languages: Mapped[str | None] = mapped_column(Text, nullable=True)
-    experience: Mapped[str | None] = mapped_column(Text, nullable=True)
     preferred_locations: Mapped[str | None] = mapped_column(Text, nullable=True)
     research_interests: Mapped[str | None] = mapped_column(Text, nullable=True)
     skill_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -210,7 +224,6 @@ class CandidateProfileModel(Base):
             highest_degree=self.highest_degree,
             skills=_safe_json_loads(self.skills, []),
             languages=_safe_json_loads(self.languages, []),
-            experience=_safe_json_loads(self.experience, []),
             preferred_locations=_safe_json_loads(self.preferred_locations, []),
             research_interests=_safe_json_loads(self.research_interests, []),
             skill_embedding=_safe_json_loads(self.skill_embedding, None),
@@ -251,22 +264,6 @@ class CandidateProfileModel(Base):
                 ensure_ascii=False,
             )
             if profile.languages is not None
-            else None,
-            experience=json.dumps(
-                [
-                    {
-                        "role": exp.get("role") if isinstance(exp, dict) else str(exp),
-                        "organization": exp.get("organization") if isinstance(exp, dict) else None,
-                        "from_date": exp.get("from_date") if isinstance(exp, dict) else None,
-                        "to_date": exp.get("to_date") if isinstance(exp, dict) else None,
-                        "description": exp.get("description") if isinstance(exp, dict) else None,
-                    }
-                    for exp in profile.experience
-                    if exp
-                ],
-                ensure_ascii=False,
-            )
-            if profile.experience is not None
             else None,
             preferred_locations=json.dumps(
                 [loc for loc in profile.preferred_locations if loc],

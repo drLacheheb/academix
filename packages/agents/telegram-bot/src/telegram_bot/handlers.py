@@ -126,25 +126,6 @@ def format_profile_card(p: dict) -> str:
         if lang_items:
             lang_str = ", ".join(lang_items)
 
-    exp_list = p.get("experience") or []
-    exp_lines = []
-    if exp_list:
-        for item in exp_list[:4]:
-            if isinstance(item, dict):
-                role = html.escape(item.get("role") or "Position")
-                org = html.escape(item.get("organization") or "")
-                from_d = html.escape(item.get("from_date") or "")
-                to_d = html.escape(item.get("to_date") or "")
-                dates = f" ({from_d} – {to_d})" if (from_d or to_d) else ""
-                org_str = f" at {org}" if org else ""
-                desc = html.escape(item.get("description") or "").strip()
-                desc_str = f"\n  └ <i>{desc}</i>" if desc else ""
-                exp_lines.append(f"• <b>{role}</b>{org_str}{dates}{desc_str}")
-            elif isinstance(item, str):
-                exp_lines.append(f"• {html.escape(item)}")
-
-    exp_str = "\n".join(exp_lines) if exp_lines else "None extracted"
-
     return (
         f"👤 <b>Candidate Profile Summary</b>\n\n"
         f"🏷️ <b>Name:</b> {name}\n"
@@ -152,7 +133,6 @@ def format_profile_card(p: dict) -> str:
         f"🎓 <b>Highest Degree:</b> {degree}\n\n"
         f"🛠️ <b>Key Skills:</b>\n{html.escape(skills)}\n\n"
         f"🔬 <b>Research Domains:</b>\n{html.escape(interests)}\n\n"
-        f"💼 <b>Experience History:</b>\n{exp_str}\n\n"
         f"🗣️ <b>Spoken Languages:</b>\n{html.escape(lang_str)}\n\n"
         f"📍 <b>Preferred Locations:</b>\n{html.escape(locations)}\n\n"
         f"<i>Use /edit to modify any of these fields!</i>"
@@ -363,4 +343,3 @@ async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             await query.edit_message_text(
                 "❌ Failed to delete your profile data. Please try again later."
             )
-

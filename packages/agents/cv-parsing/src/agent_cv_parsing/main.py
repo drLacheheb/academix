@@ -52,9 +52,9 @@ def process_ingestion_task(client) -> bool:
         return True
 
     try:
-        # Step 1: Parse PDF to markdown text using Docling layout analyzer
+        # Step 1: Parse PDF to markdown text using PyMuPDF4LLM layout analyzer
         logger.info(
-            f"[{profile_id}] Extracting layout and parsing PDF to markdown using Docling..."
+            f"[{profile_id}] Extracting layout and parsing PDF to markdown using PyMuPDF4LLM..."
         )
         raw_markdown = parse_pdf_to_markdown(local_file_path)
 

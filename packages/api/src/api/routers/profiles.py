@@ -375,6 +375,3 @@ async def delete_profile_by_id(
             detail=f"Candidate profile with ID {profile_id} not found.",
         )
     return {"status": "success", "message": f"Profile #{profile_id} deleted successfully."}
-
-
-

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any
 
 
 @dataclass
@@ -17,7 +16,6 @@ class CandidateProfile:
     highest_degree: str | None = None
     skills: list[str] | None = None
     languages: list[dict[str, str]] | None = None
-    experience: list[dict[str, Any]] | None = None
     preferred_locations: list[str] | None = None
     research_interests: list[str] | None = None
     skill_embedding: list[float] | None = None

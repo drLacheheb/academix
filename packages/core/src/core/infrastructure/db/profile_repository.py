@@ -42,7 +42,6 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     existing.highest_degree = model.highest_degree
                     existing.skills = model.skills
                     existing.languages = model.languages
-                    existing.experience = model.experience
                     existing.preferred_locations = model.preferred_locations
                     existing.research_interests = model.research_interests
                     existing.status = model.status
@@ -68,7 +67,6 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     existing.highest_degree = model.highest_degree
                     existing.skills = model.skills
                     existing.languages = model.languages
-                    existing.experience = model.experience
                     existing.preferred_locations = model.preferred_locations
                     existing.research_interests = model.research_interests
                     existing.status = model.status
@@ -405,11 +403,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 existing.languages = (
                     json.dumps(profile.languages, ensure_ascii=False) if profile.languages else None
                 )
-                existing.experience = (
-                    json.dumps(profile.experience, ensure_ascii=False)
-                    if profile.experience
-                    else None
-                )
+
                 existing.preferred_locations = (
                     json.dumps(profile.preferred_locations, ensure_ascii=False)
                     if profile.preferred_locations
@@ -764,30 +758,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     if profile.languages
                     else None
                 )
-                existing_email.experience = (
-                    json.dumps(
-                        [
-                            {
-                                "role": exp.get("role") if isinstance(exp, dict) else str(exp),
-                                "organization": exp.get("organization")
-                                if isinstance(exp, dict)
-                                else None,
-                                "from_date": exp.get("from_date")
-                                if isinstance(exp, dict)
-                                else None,
-                                "to_date": exp.get("to_date") if isinstance(exp, dict) else None,
-                                "description": exp.get("description")
-                                if isinstance(exp, dict)
-                                else None,
-                            }
-                            for exp in profile.experience
-                            if exp
-                        ],
-                        ensure_ascii=False,
-                    )
-                    if profile.experience
-                    else None
-                )
+
                 existing_email.preferred_locations = (
                     json.dumps(
                         [loc for loc in profile.preferred_locations if loc],
@@ -851,32 +822,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                         if profile.languages
                         else None
                     )
-                    placeholder.experience = (
-                        json.dumps(
-                            [
-                                {
-                                    "role": exp.get("role") if isinstance(exp, dict) else str(exp),
-                                    "organization": exp.get("organization")
-                                    if isinstance(exp, dict)
-                                    else None,
-                                    "from_date": exp.get("from_date")
-                                    if isinstance(exp, dict)
-                                    else None,
-                                    "to_date": exp.get("to_date")
-                                    if isinstance(exp, dict)
-                                    else None,
-                                    "description": exp.get("description")
-                                    if isinstance(exp, dict)
-                                    else None,
-                                }
-                                for exp in profile.experience
-                                if exp
-                            ],
-                            ensure_ascii=False,
-                        )
-                        if profile.experience
-                        else None
-                    )
+
                     placeholder.preferred_locations = (
                         json.dumps(
                             [loc for loc in profile.preferred_locations if loc],
