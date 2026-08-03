@@ -74,12 +74,13 @@ def run():
         job_title = job_data.get("title", "")
         job_url = job_data.get("url")
         required_skills = job_data.get("required_skills") or []
+        research_interests = job_data.get("research_interests") or []
 
         logger.info(f"Successfully claimed job for embedding: {job_title} ({job_url})")
 
         try:
             skill_emb = embedding_service.encode_skills(required_skills)
-            research_emb = embedding_service.encode_research(required_skills, title=job_title)
+            research_emb = embedding_service.encode_research(research_interests, title=job_title)
 
             logger.info(f"[{job_title}] Generated job embeddings. Submitting to API...")
             submit_resp = api.put(

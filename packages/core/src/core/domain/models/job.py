@@ -16,6 +16,7 @@ class Job:
     requirements: str | None = None
 
     required_skills: list[str] | None = None
+    research_interests: list[str] | None = None
     education_level: str | None = None
     city: str | None = None
     country: str | None = None
