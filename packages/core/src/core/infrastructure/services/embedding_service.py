@@ -54,8 +54,9 @@ class EmbeddingService(BaseEmbeddingService):
     def encode_skills(self, skills: list[str] | None) -> list[float] | None:
         if not skills:
             return None
-        # Join skills with commas to make a descriptive string
-        text = ", ".join(skills)
+        # Clean, deduplicate, and sort skills
+        clean_skills = sorted(list(set(s.strip().lower() for s in skills if s.strip())))
+        text = ", ".join(clean_skills)
         return self.encode_text(text)
 
     def encode_research(self, interests: list[str] | None, title: str = "") -> list[float] | None:
@@ -63,8 +64,9 @@ class EmbeddingService(BaseEmbeddingService):
             return None
         parts = []
         if title:
-            parts.append(title)
+            parts.append(title.strip().lower())
         if interests:
-            parts.append(", ".join(interests))
+            clean_interests = sorted(list(set(i.strip().lower() for i in interests if i.strip())))
+            parts.append(", ".join(clean_interests))
         text = " ".join(parts)
         return self.encode_text(text)
