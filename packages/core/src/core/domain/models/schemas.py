@@ -145,8 +145,8 @@ class MatchReason(BaseModel):
 
 class MatchExplanationExtraction(BaseModel):
     reasons: list[MatchReason] = Field(
-        default_factory=list,
-        description="Structured breakdown of key matching reasons.",
+        min_length=1,
+        description="Structured breakdown of key matching reasons. MUST contain at least 1 reason.",
     )
 
 

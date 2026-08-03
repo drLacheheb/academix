@@ -213,6 +213,8 @@ class MatchRepository(BaseMatchRepository):
                 .filter(
                     MatchModel.telegram_notified == False,  # noqa: E712
                     MatchModel.explanation_status == "completed",
+                    MatchModel.explanation.isnot(None),
+                    MatchModel.explanation != "",
                     CandidateProfileModel.telegram_chat_id.isnot(None),
                 )
                 .order_by(desc(MatchModel.score))

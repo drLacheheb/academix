@@ -32,6 +32,7 @@ class InstructorLlmClient(LlmClient):
         self._raw_client = OpenAI(
             base_url=self.base_url,
             api_key=os.environ.get("LLM_API_KEY", "ollama"),
+            timeout=120.0,
         )
         self._instructor_client = instructor.from_openai(
             self._raw_client,

@@ -41,15 +41,14 @@ class ExplainMatchUseCase:
             {"role": "user", "content": user_content},
         ]
 
-        try:
-            validated: MatchExplanationExtraction = self._llm.complete(
-                messages=messages,
-                response_model=MatchExplanationExtraction,
-                max_tokens=self._max_output_tokens,
+        validated: MatchExplanationExtraction = self._llm.complete(
+            messages=messages,
+            response_model=MatchExplanationExtraction,
+            max_tokens=self._max_output_tokens,
+        )
+        if not validated.reasons:
+            raise ValueError(
+                f"LLM returned zero matching reasons for candidate {candidate.name} "
+                f"and job {job.title}"
             )
-            if validated.reasons:
-                return " ".join(r.description for r in validated.reasons)
-            return ""
-        except Exception as e:
-            logger.error(f"Error generating match explanation: {e}")
-            return ""
+        return " ".join(r.description for r in validated.reasons)
