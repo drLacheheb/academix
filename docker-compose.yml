@@ -412,7 +412,7 @@ services:
       - ./packages:/app/packages
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
-      - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.85}
+      - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.75}
       - LOG_FILE=/app/logs/matching-worker.log
       - API_URL=http://api:8000
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}

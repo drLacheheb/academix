@@ -112,8 +112,10 @@ class MatchScorer:
         skill_score = dot_product(candidate.skill_embedding, job.skill_embedding)
         research_score = dot_product(candidate.research_embedding, job.research_embedding)
 
-        # 4. Composite Score
-        composite_score = 0.6 * skill_score + 0.4 * research_score
+        # 4. Composite Score: Max-Dominance Asymmetric Pooling (Approach A)
+        max_score = max(skill_score, research_score)
+        min_score = min(skill_score, research_score)
+        composite_score = 0.70 * max_score + 0.30 * min_score
 
         # Bound composite score to [0.0, 1.0]
         composite_score = max(0.0, min(1.0, composite_score))
