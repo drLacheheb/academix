@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field, field_validator
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from core.domain.constants import (
     EducationLevel,
@@ -26,24 +28,41 @@ class JobRefinementExtraction(BaseModel):
     required_skills: list[str] = Field(
         default_factory=list,
         description=(
-            "Specific tools, techniques, programming languages, lab methods, "
-            "or specialized academic research domains."
+            "Rule: Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks. "
+            "This must encompass both technical STEM skills and specialized methodological approaches utilized in the humanities and social sciences. "
+            "Negative Rule: Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines."
+        ),
+    )
+    research_interests: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Rule: Exhaustively extract ALL applicable fields of study, academic disciplines, and high-level research domains mentioned in the text. "
+            "Negative Rule: Do not extract specific methodologies, individual analytical tools, programming languages, or software (these belong in skills)."
         ),
     )
     education_level: EducationLevel | None = Field(
         default=None,
-        description="Minimum academic degree required to apply.",
+        description=(
+            "Rule: Extract the minimum academic degree required. "
+            "Negative Rule: Do not hallucinate or guess degrees."
+        ),
     )
     city: str | None = Field(
         default=None,
-        description="Normalized city name in Title Case.",
+        description=(
+            "Rule: Extract the normalized city name in Title Case. "
+            "Negative Rule: Do not include country or state."
+        ),
     )
     country: str | None = Field(
         default=None,
-        description="Full English country name in Title Case.",
+        description=(
+            "Rule: Extract the full English country name in Title Case. "
+            "Negative Rule: Do not use abbreviations."
+        ),
     )
 
-    @field_validator("required_skills", mode="before")
+    @field_validator("required_skills", "research_interests", mode="before")
     @classmethod
     def default_none_to_list(cls, v: list[str] | None) -> list[str]:
         return v if v is not None else []
@@ -64,51 +83,71 @@ class JobRefinementExtraction(BaseModel):
 
 
 class LanguageProficiency(BaseModel):
-    language: str = Field(description="Name of spoken language in English.")
+    language: str = Field(
+        description=(
+            "Rule: Extract the name of the spoken language in English. "
+            "Negative Rule: Do not extract programming languages here."
+        )
+    )
     proficiency: LanguageProficiencyLevel | None = Field(
         default=LanguageProficiencyLevel.FLUENT,
-        description="Proficiency level.",
-    )
-
-
-class ExperienceItem(BaseModel):
-    role: str = Field(description="Position or job title.")
-    organization: str | None = Field(
-        default=None, description="University, laboratory, or company name."
-    )
-    from_date: str | None = Field(default=None, description="Start year or date.")
-    to_date: str | None = Field(default=None, description="End year/date or Present.")
-    description: str | None = Field(
-        default=None, description="Concise summary of responsibilities and achievements."
+        description=(
+            "Rule: Categorize the proficiency level. "
+            "Negative Rule: Do not invent new proficiency levels."
+        ),
     )
 
 
 class CandidateCvExtraction(BaseModel):
-    name: str | None = Field(default=None, description="Full name of candidate.")
-    email: str | None = Field(default=None, description="Primary email address of candidate.")
+    name: str | None = Field(
+        default=None,
+        description=(
+            "Rule: Extract the full name of the candidate. "
+            "Negative Rule: Do not include titles like Dr. or Prof."
+        ),
+    )
+    email: str | None = Field(
+        default=None,
+        description=(
+            "Rule: Extract the primary email address. "
+            "Negative Rule: Do not include mailto: links."
+        ),
+    )
     highest_degree: EducationLevel | None = Field(
         default=None,
-        description="Highest earned academic degree.",
+        description=(
+            "Rule: Extract the highest earned academic degree. "
+            "Negative Rule: Do not extract incomplete degrees."
+        ),
     )
     skills: list[str] = Field(
         default_factory=list,
-        description="List of concrete technical, scientific, lab, or research skills.",
+        description=(
+            "Rule: Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks. "
+            "This must encompass both technical STEM skills and specialized methodological approaches utilized in the humanities and social sciences. "
+            "Negative Rule: Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines."
+        ),
     )
     languages: list[LanguageProficiency] = Field(
         default_factory=list,
-        description="List of spoken languages with proficiency levels.",
-    )
-    experience: list[ExperienceItem] = Field(
-        default_factory=list,
-        description="List of past academic or professional positions held.",
+        description=(
+            "Rule: Extract all spoken languages. "
+            "Negative Rule: Do not extract programming languages here."
+        ),
     )
     preferred_locations: list[str] = Field(
         default_factory=list,
-        description="Target preferred cities or countries explicitly stated in candidate CV.",
+        description=(
+            "Rule: Extract preferred cities or countries explicitly stated. "
+            "Negative Rule: Do not extract previous work locations unless explicitly stated as preferred targets."
+        ),
     )
     research_interests: list[str] = Field(
         default_factory=list,
-        description="Core scientific research topics or specialized subfields.",
+        description=(
+            "Rule: Exhaustively extract ALL applicable fields of study, academic disciplines, and high-level research domains mentioned in the text. "
+            "Negative Rule: Do not extract specific methodologies, individual analytical tools, programming languages, or software (these belong in skills)."
+        ),
     )
 
     @field_validator("highest_degree", mode="before")
@@ -128,7 +167,6 @@ class CandidateCvExtraction(BaseModel):
     @field_validator(
         "skills",
         "languages",
-        "experience",
         "preferred_locations",
         "research_interests",
         mode="before",
@@ -139,20 +177,41 @@ class CandidateCvExtraction(BaseModel):
 
 
 class MatchReason(BaseModel):
-    category: MatchCategory = Field(description="Category of match")
-    description: str = Field(description="Detailed description of the specific matching point.")
+    category: MatchCategory = Field(
+        description=(
+            "Rule: Categorize the match strictly into one of the allowed categories. "
+            "Negative Rule: Do not invent new categories."
+        )
+    )
+    description: str = Field(
+        description=(
+            "Rule: Provide a concise description of the matching point in exactly one sentence. "
+            "Negative Rule: Do not use vague language."
+        )
+    )
 
 
 class MatchExplanationExtraction(BaseModel):
     reasons: list[MatchReason] = Field(
         min_length=1,
-        description="Structured breakdown of key matching reasons. MUST contain at least 1 reason.",
+        description=(
+            "Rule: Provide a structured breakdown of key matching reasons. "
+            "Negative Rule: Do not provide an empty list."
+        ),
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def unwrap_outer_class(cls, values: Any) -> Any:
+        if isinstance(values, dict) and "MatchExplanationExtraction" in values:
+            return values["MatchExplanationExtraction"]
+        return values
 
 
 class RefinementResult(BaseModel):
     url: str
     required_skills: list[str]
+    research_interests: list[str] = Field(default_factory=list)
     education_level: str | None = None
     city: str | None = None
     country: str | None = None
