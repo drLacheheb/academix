@@ -6,6 +6,24 @@ Rules:
 - Ensure all extracted information is explicitly stated in the posting.
 - Note: PhD candidate positions require a "Master" degree; Postdoc positions require a "PhD" degree.
 
+Rules for Skills:
+- Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks.
+- This must encompass both technical STEM skills and specialized methodological approaches.
+
+Rules for Research Domains:
+- Exhaustively extract ALL applicable fields of study, academic disciplines, industry sectors, engineering domains, and specific application areas.
+- Extract highly granular sub-domains and niches rather than clumping them into broad macro-categories.
+- Expand all acronyms and abbreviations into their full, complete terminology. Do NOT output shortened acronyms.
+
 Negative Rules:
 - Do not hallucinate or invent requirements that are not present in the text.
 - Do not add conversational filler.
+
+Negative Rules for Skills:
+- Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines.
+
+Negative Rules for Research Domains:
+- Do NOT merge distinct domains using conjunctions such as '&' or 'and'. Extract all topics as completely separate, singular, atomic items.
+- Do NOT include specific tools, programming languages, or software frameworks - those belong in skills.
+- Do NOT use parentheses to append additional context, tools, or explanations to extracted domains.
+- Do NOT include purely administrative or generic management tasks.
