@@ -1,7 +1,7 @@
 [project]
 name = "cv-parsing"
 version = "0.1.0"
-description = "Background CV parsing and multilingual layout analysis agent using local Docling, NLLB, and Gemma-4"
+description = "Background CV parsing and multilingual layout analysis agent using local PyMuPDF4LLM, NLLB, and Gemma-4"
 requires-python = "==3.12.*"
 dependencies = [
     "core[vision]",

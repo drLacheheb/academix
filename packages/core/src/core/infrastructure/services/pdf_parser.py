@@ -1,83 +1,25 @@
 import os
-import time
-from io import BytesIO
 
-import pypdfium2 as pdfium
+import pymupdf4llm
 from core.infrastructure.logging.logger import get_logger
-from docling.datamodel.base_models import DocumentStream
-from docling.document_converter import DocumentConverter
 
 logger = get_logger("core-pdf-parser")
-
-
-_converter: DocumentConverter | None = None
-
-
-def get_document_converter() -> DocumentConverter:
-    global _converter
-    if _converter is None:
-        logger.info("Initializing global Docling DocumentConverter (happens once)")
-        for attempt in range(1, 4):
-            try:
-                _converter = DocumentConverter()
-                break
-            except Exception as e:
-                logger.warning(f"Docling initialization attempt {attempt}/3 failed: {e}")
-                if attempt == 3:
-                    raise
-                time.sleep(3 * attempt)
-    assert _converter is not None
-    return _converter
 
 
 def parse_pdf_to_markdown(file_path: str) -> str:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"PDF file not found: {file_path}")
 
-    logger.info(f"Rasterizing and parsing PDF: {file_path} using visual Docling pipeline")
-
-    converter = get_document_converter()
+    logger.info(f"Parsing PDF: {file_path} using PyMuPDF4LLM")
 
     try:
-        markdown_pages = []
-        with pdfium.PdfDocument(file_path) as pdf:
-            for i in range(len(pdf)):
-                page = pdf[i]
-                # Render page to PIL Image at 2x scale for high resolution
-                bitmap = page.render(scale=2)
-                pil_img = bitmap.to_pil()
-
-                # Save PIL image to byte buffer as PNG
-                img_buffer = BytesIO()
-                pil_img.save(img_buffer, format="PNG")
-                img_buffer.seek(0)
-                # Wrap in DocumentStream
-                source = DocumentStream(name=f"page_{i}.png", stream=img_buffer)
-
-                # Convert page image with retry for CDN network glitches
-                for attempt in range(1, 4):
-                    try:
-                        result = converter.convert(source)
-                        markdown_pages.append(result.document.export_to_markdown())
-                        break
-                    except Exception as conv_err:
-                        logger.warning(
-                            f"Docling conversion attempt {attempt}/3 failed on page {i}: {conv_err}"
-                        )
-                        if attempt == 3:
-                            raise
-                        time.sleep(2 * attempt)
-
-                img_buffer.close()
-
-        markdown_text = "\n\n".join(markdown_pages)
+        markdown_text = pymupdf4llm.to_markdown(file_path)
         logger.info(
-            f"Successfully rasterized and converted PDF {file_path} to "
-            f"Markdown ({len(markdown_text)} chars)"
+            f"Successfully converted PDF {file_path} to Markdown ({len(markdown_text)} chars)"
         )
         return markdown_text
     except Exception as e:
-        logger.error(f"Failed to parse PDF via rasterization: {e}")
+        logger.error(f"Failed to parse PDF via PyMuPDF4LLM: {e}")
         raise
 
 

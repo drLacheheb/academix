@@ -20,7 +20,7 @@ embeddings = [
     "einops>=0.8.0",
 ]
 vision = [
-    "docling>=2.113.0",
+    "pymupdf4llm>=0.0.17",
     "torch",
     "torchvision",
 ]
