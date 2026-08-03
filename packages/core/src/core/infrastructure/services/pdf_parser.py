@@ -1,4 +1,5 @@
 import os
+import time
 from io import BytesIO
 
 import pypdfium2 as pdfium
@@ -8,8 +9,6 @@ from docling.document_converter import DocumentConverter
 
 logger = get_logger("core-pdf-parser")
 
-
-import time
 
 _converter: DocumentConverter | None = None
 
@@ -27,6 +26,7 @@ def get_document_converter() -> DocumentConverter:
                 if attempt == 3:
                     raise
                 time.sleep(3 * attempt)
+    assert _converter is not None
     return _converter
 
 
