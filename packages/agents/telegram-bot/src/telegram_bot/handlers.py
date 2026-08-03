@@ -2,7 +2,7 @@ import html
 import io
 
 from core.infrastructure.logging.logger import get_logger
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
@@ -296,3 +296,71 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text(
             "❌ Failed to process your CV. Please make sure it is a valid PDF and try again."
         )
+
+
+async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message or not update.effective_chat:
+        return
+
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("🗑️ Yes, Delete Everything", callback_data="delete_confirm"),
+                InlineKeyboardButton("❌ Cancel", callback_data="delete_cancel"),
+            ]
+        ]
+    )
+
+    await update.message.reply_text(
+        "⚠️ <b>Are you sure you want to delete your profile?</b>\n\n"
+        "This action will permanently remove:\n"
+        "• Your candidate profile & CV document\n"
+        "• Your extracted skills & vector embeddings\n"
+        "• All calculated job matches & notification history\n\n"
+        "<i>This action cannot be undone.</i>",
+        parse_mode="HTML",
+        reply_markup=keyboard,
+    )
+
+
+async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query or not query.message or not update.effective_chat:
+        return
+
+    await query.answer()
+    chat_id = str(update.effective_chat.id)
+
+    if query.data == "delete_cancel":
+        await query.edit_message_text(
+            "❌ <b>Deletion Cancelled.</b> Your profile and CV remain safe.",
+            parse_mode="HTML",
+        )
+        return
+
+    if query.data == "delete_confirm":
+        api = context.bot_data.get("api")
+        if not api:
+            await query.edit_message_text("❌ API service unavailable. Try again later.")
+            return
+
+        try:
+            del_resp = api.delete(f"/profiles/by-telegram-chat-id/{chat_id}")
+            if del_resp.status_code == 404:
+                await query.edit_message_text("ℹ️ No active profile found to delete.")
+                return
+            del_resp.raise_for_status()
+
+            await query.edit_message_text(
+                "🗑️ <b>Your profile and CV data have been permanently deleted.</b>\n\n"
+                "You now have a clean start. You can upload a new CV anytime by sending a PDF file "
+                "or using <b>/upload_cv</b>.",
+                parse_mode="HTML",
+            )
+            logger.info(f"Successfully deleted all profile data for Telegram user {chat_id}")
+        except Exception as e:
+            logger.error(f"Failed to delete profile for Telegram user {chat_id}: {e}")
+            await query.edit_message_text(
+                "❌ Failed to delete your profile data. Please try again later."
+            )
+

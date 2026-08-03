@@ -246,6 +246,88 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
         finally:
             session.close()
 
+    def delete_by_telegram_chat_id(self, telegram_chat_id: str) -> bool:
+        session = self._SessionLocal()
+        try:
+            from core.infrastructure.db.models import MatchingQueueModel, MatchModel
+
+            profiles = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.telegram_chat_id == telegram_chat_id)
+                .all()
+            )
+            if not profiles:
+                return False
+
+            for profile in profiles:
+                # Delete matches and matching queue entries
+                session.query(MatchModel).filter(MatchModel.candidate_id == profile.id).delete()
+                session.query(MatchingQueueModel).filter(
+                    MatchingQueueModel.entity_type == "candidate",
+                    MatchingQueueModel.entity_id == str(profile.id),
+                ).delete()
+
+                # Delete CV file via StorageService abstraction (supports Local & S3)
+                if profile.cv_file_path:
+                    try:
+                        from core.infrastructure.services.storage import (
+                            get_storage_service_from_env,
+                        )
+
+                        get_storage_service_from_env().delete(profile.cv_file_path)
+                    except Exception:
+                        pass
+
+                session.delete(profile)
+
+            session.commit()
+            return True
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def delete_by_id(self, profile_id: int) -> bool:
+        session = self._SessionLocal()
+        try:
+            from core.infrastructure.db.models import MatchingQueueModel, MatchModel
+
+            profile = (
+                session.query(CandidateProfileModel)
+                .filter(CandidateProfileModel.id == profile_id)
+                .first()
+            )
+            if not profile:
+                return False
+
+            # Delete matches and matching queue entries
+            session.query(MatchModel).filter(MatchModel.candidate_id == profile_id).delete()
+            session.query(MatchingQueueModel).filter(
+                MatchingQueueModel.entity_type == "candidate",
+                MatchingQueueModel.entity_id == str(profile_id),
+            ).delete()
+
+            # Delete CV file via StorageService abstraction (supports Local & S3)
+            if profile.cv_file_path:
+                try:
+                    from core.infrastructure.services.storage import (
+                        get_storage_service_from_env,
+                    )
+
+                    get_storage_service_from_env().delete(profile.cv_file_path)
+                except Exception:
+                    pass
+
+            session.delete(profile)
+            session.commit()
+            return True
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def claim_next_for_ingestion(
         self, agent_name: str, stale_cutoff: datetime
     ) -> CandidateProfile | None:

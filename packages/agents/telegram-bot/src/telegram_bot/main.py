@@ -9,6 +9,7 @@ from telegram import BotCommand
 from telegram.ext import (
     Application,
     ApplicationBuilder,
+    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     MessageHandler,
@@ -17,6 +18,8 @@ from telegram.ext import (
 
 from telegram_bot.edit_handler import get_edit_handler
 from telegram_bot.handlers import (
+    delete_callback_handler,
+    delete_command,
     handle_document,
     help_command,
     matches_command,
@@ -38,22 +41,25 @@ async def post_init(application: Application) -> None:
         BotCommand("profile", "View your parsed skills, degree & interests"),
         BotCommand("edit", "Edit profile skills, degree, or locations"),
         BotCommand("matches", "Browse your top academic job matches"),
+        BotCommand("delete", "Permanently delete your profile & CV for a fresh start"),
         BotCommand("help", "Show available commands & guide"),
     ]
     await application.bot.set_my_commands(commands)
 
     if application.job_queue:
+        # Check match notifications every 30 seconds
         application.job_queue.run_repeating(
             check_match_notifications,
-            interval=15.0,
+            interval=30.0,
             first=5.0,
-            job_kwargs={"misfire_grace_time": 60},
+            name="check_match_notifications",
         )
+        # Check profile completion notifications every 15 seconds
         application.job_queue.run_repeating(
             check_profile_notifications,
             interval=15.0,
-            first=5.0,
-            job_kwargs={"misfire_grace_time": 60},
+            first=3.0,
+            name="check_profile_notifications",
         )
 
 
@@ -93,6 +99,10 @@ def run():
         app.add_handler(CommandHandler("profile", profile_command))
         app.add_handler(CommandHandler("matches", matches_command))
         app.add_handler(CommandHandler(["upload_cv", "uploadcv", "newcv"], upload_cv_command))
+        app.add_handler(CommandHandler(["delete", "reset", "deleteprofile"], delete_command))
+
+        # Register Callback Handlers
+        app.add_handler(CallbackQueryHandler(delete_callback_handler, pattern="^delete_"))
 
         # Register Edit Conversation Handler
         app.add_handler(get_edit_handler())

@@ -37,5 +37,9 @@ class BaseStorageService(ABC):
         pass
 
     @abstractmethod
+    def delete(self, uri: str) -> None:
+        pass
+
+    @abstractmethod
     def verify_connection(self) -> None:
         pass

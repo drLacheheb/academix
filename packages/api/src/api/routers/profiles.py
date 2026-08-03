@@ -345,3 +345,36 @@ async def update_profile_fields(
     return updated.to_dict()
 
 
+@router.delete("/profiles/by-telegram-chat-id/{chat_id}")
+@limiter.limit("10/minute")
+async def delete_profiles_by_chat_id(
+    request: Request,
+    chat_id: str,
+    repo=Depends(get_repo),
+):
+    deleted = repo.profiles.delete_by_telegram_chat_id(chat_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No candidate profile found for Telegram chat ID {chat_id}.",
+        )
+    return {"status": "success", "message": f"All profile data for chat {chat_id} deleted."}
+
+
+@router.delete("/profiles/{profile_id}")
+@limiter.limit("10/minute")
+async def delete_profile_by_id(
+    request: Request,
+    profile_id: int,
+    repo=Depends(get_repo),
+):
+    deleted = repo.profiles.delete_by_id(profile_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Candidate profile with ID {profile_id} not found.",
+        )
+    return {"status": "success", "message": f"Profile #{profile_id} deleted successfully."}
+
+
+

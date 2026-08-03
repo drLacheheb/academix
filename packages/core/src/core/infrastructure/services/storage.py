@@ -36,8 +36,16 @@ class LocalStorageService(BaseStorageService):
         return uri, False
 
     def clean_up(self, local_path: str) -> None:
-        # Local files are kept in the uploads folder permanently
+        # Local files are kept in the uploads folder permanently unless explicitly deleted
         pass
+
+    def delete(self, uri: str) -> None:
+        if uri and os.path.exists(uri):
+            try:
+                os.remove(uri)
+                logger.info(f"LocalStorageService: Permanently deleted local file: {uri}")
+            except Exception as e:
+                logger.warning(f"LocalStorageService: Failed to delete local file {uri}: {e}")
 
     def verify_connection(self) -> None:
         logger.info("LocalStorageService: Verifying uploads directory exists and is writeable...")
@@ -124,6 +132,37 @@ class S3StorageService(BaseStorageService):
                 logger.warning(
                     f"S3StorageService: Failed to delete temporary file {local_path}: {e}"
                 )
+
+    def delete(self, uri: str) -> None:
+        if not uri:
+            return
+
+        from urllib.parse import urlparse
+
+        import boto3
+
+        # Extract S3 key from presigned URL or raw key
+        s3_key = uri
+        if uri.startswith("http://") or uri.startswith("https://"):
+            parsed = urlparse(uri)
+            s3_key = parsed.path.lstrip("/")
+
+        logger.info(f"S3StorageService: Deleting key '{s3_key}' from S3 bucket '{self._bucket}'...")
+        try:
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=self._access_key,
+                aws_secret_access_key=self._secret_key,
+                endpoint_url=self._endpoint_url,
+                region_name=self._region_name,
+            )
+            s3.delete_object(Bucket=self._bucket, Key=s3_key)
+            logger.info(
+                f"S3StorageService: Key '{s3_key}' deleted successfully from bucket "
+                f"'{self._bucket}'."
+            )
+        except Exception as e:
+            logger.warning(f"S3StorageService: Failed to delete S3 object '{s3_key}': {e}")
 
     def verify_connection(self) -> None:
         import boto3
