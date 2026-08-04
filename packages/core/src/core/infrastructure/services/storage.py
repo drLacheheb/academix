@@ -106,6 +106,25 @@ class S3StorageService(BaseStorageService):
 
     def get_local_path(self, uri: str) -> tuple[str, bool]:
         import tempfile
+        import boto3
+        from botocore.client import Config
+
+        # If uri is a file basename or key (not a full HTTP/HTTPS URL), generate presigned GET URL
+        if not (uri.startswith("http://") or uri.startswith("https://")):
+            key = os.path.basename(uri)
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=self._access_key,
+                aws_secret_access_key=self._secret_key,
+                endpoint_url=self._endpoint_url,
+                region_name=self._region_name,
+                config=Config(signature_version="s3v4"),
+            )
+            uri = s3.generate_presigned_url(
+                ClientMethod="get_object",
+                Params={"Bucket": self._bucket, "Key": key},
+                ExpiresIn=3600,
+            )
 
         logger.info(f"S3StorageService: Downloading remote CV file from URL: {uri}...")
 
