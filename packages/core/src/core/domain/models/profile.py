@@ -14,12 +14,14 @@ class CandidateProfile:
     language_code: str | None = None
     raw_text_en: str | None = None
     highest_degree: str | None = None
+    degree_fields: list[str] | None = None
     skills: list[str] | None = None
     languages: list[dict[str, str]] | None = None
     preferred_locations: list[str] | None = None
     research_interests: list[str] | None = None
     skill_embedding: list[float] | None = None
     research_embedding: list[float] | None = None
+    degree_embedding: list[float] | None = None
     status: str = "INGESTING"
     status_message: str | None = None
     claimed_by: str | None = None

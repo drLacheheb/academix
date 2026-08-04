@@ -18,6 +18,7 @@ class Job:
     required_skills: list[str] | None = None
     research_interests: list[str] | None = None
     education_level: str | None = None
+    degree_fields: list[str] | None = None
     city: str | None = None
     country: str | None = None
 
@@ -27,6 +28,7 @@ class Job:
 
     skill_embedding: list[float] | None = None
     research_embedding: list[float] | None = None
+    degree_embedding: list[float] | None = None
 
     def is_detail_scraped(self) -> bool:
         return self.description is not None

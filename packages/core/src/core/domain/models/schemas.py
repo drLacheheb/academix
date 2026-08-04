@@ -28,24 +28,38 @@ class JobRefinementExtraction(BaseModel):
     required_skills: list[str] = Field(
         default_factory=list,
         description=(
-            "Rule: Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks. "
-            "This must encompass both technical STEM skills and specialized methodological approaches utilized in the humanities and social sciences. "
-            "Negative Rule: Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines."
+            "Rule: Exhaustively extract ALL concrete hard skills, methodological techniques, "
+            "analytical tools, software, and operational frameworks. "
+            "This must encompass both technical STEM skills and specialized methodological "
+            "approaches utilized in the humanities and social sciences. "
+            "Negative Rule: Do not extract subjective interpersonal abilities, generic "
+            "behavioral traits, or broad academic disciplines."
         ),
     )
     research_interests: list[str] = Field(
         alias="granular_research_domains",
         default_factory=list,
         description=(
-            "Rule: Extract specific, highly granular research domains and academic niches (e.g., Network Anomaly Detection, Embedded Telemetry). "
-            "Rule: If a domain contains an ampersand (&), you must split it into two separate domains. "
+            "Rule: Extract specific, highly granular research domains and academic niches "
+            "(e.g., Network Anomaly Detection, Embedded Telemetry). "
+            "Rule: If a domain contains an ampersand (&), you must split it into two "
+            "separate domains. "
             "Rule: Expand all acronyms (e.g. IoT becomes Internet of Things). "
             "Rule: Do not extract software tools or languages (e.g. PyTorch, React, Python)."
         ),
     )
     education_level: EducationLevel = Field(
         description=(
-            "Rule: Extract the minimum academic degree required. Must be one of: Bachelor, Master, PhD."
+            "Rule: Extract the minimum academic degree required. Must be one of: "
+            "Bachelor, Master, PhD."
+        ),
+    )
+    degree_fields: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Rule: Extract the major or discipline required by the degree (e.g., Computer "
+            "Science, Molecular Biology). "
+            "Rule: If multiple fields are allowed, extract each as a separate item in the list."
         ),
     )
     city: str | None = Field(
@@ -74,13 +88,17 @@ class JobRefinementExtraction(BaseModel):
         if not v or not isinstance(v, str):
             raise ValueError("education_level must be provided as a string")
         v_lower = v.strip().lower()
-        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]):
+        if any(
+            b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]
+        ):
             return EducationLevel.BACHELOR
         if any(m in v_lower for m in ["master", "msc", "magister", "m.s.", "ms"]):
             return EducationLevel.MASTER
         if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
             return EducationLevel.PHD
-        raise ValueError(f"Could not normalize degree from '{v}'. Must be Bachelor, Master, or PhD.")
+        raise ValueError(
+            f"Could not normalize degree from '{v}'. Must be Bachelor, Master, or PhD."
+        )
 
 
 class LanguageProficiency(BaseModel):
@@ -110,22 +128,33 @@ class CandidateCvExtraction(BaseModel):
     email: str | None = Field(
         default=None,
         description=(
-            "Rule: Extract the primary email address. "
-            "Negative Rule: Do not include mailto: links."
+            "Rule: Extract the primary email address. Negative Rule: Do not include mailto: links."
         ),
     )
     highest_degree: EducationLevel = Field(
         description=(
-            "Rule: Extract the highest earned academic degree. Must be one of: Bachelor, Master, PhD. "
+            "Rule: Extract the highest earned academic degree. Must be one of: "
+            "Bachelor, Master, PhD. "
             "Rule: Do not skip this field. Look carefully through the entire CV."
+        ),
+    )
+    degree_fields: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Rule: Extract the major or discipline of the earned degree (e.g., Computer "
+            "Science, Molecular Biology). "
+            "Rule: If the candidate has multiple degrees, extract all fields."
         ),
     )
     skills: list[str] = Field(
         default_factory=list,
         description=(
-            "Rule: Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks. "
-            "This must encompass both technical STEM skills and specialized methodological approaches utilized in the humanities and social sciences. "
-            "Negative Rule: Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines."
+            "Rule: Exhaustively extract ALL concrete hard skills, methodological techniques, "
+            "analytical tools, software, and operational frameworks. "
+            "This must encompass both technical STEM skills and specialized methodological "
+            "approaches utilized in the humanities and social sciences. "
+            "Negative Rule: Do not extract subjective interpersonal abilities, generic "
+            "behavioral traits, or broad academic disciplines."
         ),
     )
     languages: list[LanguageProficiency] = Field(
@@ -139,15 +168,18 @@ class CandidateCvExtraction(BaseModel):
         default_factory=list,
         description=(
             "Rule: Extract preferred cities or countries explicitly stated. "
-            "Negative Rule: Do not extract previous work locations unless explicitly stated as preferred targets."
+            "Negative Rule: Do not extract previous work locations unless explicitly "
+            "stated as preferred targets."
         ),
     )
     research_interests: list[str] = Field(
         alias="granular_research_domains",
         default_factory=list,
         description=(
-            "Rule: Extract specific, highly granular research domains and academic niches (e.g., Network Anomaly Detection, Embedded Telemetry). "
-            "Rule: If a domain contains an ampersand (&), you must split it into two separate domains. "
+            "Rule: Extract specific, highly granular research domains and academic niches "
+            "(e.g., Network Anomaly Detection, Embedded Telemetry). "
+            "Rule: If a domain contains an ampersand (&), you must split it into two "
+            "separate domains. "
             "Rule: Expand all acronyms (e.g. IoT becomes Internet of Things). "
             "Rule: Do not extract software tools or languages (e.g. PyTorch, React, Python)."
         ),
@@ -159,13 +191,17 @@ class CandidateCvExtraction(BaseModel):
         if not v or not isinstance(v, str):
             raise ValueError("highest_degree must be provided as a string")
         v_lower = v.strip().lower()
-        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]):
+        if any(
+            b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]
+        ):
             return EducationLevel.BACHELOR
         if any(m in v_lower for m in ["master", "msc", "magister", "m.s.", "ms"]):
             return EducationLevel.MASTER
         if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
             return EducationLevel.PHD
-        raise ValueError(f"Could not normalize degree from '{v}'. Must be Bachelor, Master, or PhD.")
+        raise ValueError(
+            f"Could not normalize degree from '{v}'. Must be Bachelor, Master, or PhD."
+        )
 
     @field_validator(
         "skills",
@@ -216,6 +252,7 @@ class RefinementResult(BaseModel):
     required_skills: list[str]
     research_interests: list[str] = Field(default_factory=list)
     education_level: str | None = None
+    degree_fields: list[str] = Field(default_factory=list)
     city: str | None = None
     country: str | None = None
     skill_embedding: list[float] | None = None
@@ -226,12 +263,14 @@ class EmbeddingJobResult(BaseModel):
     url: str
     skill_embedding: list[float] | None = None
     research_embedding: list[float] | None = None
+    degree_embedding: list[float] | None = None
 
 
 class ProfileEmbeddingResult(BaseModel):
     profile_id: int
     skill_embedding: list[float] | None = None
     research_embedding: list[float] | None = None
+    degree_embedding: list[float] | None = None
 
 
 class ClaimRequest(BaseModel):

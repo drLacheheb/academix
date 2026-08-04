@@ -46,6 +46,8 @@ class JobModel(Base):
     requirements_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     skill_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
     research_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
+    degree_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
+    degree_fields: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     first_seen: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_seen: Mapped[datetime] = mapped_column(
@@ -81,6 +83,20 @@ class JobModel(Base):
             except Exception:
                 research_emb = None
 
+        degree_emb: list[float] | None = None
+        if self.degree_embedding:
+            try:
+                degree_emb = json.loads(self.degree_embedding)
+            except Exception:
+                degree_emb = None
+
+        degree_fields_list: list[str] | None = None
+        if self.degree_fields:
+            try:
+                degree_fields_list = json.loads(self.degree_fields)
+            except Exception:
+                degree_fields_list = None
+
         return Job(
             url=self.url,
             title=self.title,
@@ -100,6 +116,8 @@ class JobModel(Base):
             requirements_en=self.requirements_en,
             skill_embedding=skill_emb,
             research_embedding=research_emb,
+            degree_embedding=degree_emb,
+            degree_fields=degree_fields_list,
         )
 
     @classmethod
@@ -137,6 +155,12 @@ class JobModel(Base):
             else None,
             research_embedding=json.dumps(job.research_embedding, ensure_ascii=False)
             if job.research_embedding is not None
+            else None,
+            degree_embedding=json.dumps(job.degree_embedding, ensure_ascii=False)
+            if job.degree_embedding is not None
+            else None,
+            degree_fields=json.dumps(job.degree_fields, ensure_ascii=False)
+            if job.degree_fields is not None
             else None,
         )
 
@@ -195,12 +219,14 @@ class CandidateProfileModel(Base):
     language_code: Mapped[str | None] = mapped_column(String, nullable=True)
     raw_text_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     highest_degree: Mapped[str | None] = mapped_column(String, nullable=True)
+    degree_fields: Mapped[str | None] = mapped_column(Text, nullable=True)
     skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     languages: Mapped[str | None] = mapped_column(Text, nullable=True)
     preferred_locations: Mapped[str | None] = mapped_column(Text, nullable=True)
     research_interests: Mapped[str | None] = mapped_column(Text, nullable=True)
     skill_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
     research_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
+    degree_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False, default="INGESTING", index=True)
     status_message: Mapped[str | None] = mapped_column(String, nullable=True)
     claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -222,12 +248,14 @@ class CandidateProfileModel(Base):
             language_code=self.language_code,
             raw_text_en=self.raw_text_en,
             highest_degree=self.highest_degree,
+            degree_fields=_safe_json_loads(self.degree_fields, None),
             skills=_safe_json_loads(self.skills, []),
             languages=_safe_json_loads(self.languages, []),
             preferred_locations=_safe_json_loads(self.preferred_locations, []),
             research_interests=_safe_json_loads(self.research_interests, []),
             skill_embedding=_safe_json_loads(self.skill_embedding, None),
             research_embedding=_safe_json_loads(self.research_embedding, None),
+            degree_embedding=_safe_json_loads(self.degree_embedding, None),
             status=self.status,
             status_message=self.status_message,
             claimed_by=self.claimed_by,
@@ -282,6 +310,15 @@ class CandidateProfileModel(Base):
             else None,
             research_embedding=json.dumps(profile.research_embedding, ensure_ascii=False)
             if profile.research_embedding is not None
+            else None,
+            degree_embedding=json.dumps(profile.degree_embedding, ensure_ascii=False)
+            if profile.degree_embedding is not None
+            else None,
+            degree_fields=json.dumps(
+                [df for df in profile.degree_fields if df],
+                ensure_ascii=False,
+            )
+            if profile.degree_fields is not None
             else None,
             status=profile.status,
             status_message=profile.status_message,
