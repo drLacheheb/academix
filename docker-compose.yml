@@ -28,6 +28,7 @@ services:
       - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
       - S3_REGION=${S3_REGION:-us-east-1}
+      - DEGREE_SIMILARITY_THRESHOLD=${DEGREE_SIMILARITY_THRESHOLD:-0.71}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/status')"]
       interval: 10s
@@ -413,6 +414,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.75}
+      - DEGREE_SIMILARITY_THRESHOLD=${DEGREE_SIMILARITY_THRESHOLD:-0.71}
       - LOG_FILE=/app/logs/matching-worker.log
       - API_URL=http://api:8000
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}

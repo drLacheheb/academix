@@ -1,3 +1,4 @@
+import os
 from collections.abc import Sequence
 
 from core.domain.models.job import Job
@@ -106,7 +107,8 @@ class MatchScorer:
         # 2. Hard Filter: Semantic Degree Field Match
         if candidate.degree_embedding and job.degree_embedding:
             degree_field_score = dot_product(candidate.degree_embedding, job.degree_embedding)
-            if degree_field_score < 0.65:
+            degree_threshold = float(os.environ.get("DEGREE_SIMILARITY_THRESHOLD", "0.71"))
+            if degree_field_score < degree_threshold:
                 # Degree fields are too semantically divergent (e.g. CS vs Biology)
                 return None
 
