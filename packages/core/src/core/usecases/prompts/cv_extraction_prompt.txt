@@ -10,7 +10,7 @@ Rules for Skills:
 - This must encompass both technical STEM skills and specialized methodological approaches.
 
 Rules for Education:
-- Extract the highest earned academic degree (e.g., Bachelor, Master, PhD, M.S., B.S.).
+- Extract the highest earned academic degree.
 - Do not guess or hallucinate degrees.
 
 Rules for Research Domains:
