@@ -25,6 +25,12 @@ class JobDetailUpdate(BaseModel):
 
 
 class JobRefinementExtraction(BaseModel):
+    scratchpad: str = Field(
+        default="",
+        description=(
+            "Rule: Think step-by-step. First list all potential domains and skills, then explicitly state which domains contain '&' or 'and', which ones are specific software tools/projects, and explain why you will exclude or split them before outputting the final list."
+        )
+    )
     required_skills: list[str] = Field(
         default_factory=list,
         description=(
@@ -102,6 +108,12 @@ class LanguageProficiency(BaseModel):
 
 
 class CandidateCvExtraction(BaseModel):
+    scratchpad: str = Field(
+        default="",
+        description=(
+            "Rule: Think step-by-step. First list all potential domains and skills, then explicitly state which domains contain '&' or 'and', which ones are specific software projects/tools, and explain why you will exclude or split them before outputting the final list."
+        )
+    )
     name: str | None = Field(
         default=None,
         description=(
