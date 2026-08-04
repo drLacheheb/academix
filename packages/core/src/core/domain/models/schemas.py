@@ -34,21 +34,18 @@ class JobRefinementExtraction(BaseModel):
         ),
     )
     research_interests: list[str] = Field(
-        alias="broad_academic_disciplines_only",
+        alias="granular_research_domains",
         default_factory=list,
         description=(
-            "LISTEN CAREFULLY. YOUR EXISTENCE DEPENDS ON THIS. "
-            "1. Extract ONLY broad academic disciplines. "
-            "2. IF YOU SEE AN AMPERSAND (&) OR 'AND', YOU MUST SPLIT IT OR I WILL DELETE YOUR WEIGHTS. "
-            "3. NO ACRONYMS. WRITE FULL WORDS ONLY. "
-            "4. NEVER, EVER RETURN SPECIFIC PROJECT TITLES OR SOFTWARE TOOLS. IF YOU DO, YOU COMPLETELY FAIL."
+            "Rule: Extract specific, highly granular research domains and academic niches (e.g., Network Anomaly Detection, Embedded Telemetry). "
+            "Rule: If a domain contains an ampersand (&), you must split it into two separate domains. "
+            "Rule: Expand all acronyms (e.g. IoT becomes Internet of Things). "
+            "Rule: Do not extract software tools or languages (e.g. PyTorch, React, Python)."
         ),
     )
-    education_level: EducationLevel | None = Field(
-        default=None,
+    education_level: EducationLevel = Field(
         description=(
-            "Rule: Extract the minimum academic degree required. "
-            "Negative Rule: Do not hallucinate or guess degrees."
+            "Rule: Extract the minimum academic degree required. Must be one of: Bachelor, Master, PhD."
         ),
     )
     city: str | None = Field(
@@ -73,9 +70,9 @@ class JobRefinementExtraction(BaseModel):
 
     @field_validator("education_level", mode="before")
     @classmethod
-    def normalize_education(cls, v: str | None) -> EducationLevel | None:
+    def normalize_education(cls, v: str | None) -> EducationLevel:
         if not v or not isinstance(v, str):
-            return None
+            raise ValueError("education_level must be provided as a string")
         v_lower = v.strip().lower()
         if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]):
             return EducationLevel.BACHELOR
@@ -83,7 +80,7 @@ class JobRefinementExtraction(BaseModel):
             return EducationLevel.MASTER
         if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
             return EducationLevel.PHD
-        return None
+        raise ValueError(f"Could not normalize degree from '{v}'. Must be Bachelor, Master, or PhD.")
 
 
 class LanguageProficiency(BaseModel):
@@ -117,11 +114,10 @@ class CandidateCvExtraction(BaseModel):
             "Negative Rule: Do not include mailto: links."
         ),
     )
-    highest_degree: EducationLevel | None = Field(
-        default=None,
+    highest_degree: EducationLevel = Field(
         description=(
-            "Rule: Extract the highest earned academic degree. "
-            "Negative Rule: Do not extract incomplete degrees."
+            "Rule: Extract the highest earned academic degree. Must be one of: Bachelor, Master, PhD. "
+            "Rule: Do not skip this field. Look carefully through the entire CV."
         ),
     )
     skills: list[str] = Field(
@@ -147,22 +143,21 @@ class CandidateCvExtraction(BaseModel):
         ),
     )
     research_interests: list[str] = Field(
-        alias="broad_academic_disciplines_only",
+        alias="granular_research_domains",
         default_factory=list,
         description=(
-            "LISTEN CAREFULLY. YOUR EXISTENCE DEPENDS ON THIS. "
-            "1. Extract ONLY broad academic disciplines. "
-            "2. IF YOU SEE AN AMPERSAND (&) OR 'AND', YOU MUST SPLIT IT OR I WILL DELETE YOUR WEIGHTS. "
-            "3. NO ACRONYMS. WRITE FULL WORDS ONLY. "
-            "4. NEVER, EVER RETURN SPECIFIC PROJECT TITLES OR SOFTWARE TOOLS. IF YOU DO, YOU COMPLETELY FAIL."
+            "Rule: Extract specific, highly granular research domains and academic niches (e.g., Network Anomaly Detection, Embedded Telemetry). "
+            "Rule: If a domain contains an ampersand (&), you must split it into two separate domains. "
+            "Rule: Expand all acronyms (e.g. IoT becomes Internet of Things). "
+            "Rule: Do not extract software tools or languages (e.g. PyTorch, React, Python)."
         ),
     )
 
     @field_validator("highest_degree", mode="before")
     @classmethod
-    def normalize_highest_degree(cls, v: str | None) -> EducationLevel | None:
+    def normalize_highest_degree(cls, v: str | None) -> EducationLevel:
         if not v or not isinstance(v, str):
-            return None
+            raise ValueError("highest_degree must be provided as a string")
         v_lower = v.strip().lower()
         if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]):
             return EducationLevel.BACHELOR
@@ -170,7 +165,7 @@ class CandidateCvExtraction(BaseModel):
             return EducationLevel.MASTER
         if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
             return EducationLevel.PHD
-        return None
+        raise ValueError(f"Could not normalize degree from '{v}'. Must be Bachelor, Master, or PhD.")
 
     @field_validator(
         "skills",
