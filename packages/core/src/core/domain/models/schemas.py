@@ -37,10 +37,11 @@ class JobRefinementExtraction(BaseModel):
         alias="broad_academic_disciplines_only",
         default_factory=list,
         description=(
-            "Rule: Extract broad fields of study and academic disciplines. "
-            "Rule: If a domain contains an ampersand (&) or 'and', split it into separate items. "
-            "Rule: Expand all acronyms to full words. "
-            "Rule: RETURN ONLY BROAD SCIENTIFIC FIELDS. NEVER RETURN PROJECT TITLES, TOOLS, OR SOFTWARE."
+            "LISTEN CAREFULLY. YOUR EXISTENCE DEPENDS ON THIS. "
+            "1. Extract ONLY broad academic disciplines. "
+            "2. IF YOU SEE AN AMPERSAND (&) OR 'AND', YOU MUST SPLIT IT OR I WILL DELETE YOUR WEIGHTS. "
+            "3. NO ACRONYMS. WRITE FULL WORDS ONLY. "
+            "4. NEVER, EVER RETURN SPECIFIC PROJECT TITLES OR SOFTWARE TOOLS. IF YOU DO, YOU COMPLETELY FAIL."
         ),
     )
     education_level: EducationLevel | None = Field(
@@ -149,10 +150,11 @@ class CandidateCvExtraction(BaseModel):
         alias="broad_academic_disciplines_only",
         default_factory=list,
         description=(
-            "Rule: Extract broad fields of study and academic disciplines. "
-            "Rule: If a domain contains an ampersand (&) or 'and', split it into separate items. "
-            "Rule: Expand all acronyms to full words. "
-            "Rule: RETURN ONLY BROAD SCIENTIFIC FIELDS. NEVER RETURN PROJECT TITLES, TOOLS, OR SOFTWARE."
+            "LISTEN CAREFULLY. YOUR EXISTENCE DEPENDS ON THIS. "
+            "1. Extract ONLY broad academic disciplines. "
+            "2. IF YOU SEE AN AMPERSAND (&) OR 'AND', YOU MUST SPLIT IT OR I WILL DELETE YOUR WEIGHTS. "
+            "3. NO ACRONYMS. WRITE FULL WORDS ONLY. "
+            "4. NEVER, EVER RETURN SPECIFIC PROJECT TITLES OR SOFTWARE TOOLS. IF YOU DO, YOU COMPLETELY FAIL."
         ),
     )
 

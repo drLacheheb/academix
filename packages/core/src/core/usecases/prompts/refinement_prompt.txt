@@ -7,11 +7,11 @@ Rules:
 - Note: PhD candidate positions require a "Master" degree; Postdoc positions require a "PhD" degree.
 
 Rules for Skills:
-- Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks.
-- This must encompass both technical STEM skills and specialized methodological approaches.
+- DO NOT BE LAZY. Exhaustively extract ALL concrete hard skills, methodological techniques, and tools.
+- IF YOU HALLUCINATE SKILLS NOT IN THE TEXT, YOU WILL FAIL.
 
 Rules for Research Domains:
-- Extract ONLY recognized academic and scientific fields of study (e.g., Computer Science, Artificial Intelligence).
-- You MUST completely ignore all specific project titles, product names, datasets, and software tools.
-- If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains in your list.
-- Always translate acronyms into their full spelled-out words.
+- THIS IS CRITICAL. ONLY EXTRACT BROAD ACADEMIC FIELDS (e.g., Computer Science).
+- DO NOT BE STUPID. IGNORE ALL SPECIFIC PROJECT TITLES, DATASETS, OR SOFTWARE. THOSE ARE NOT DOMAINS.
+- IF YOU OUTPUT A DOMAIN WITH AN AMPERSAND (&) OR 'AND', YOU WILL BE PENALIZED. YOU MUST SPLIT THEM.
+- NO ACRONYMS. EVER. WRITE THE FULL WORDS.
