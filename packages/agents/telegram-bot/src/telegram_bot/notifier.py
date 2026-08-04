@@ -40,12 +40,15 @@ async def check_match_notifications(context: ContextTypes.DEFAULT_TYPE) -> None:
             explanation = html.escape(m.get("explanation") or "Matching requirements satisfied.")
             job_url = m.get("job_url", "")
 
+            degree_fields = m.get("degree_fields") or ""
+            degree_str = f"\n🎓 Degree: {html.escape(degree_fields)}" if degree_fields else ""
+
             location_str = f" ({location})" if location else ""
             msg = (
                 f"🎯 <b>New Match Found! ({percentage}% Match)</b>\n\n"
                 f"📌 <b>{title}</b>\n"
                 f"🏛️ {employer}{location_str}\n"
-                f"⏰ Deadline: {deadline}\n\n"
+                f"⏰ Deadline: {deadline}{degree_str}\n\n"
                 f"💡 <i>{explanation}</i>\n\n"
                 f"🔗 <a href='{job_url}'>View Job Posting</a>"
             )

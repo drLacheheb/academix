@@ -798,6 +798,11 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     placeholder.highest_degree = (
                         profile.highest_degree if profile.highest_degree else None
                     )
+                    placeholder.degree_fields = (
+                        json.dumps([df for df in profile.degree_fields if df], ensure_ascii=False)
+                        if profile.degree_fields
+                        else None
+                    )
                     placeholder.skills = (
                         json.dumps([s for s in profile.skills if s], ensure_ascii=False)
                         if profile.skills
@@ -912,6 +917,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
         profile_id: int,
         skill_embedding: list[float] | None,
         research_embedding: list[float] | None,
+        degree_embedding: list[float] | None,
     ) -> None:
         session = self._SessionLocal()
         try:
@@ -929,6 +935,11 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 existing.research_embedding = (
                     json.dumps(research_embedding, ensure_ascii=False)
                     if research_embedding is not None
+                    else None
+                )
+                existing.degree_embedding = (
+                    json.dumps(degree_embedding, ensure_ascii=False)
+                    if degree_embedding is not None
                     else None
                 )
                 existing.status = "COMPLETED"

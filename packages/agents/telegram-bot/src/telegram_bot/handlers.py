@@ -102,6 +102,12 @@ def format_profile_card(p: dict) -> str:
     name = html.escape(p.get("name") or "Candidate")
     email = html.escape(p.get("email") or "Not specified")
     degree = html.escape(p.get("highest_degree") or "Not specified")
+
+    degree_fields_list = p.get("degree_fields") or []
+    degree_fields_str = (
+        html.escape(", ".join(degree_fields_list)) if degree_fields_list else "None extracted"
+    )
+
     skills_list = p.get("skills") or []
     skills = ", ".join(skills_list[:25]) or "None extracted"
     if len(skills_list) > 25:
@@ -130,7 +136,8 @@ def format_profile_card(p: dict) -> str:
         f"👤 <b>Candidate Profile Summary</b>\n\n"
         f"🏷️ <b>Name:</b> {name}\n"
         f"📧 <b>Email:</b> {email}\n"
-        f"🎓 <b>Highest Degree:</b> {degree}\n\n"
+        f"🎓 <b>Highest Degree:</b> {degree}\n"
+        f"🏛️ <b>Degree Fields:</b> {degree_fields_str}\n\n"
         f"🛠️ <b>Key Skills:</b>\n{html.escape(skills)}\n\n"
         f"🔬 <b>Research Domains:</b>\n{html.escape(interests)}\n\n"
         f"🗣️ <b>Spoken Languages:</b>\n{html.escape(lang_str)}\n\n"
@@ -200,9 +207,22 @@ async def matches_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         for idx, m in enumerate(matches, start=1):
             score_pct = int(m.get("score", 0.0) * 100)
             url = m.get("job_url", "")
+            title = html.escape(m.get("job_title") or "Academic Position")
+            employer = html.escape(m.get("employer") or "Academic Institution")
+            location = html.escape(m.get("location") or "")
+            deadline = html.escape(m.get("deadline") or "Not specified")
+            degree_fields = m.get("job_degree_fields") or []
             explanation = html.escape(m.get("explanation") or "Matching criteria satisfied.")
+
+            location_str = f" ({location})" if location else ""
+            degree_str = (
+                f"\n🎓 Degree: {html.escape(', '.join(degree_fields))}" if degree_fields else ""
+            )
+
             msg_lines.append(
-                f"<b>{idx}. Match Score: {score_pct}%</b>\n"
+                f"<b>{idx}. {title} ({score_pct}% Match)</b>\n"
+                f"🏛️ {employer}{location_str}\n"
+                f"⏰ Deadline: {deadline}{degree_str}\n"
                 f"💡 <i>{explanation}</i>\n"
                 f"🔗 <a href='{url}'>Open Vacancy Posting</a>\n"
             )

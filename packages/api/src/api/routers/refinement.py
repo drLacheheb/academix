@@ -37,6 +37,7 @@ async def submit_refinement(
         url=result.url,
         required_skills=result.required_skills,
         education_level=result.education_level,
+        degree_fields=result.degree_fields,
         skill_embedding=result.skill_embedding,
         research_embedding=result.research_embedding,
         city=result.city,

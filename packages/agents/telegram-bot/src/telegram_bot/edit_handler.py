@@ -49,10 +49,13 @@ async def edit_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             ],
             [
                 InlineKeyboardButton("🎓 Degree", callback_data="field_highest_degree"),
-                InlineKeyboardButton("📍 Locations", callback_data="field_preferred_locations"),
+                InlineKeyboardButton("🏛️ Degree Fields", callback_data="field_degree_fields"),
             ],
             [
+                InlineKeyboardButton("📍 Locations", callback_data="field_preferred_locations"),
                 InlineKeyboardButton("👤 Full Name", callback_data="field_name"),
+            ],
+            [
                 InlineKeyboardButton("❌ Cancel", callback_data="cancel_edit"),
             ],
         ]
@@ -91,6 +94,10 @@ async def field_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         "field_highest_degree": (
             "highest_degree",
             "🎓 Highest Degree (e.g. Master, PhD, Postdoc)",
+        ),
+        "field_degree_fields": (
+            "degree_fields",
+            "🏛️ Degree Fields (comma-separated, e.g. Computer Science, Molecular Biology)",
         ),
         "field_preferred_locations": (
             "preferred_locations",
@@ -138,7 +145,7 @@ async def value_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return ConversationHandler.END
 
     # Process value
-    if field_key in ("skills", "research_interests", "preferred_locations"):
+    if field_key in ("skills", "research_interests", "preferred_locations", "degree_fields"):
         new_val = [item.strip() for item in text.split(",") if item.strip()]
     else:
         new_val = text

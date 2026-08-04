@@ -74,6 +74,7 @@ class RefinementRepository(BaseRefinementRepository):
         url: str,
         required_skills: list[str],
         education_level: str | None,
+        degree_fields: list[str],
         skill_embedding: list[float] | None = None,
         research_embedding: list[float] | None = None,
         city: str | None = None,
@@ -97,6 +98,9 @@ class RefinementRepository(BaseRefinementRepository):
                 .values(
                     required_skills=skills_str,
                     education_level=education_level,
+                    degree_fields=json.dumps([df for df in degree_fields if df], ensure_ascii=False)
+                    if degree_fields
+                    else None,
                     city=city,
                     country=country,
                     skill_embedding=json.dumps(skill_embedding, ensure_ascii=False)

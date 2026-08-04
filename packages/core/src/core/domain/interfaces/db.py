@@ -101,6 +101,7 @@ class BaseRefinementRepository(ABC):
         url: str,
         required_skills: list[str],
         education_level: str | None,
+        degree_fields: list[str],
         skill_embedding: list[float] | None = None,
         research_embedding: list[float] | None = None,
         city: str | None = None,
@@ -128,6 +129,7 @@ class BaseEmbeddingRepository(ABC):
         url: str,
         skill_embedding: list[float] | None = None,
         research_embedding: list[float] | None = None,
+        degree_embedding: list[float] | None = None,
     ) -> None:
         pass
 
@@ -229,6 +231,7 @@ class BaseCandidateProfileRepository(ABC):
         profile_id: int,
         skill_embedding: list[float] | None,
         research_embedding: list[float] | None,
+        degree_embedding: list[float] | None,
     ) -> None:
         pass
 
