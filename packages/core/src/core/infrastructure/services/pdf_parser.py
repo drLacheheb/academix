@@ -1,4 +1,5 @@
 import os
+import re
 
 import pymupdf4llm
 from core.infrastructure.logging.logger import get_logger
@@ -13,7 +14,8 @@ def parse_pdf_to_markdown(file_path: str) -> str:
     logger.info(f"Parsing PDF: {file_path} using PyMuPDF4LLM")
 
     try:
-        markdown_text = pymupdf4llm.to_markdown(file_path)
+        markdown_text = str(pymupdf4llm.to_markdown(file_path))
+        markdown_text = re.sub(r'\n{3,}', '\n\n', markdown_text)
         logger.info(
             f"Successfully converted PDF {file_path} to Markdown ({len(markdown_text)} chars)"
         )
