@@ -103,16 +103,23 @@ class MatchScorer:
         if not degree_ok:
             return None
 
-        # 2. Hard Filter: Language Eligibility
+        # 2. Hard Filter: Semantic Degree Field Match
+        if candidate.degree_embedding and job.degree_embedding:
+            degree_field_score = dot_product(candidate.degree_embedding, job.degree_embedding)
+            if degree_field_score < 0.65:
+                # Degree fields are too semantically divergent (e.g. CS vs Biology)
+                return None
+
+        # 3. Hard Filter: Language Eligibility
         lang_ok = check_language_eligibility(candidate.languages, job.language_code)
         if not lang_ok:
             return None
 
-        # 3. Soft Scores: Semantic similarity via pre-computed embeddings
+        # 4. Soft Scores: Semantic similarity via pre-computed embeddings
         skill_score = dot_product(candidate.skill_embedding, job.skill_embedding)
         research_score = dot_product(candidate.research_embedding, job.research_embedding)
 
-        # 4. Composite Score: Max-Dominance Asymmetric Pooling (Approach A)
+        # 5. Composite Score: Max-Dominance Asymmetric Pooling (Approach A)
         max_score = max(skill_score, research_score)
         min_score = min(skill_score, research_score)
         composite_score = 0.70 * max_score + 0.30 * min_score

@@ -54,16 +54,28 @@ class MatchRepository(BaseMatchRepository):
             session.close()
 
     def get_matches_for_candidate(self, candidate_id: int, limit: int = 20) -> list[Match]:
+        from core.infrastructure.db.models import JobModel
+
         session = self._SessionLocal()
         try:
-            models = (
-                session.query(MatchModel)
+            results = (
+                session.query(MatchModel, JobModel)
+                .join(JobModel, MatchModel.job_url == JobModel.url)
                 .filter(MatchModel.candidate_id == candidate_id)
                 .order_by(desc(MatchModel.score))
                 .limit(limit)
                 .all()
             )
-            return [model.to_domain() for model in models]
+            matches = []
+            for model, job in results:
+                domain_match = model.to_domain()
+                domain_match.job_title = job.title
+                domain_match.employer = job.employer
+                domain_match.location = job.location
+                domain_match.deadline = job.deadline
+                domain_match.job_degree_fields = job.degree_fields
+                matches.append(domain_match)
+            return matches
         finally:
             session.close()
 
@@ -234,6 +246,7 @@ class MatchRepository(BaseMatchRepository):
                         "employer": job.employer,
                         "location": job.location,
                         "deadline": job.deadline,
+                        "degree_fields": job.degree_fields,
                         "explanation": match.explanation,
                     }
                 )

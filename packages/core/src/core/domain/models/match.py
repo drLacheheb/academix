@@ -19,6 +19,11 @@ class Match:
     telegram_notified: bool = False
     telegram_notified_at: datetime | None = None
     created_at: datetime | None = None
+    job_title: str | None = None
+    employer: str | None = None
+    location: str | None = None
+    deadline: str | None = None
+    job_degree_fields: list[str] | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
