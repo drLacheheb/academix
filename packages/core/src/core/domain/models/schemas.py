@@ -76,9 +76,9 @@ class JobRefinementExtraction(BaseModel):
         if not v or not isinstance(v, str):
             return None
         v_lower = v.strip().lower()
-        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license"]):
+        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]):
             return EducationLevel.BACHELOR
-        if any(m in v_lower for m in ["master", "msc", "magister"]):
+        if any(m in v_lower for m in ["master", "msc", "magister", "m.s.", "ms"]):
             return EducationLevel.MASTER
         if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
             return EducationLevel.PHD
@@ -162,9 +162,9 @@ class CandidateCvExtraction(BaseModel):
         if not v or not isinstance(v, str):
             return None
         v_lower = v.strip().lower()
-        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license"]):
+        if any(b in v_lower for b in ["bachelor", "bsc", "hbo", "licence", "license", "b.s.", "bs"]):
             return EducationLevel.BACHELOR
-        if any(m in v_lower for m in ["master", "msc", "magister"]):
+        if any(m in v_lower for m in ["master", "msc", "magister", "m.s.", "ms"]):
             return EducationLevel.MASTER
         if any(p in v_lower for p in ["phd", "doctor", "postdoc", "dr"]):
             return EducationLevel.PHD

@@ -9,6 +9,10 @@ Rules for Skills:
 - Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks.
 - This must encompass both technical STEM skills and specialized methodological approaches.
 
+Rules for Education:
+- Extract the highest earned academic degree (e.g., Bachelor, Master, PhD, M.S., B.S.).
+- Do not guess or hallucinate degrees.
+
 Rules for Research Domains:
 - Exhaustively extract ALL applicable fields of study, academic disciplines, industry sectors, engineering domains, and specific application areas.
 - Extract highly granular sub-domains and niches rather than clumping them into broad macro-categories.
