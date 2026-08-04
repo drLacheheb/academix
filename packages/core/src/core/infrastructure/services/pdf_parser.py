@@ -15,7 +15,7 @@ def parse_pdf_to_markdown(file_path: str) -> str:
 
     try:
         markdown_text = str(pymupdf4llm.to_markdown(file_path))
-        markdown_text = re.sub(r'\n{3,}', '\n\n', markdown_text)
+        markdown_text = re.sub(r"\n{3,}", "\n\n", markdown_text)
         logger.info(
             f"Successfully converted PDF {file_path} to Markdown ({len(markdown_text)} chars)"
         )
