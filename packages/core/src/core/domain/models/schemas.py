@@ -34,13 +34,13 @@ class JobRefinementExtraction(BaseModel):
         ),
     )
     research_interests: list[str] = Field(
-        default_factory=list,
         alias="broad_academic_disciplines_only",
+        default_factory=list,
         description=(
-            "Rule: Extract ONLY broad fields of study and academic disciplines. "
-            "Rule: If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains. "
-            "Rule: Write out all acronyms as full words. "
-            "Rule: You MUST IGNORE and exclude any specific software, product names, tools, and personal project titles."
+            "Rule: Extract broad fields of study and academic disciplines. "
+            "Rule: If a domain contains an ampersand (&) or 'and', split it into separate items. "
+            "Rule: Expand all acronyms to full words. "
+            "Rule: RETURN ONLY BROAD SCIENTIFIC FIELDS. NEVER RETURN PROJECT TITLES, TOOLS, OR SOFTWARE."
         ),
     )
     education_level: EducationLevel | None = Field(
@@ -146,13 +146,13 @@ class CandidateCvExtraction(BaseModel):
         ),
     )
     research_interests: list[str] = Field(
-        default_factory=list,
         alias="broad_academic_disciplines_only",
+        default_factory=list,
         description=(
-            "Rule: Extract ONLY broad fields of study and academic disciplines. "
-            "Rule: If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains. "
-            "Rule: Write out all acronyms as full words. "
-            "Rule: You MUST IGNORE and exclude any specific software, product names, tools, and personal project titles."
+            "Rule: Extract broad fields of study and academic disciplines. "
+            "Rule: If a domain contains an ampersand (&) or 'and', split it into separate items. "
+            "Rule: Expand all acronyms to full words. "
+            "Rule: RETURN ONLY BROAD SCIENTIFIC FIELDS. NEVER RETURN PROJECT TITLES, TOOLS, OR SOFTWARE."
         ),
     )
 

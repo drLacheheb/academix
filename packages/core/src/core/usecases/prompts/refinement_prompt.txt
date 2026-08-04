@@ -11,15 +11,7 @@ Rules for Skills:
 - This must encompass both technical STEM skills and specialized methodological approaches.
 
 Rules for Research Domains:
-- Extract ONLY broad fields of study and academic disciplines.
-- If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains.
-- Write out all acronyms as full words.
-- You MUST IGNORE and exclude any specific software, product names, tools, and personal project titles.
-
-Negative Rules:
-- Do not hallucinate or invent requirements that are not present in the text.
-- Do not add conversational filler.
-
-Negative Rules for Skills:
-- Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines.
-
+- Extract ONLY recognized academic and scientific fields of study (e.g., Computer Science, Artificial Intelligence).
+- You MUST completely ignore all specific project titles, product names, datasets, and software tools.
+- If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains in your list.
+- Always translate acronyms into their full spelled-out words.
