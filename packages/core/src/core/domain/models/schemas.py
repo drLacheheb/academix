@@ -35,12 +35,12 @@ class JobRefinementExtraction(BaseModel):
     )
     research_interests: list[str] = Field(
         default_factory=list,
+        alias="broad_academic_disciplines_only",
         description=(
-            "Rule: Exhaustively extract ALL applicable fields of study, academic disciplines, industry sectors, engineering domains, and specific application areas. Extract highly granular sub-domains and niches rather than clumping them into broad macro-categories. "
-            "Rule: Expand all acronyms and abbreviations into their full, complete terminology. Do NOT output shortened acronyms. "
-            "Negative Rule: Do NOT merge distinct domains using conjunctions such as '&' or 'and'. Extract all topics as completely separate, singular, atomic items. "
-            "Negative Rule: Do NOT include specific tools, programming languages, or software frameworks - those belong in skills. "
-            "Negative Rule: Do NOT include purely administrative or generic management tasks."
+            "Rule: Extract ONLY broad fields of study and academic disciplines. "
+            "Rule: If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains. "
+            "Rule: Write out all acronyms as full words. "
+            "Rule: You MUST IGNORE and exclude any specific software, product names, tools, and personal project titles."
         ),
     )
     education_level: EducationLevel | None = Field(
@@ -147,12 +147,12 @@ class CandidateCvExtraction(BaseModel):
     )
     research_interests: list[str] = Field(
         default_factory=list,
+        alias="broad_academic_disciplines_only",
         description=(
-            "Rule: Exhaustively extract ALL applicable fields of study, academic disciplines, industry sectors, engineering domains, and specific application areas. Extract highly granular sub-domains and niches rather than clumping them into broad macro-categories. "
-            "Rule: Expand all acronyms and abbreviations into their full, complete terminology. Do NOT output shortened acronyms. "
-            "Negative Rule: Do NOT merge distinct domains using conjunctions such as '&' or 'and'. Extract all topics as completely separate, singular, atomic items. "
-            "Negative Rule: Do NOT include specific tools, programming languages, or software frameworks - those belong in skills. "
-            "Negative Rule: Do NOT include purely administrative or generic management tasks."
+            "Rule: Extract ONLY broad fields of study and academic disciplines. "
+            "Rule: If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains. "
+            "Rule: Write out all acronyms as full words. "
+            "Rule: You MUST IGNORE and exclude any specific software, product names, tools, and personal project titles."
         ),
     )
 

@@ -14,9 +14,10 @@ Rules for Education:
 - Do not guess or hallucinate degrees.
 
 Rules for Research Domains:
-- Exhaustively extract ALL applicable fields of study, academic disciplines, industry sectors, engineering domains, and specific application areas.
-- Extract highly granular sub-domains and niches rather than clumping them into broad macro-categories.
-- Expand all acronyms and abbreviations into their full, complete terminology. Do NOT output shortened acronyms.
+- Extract ONLY broad fields of study and academic disciplines.
+- If a domain contains an ampersand (&) or the word 'and', you MUST split it into two separate domains.
+- Write out all acronyms as full words.
+- You MUST IGNORE and exclude any specific software, product names, tools, and personal project titles.
 
 Negative Rules:
 - Do not hallucinate or invent dates, degrees, or skills that are not present in the text.
@@ -25,7 +26,3 @@ Negative Rules:
 Negative Rules for Skills:
 - Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines.
 
-Negative Rules for Research Domains:
-- Do NOT merge distinct domains using conjunctions such as '&' or 'and'. Extract all topics as completely separate, singular, atomic items.
-- Do NOT include specific tools, programming languages, or software frameworks - those belong in skills.
-- Do NOT include purely administrative or generic management tasks.
