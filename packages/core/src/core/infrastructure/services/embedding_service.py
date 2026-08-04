@@ -70,3 +70,12 @@ class EmbeddingService(BaseEmbeddingService):
             parts.append(", ".join(clean_interests))
         text = " ".join(parts)
         return self.encode_text(text)
+
+    def encode_degree(self, fields: list[str] | None) -> list[float] | None:
+        if not fields:
+            return None
+        clean_fields = sorted(list(set(f.strip().lower() for f in fields if f.strip())))
+        if not clean_fields:
+            return None
+        text = ", ".join(clean_fields)
+        return self.encode_text(text)

@@ -71,6 +71,7 @@ class EmbeddingRepository(BaseEmbeddingRepository):
         url: str,
         skill_embedding: list[float] | None = None,
         research_embedding: list[float] | None = None,
+        degree_embedding: list[float] | None = None,
     ) -> None:
         session = self._SessionLocal()
         try:
@@ -83,6 +84,9 @@ class EmbeddingRepository(BaseEmbeddingRepository):
                     else None,
                     research_embedding=json.dumps(research_embedding, ensure_ascii=False)
                     if research_embedding is not None
+                    else None,
+                    degree_embedding=json.dumps(degree_embedding, ensure_ascii=False)
+                    if degree_embedding is not None
                     else None,
                 )
             )

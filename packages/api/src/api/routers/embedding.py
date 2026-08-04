@@ -45,6 +45,7 @@ async def submit_job_embedding(
         url=result.url,
         skill_embedding=result.skill_embedding,
         research_embedding=result.research_embedding,
+        degree_embedding=result.degree_embedding,
     )
     return {"status": "completed", "url": result.url}
 
@@ -76,5 +77,6 @@ async def complete_profile_embed(
         profile_id=body.profile_id,
         skill_embedding=body.skill_embedding,
         research_embedding=body.research_embedding,
+        degree_embedding=body.degree_embedding,
     )
     return {"status": "success", "profile_id": final_id}

@@ -10,6 +10,10 @@ class BaseEmbeddingService(ABC):
     def encode_research(self, interests: list[str] | None, title: str = "") -> list[float] | None:
         pass
 
+    @abstractmethod
+    def encode_degree(self, fields: list[str] | None) -> list[float] | None:
+        pass
+
 
 class BaseLanguageDetector(ABC):
     @abstractmethod

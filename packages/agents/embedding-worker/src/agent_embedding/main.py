@@ -36,9 +36,11 @@ def run():
                 )
                 skills = profile_data.get("skills") or []
                 research_interests = profile_data.get("research_interests") or []
+                degree_fields = profile_data.get("degree_fields") or []
 
                 skill_emb = embedding_service.encode_skills(skills)
                 research_emb = embedding_service.encode_research(research_interests)
+                degree_emb = embedding_service.encode_degree(degree_fields)
 
                 logger.info(f"[{profile_id}] Generated profile embeddings. Submitting to API...")
                 submit_resp = api.put(
@@ -47,6 +49,7 @@ def run():
                         "profile_id": profile_id,
                         "skill_embedding": skill_emb,
                         "research_embedding": research_emb,
+                        "degree_embedding": degree_emb,
                     },
                 )
                 submit_resp.raise_for_status()
@@ -75,12 +78,14 @@ def run():
         job_url = job_data.get("url")
         required_skills = job_data.get("required_skills") or []
         research_interests = job_data.get("research_interests") or []
+        degree_fields = job_data.get("degree_fields") or []
 
         logger.info(f"Successfully claimed job for embedding: {job_title} ({job_url})")
 
         try:
             skill_emb = embedding_service.encode_skills(required_skills)
             research_emb = embedding_service.encode_research(research_interests, title=job_title)
+            degree_emb = embedding_service.encode_degree(degree_fields)
 
             logger.info(f"[{job_title}] Generated job embeddings. Submitting to API...")
             submit_resp = api.put(
@@ -89,6 +94,7 @@ def run():
                     "url": job_url,
                     "skill_embedding": skill_emb,
                     "research_embedding": research_emb,
+                    "degree_embedding": degree_emb,
                 },
             )
             submit_resp.raise_for_status()

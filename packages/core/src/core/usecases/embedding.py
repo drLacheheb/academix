@@ -31,8 +31,9 @@ class CompleteEmbeddingJobUseCase:
         url: str,
         skill_embedding: list[float] | None = None,
         research_embedding: list[float] | None = None,
+        degree_embedding: list[float] | None = None,
     ) -> None:
-        self._repo.complete(url, skill_embedding, research_embedding)
+        self._repo.complete(url, skill_embedding, research_embedding, degree_embedding)
         self._queue_repo.enqueue("job", url)
 
 
@@ -67,7 +68,10 @@ class CompleteProfileEmbeddingUseCase:
         profile_id: int,
         skill_embedding: list[float] | None,
         research_embedding: list[float] | None,
+        degree_embedding: list[float] | None,
     ) -> int:
-        self._repo.complete_embedding(profile_id, skill_embedding, research_embedding)
+        self._repo.complete_embedding(
+            profile_id, skill_embedding, research_embedding, degree_embedding
+        )
         self._queue_repo.enqueue("candidate", str(profile_id))
         return profile_id
