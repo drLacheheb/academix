@@ -4,16 +4,24 @@ Analyze the provided candidate's CV text and extract the requested fields accord
 Rules:
 - Strictly adhere to the requested schema formats and types.
 - Ensure all extracted information is explicitly stated in the document.
-- Skills: Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks. This must encompass both technical STEM skills and specialized methodological approaches.
-- Research Domains: Exhaustively extract ALL applicable fields of study, academic disciplines, industry sectors, engineering domains, and specific application areas.
-- Research Domains: Extract highly granular sub-domains and niches rather than clumping them into broad macro-categories.
-- Research Domains: Expand all acronyms and abbreviations into their full, complete terminology. Do NOT output shortened acronyms.
+
+Rules for Skills:
+- Exhaustively extract ALL concrete hard skills, methodological techniques, analytical tools, software, and operational frameworks.
+- This must encompass both technical STEM skills and specialized methodological approaches.
+
+Rules for Research Domains:
+- Exhaustively extract ALL applicable fields of study, academic disciplines, industry sectors, engineering domains, and specific application areas.
+- Extract highly granular sub-domains and niches rather than clumping them into broad macro-categories.
+- Expand all acronyms and abbreviations into their full, complete terminology. Do NOT output shortened acronyms.
 
 Negative Rules:
 - Do not hallucinate or invent dates, degrees, or skills that are not present in the text.
 - Do not add conversational filler.
-- Skills: Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines.
-- Research Domains: Do NOT merge distinct domains using conjunctions such as '&' or 'and'. Extract all topics as completely separate, singular, atomic items.
-- Research Domains: Do NOT include specific tools, programming languages, or software frameworks - those belong in skills.
-- Research Domains: Do NOT use parentheses to append additional context, tools, or explanations to extracted domains.
-- Research Domains: Do NOT include purely administrative or generic management tasks.
+
+Negative Rules for Skills:
+- Do not extract subjective interpersonal abilities, generic behavioral traits, or broad academic disciplines.
+
+Negative Rules for Research Domains:
+- Do NOT merge distinct domains using conjunctions such as '&' or 'and'. Extract all topics as completely separate, singular, atomic items.
+- Do NOT include specific tools, programming languages, or software frameworks - those belong in skills.
+- Do NOT include purely administrative or generic management tasks.
