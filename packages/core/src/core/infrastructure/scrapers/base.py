@@ -9,11 +9,21 @@ from core.infrastructure.logging.logger import get_logger
 
 
 def clean_html(raw_html: str) -> str:
-    text = re.sub(r"<script[^>]*>.*?</script>", "", raw_html, flags=re.DOTALL | re.IGNORECASE)
-    text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
-    text = re.sub(r"<.*?>", "\n", text)
-    text = re.sub(r"\n+", "\n", text)
-    return html.unescape(text.strip())
+    if not raw_html:
+        return ""
+    try:
+        import inscriptis
+
+        text = inscriptis.get_text(raw_html)
+    except Exception:
+        text = re.sub(r"<script[^>]*>.*?</script>", "", raw_html, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<.*?>", "\n", text)
+        text = re.sub(r"\n+", "\n", text)
+
+    text = html.unescape(text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 def extract_requirements_from_text(text: str) -> str | None:
