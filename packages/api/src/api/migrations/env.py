@@ -50,9 +50,13 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        from sqlalchemy import text
+        connection.execute(text("SET search_path TO public;"))
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            version_table_schema="public",
+            include_schemas=True,
         )
 
         with context.begin_transaction():
