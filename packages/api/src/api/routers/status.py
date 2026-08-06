@@ -12,3 +12,9 @@ async def health_status(
     request: Request, usecase: GetDatabaseStatusUseCase = Depends(get_status_usecase)
 ):
     return usecase.execute()
+
+
+@router.get("/health")
+@limiter.limit("120/minute")
+async def health_check(request: Request):
+    return {"status": "healthy"}
