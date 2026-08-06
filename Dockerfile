@@ -26,6 +26,7 @@ COPY packages/agents/translation/pyproject.toml packages/agents/translation/
 COPY packages/agents/cv-parsing/pyproject.toml packages/agents/cv-parsing/
 COPY packages/agents/matching/pyproject.toml packages/agents/matching/
 COPY packages/agents/embedding-worker/pyproject.toml packages/agents/embedding-worker/
+COPY packages/agents/telegram-bot/pyproject.toml packages/agents/telegram-bot/
 
 RUN echo 'find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
     find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + && \
@@ -72,7 +73,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-workspace --no-dev --no-cache --package cv-parsing && \
     sh /app/prune.sh
 
-FROM base AS slim
+FROM builder-base AS builder-telegram-bot
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace --no-dev --package telegram-bot && \
+    sh /app/prune.sh
+
+# API Gateway Stage
+FROM base AS academix-gateway-api
 COPY --from=builder-api /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package api \
@@ -82,48 +89,52 @@ RUN uv sync --frozen --no-dev --package api \
     --package naturecareers-discovery --package naturecareers-sourcing \
     --package researchgate-discovery --package researchgate-sourcing \
     --package eurosciencejobs-discovery --package eurosciencejobs-sourcing
-
-
-
 CMD ["uv", "run", "--package", "api", "fastapi", "run", "packages/api/src/api/main.py", "--host", "0.0.0.0", "--port", "8000"]
 
-FROM base AS lang-detection
+FROM academix-gateway-api AS slim
+
+# Core Worker Stages
+FROM base AS academix-lang-detection-worker
 COPY --from=builder-lang-detection /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package lang-detection
+CMD ["uv", "run", "--package", "lang-detection", "python", "-m", "agent_lang_detection.main"]
 
-FROM base AS refinement
+FROM academix-lang-detection-worker AS lang-detection
+
+FROM base AS academix-refinement-worker
 COPY --from=builder-refinement /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package refinement
+CMD ["uv", "run", "--package", "refinement", "python", "-m", "agent_refinement.main"]
 
-FROM base AS translation
+FROM academix-refinement-worker AS refinement
+
+FROM base AS academix-translation-worker
 COPY --from=builder-translation /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package translation
+CMD ["uv", "run", "--package", "translation", "python", "-m", "agent_translation.main"]
 
-FROM base AS matching
+FROM academix-translation-worker AS translation
+
+FROM base AS academix-matching-worker
 COPY --from=builder-matching /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package matching
+CMD ["uv", "run", "--package", "matching", "python", "-m", "agent_matching.main"]
 
-FROM base AS embedding
+FROM academix-matching-worker AS matching
+
+FROM base AS academix-embedding-worker
 COPY --from=builder-embedding /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package embedding-worker
+CMD ["uv", "run", "--package", "embedding-worker", "python", "-m", "agent_embedding.main"]
 
-FROM builder-base AS builder-llm-runner
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package llm-runner && \
-    sh /app/prune.sh
+FROM academix-embedding-worker AS embedding
 
-FROM base AS llm-runner
-COPY --from=builder-llm-runner /app/.venv /app/.venv
-COPY . .
-RUN uv sync --frozen --no-dev --package llm-runner
-CMD ["uv", "run", "--package", "llm-runner", "python", "-m", "agent_llm_runner.main"]
-
-FROM base AS cv-parsing
+FROM base AS academix-cv-parsing-worker
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libglib2.0-0 \
@@ -136,3 +147,79 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder-cv-parsing /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package cv-parsing
+CMD ["uv", "run", "--package", "cv-parsing", "python", "-m", "agent_cv_parsing.main"]
+
+FROM academix-cv-parsing-worker AS cv-parsing
+
+FROM base AS academix-telegram-bot
+COPY --from=builder-telegram-bot /app/.venv /app/.venv
+COPY . .
+RUN uv sync --frozen --no-dev --package telegram-bot
+CMD ["uv", "run", "--package", "telegram-bot", "python", "-m", "telegram_bot.main"]
+
+FROM academix-telegram-bot AS telegram-bot
+
+# Crawler & Scraper Stages
+FROM slim AS academix-academic-discovery
+CMD ["uv", "run", "--package", "academictransfer-discovery", "python", "-m", "academictransfer_discovery.main"]
+
+FROM academix-academic-discovery AS academic-disc
+FROM academix-academic-discovery AS academictransfer-discovery
+
+FROM slim AS academix-academic-sourcing
+CMD ["uv", "run", "--package", "academictransfer-sourcing", "python", "-m", "academictransfer_sourcing.main"]
+
+FROM academix-academic-sourcing AS academic-src
+FROM academix-academic-sourcing AS academictransfer-sourcing
+
+FROM slim AS academix-euraxess-discovery
+CMD ["uv", "run", "--package", "euraxess-discovery", "python", "-m", "euraxess_discovery.main"]
+
+FROM academix-euraxess-discovery AS euraxess-disc
+
+FROM slim AS academix-euraxess-sourcing
+CMD ["uv", "run", "--package", "euraxess-sourcing", "python", "-m", "euraxess_sourcing.main"]
+
+FROM academix-euraxess-sourcing AS euraxess-src
+
+FROM slim AS academix-abg-discovery
+CMD ["uv", "run", "--package", "abg-discovery", "python", "-m", "abg_discovery.main"]
+
+FROM academix-abg-discovery AS abg-disc
+
+FROM slim AS academix-abg-sourcing
+CMD ["uv", "run", "--package", "abg-sourcing", "python", "-m", "abg_sourcing.main"]
+
+FROM academix-abg-sourcing AS abg-src
+
+FROM slim AS academix-naturecareers-discovery
+CMD ["uv", "run", "--package", "naturecareers-discovery", "python", "-m", "naturecareers_discovery.main"]
+
+FROM academix-naturecareers-discovery AS nature-disc
+
+FROM slim AS academix-naturecareers-sourcing
+CMD ["uv", "run", "--package", "naturecareers-sourcing", "python", "-m", "naturecareers_sourcing.main"]
+
+FROM academix-naturecareers-sourcing AS nature-src
+
+FROM slim AS academix-researchgate-discovery
+CMD ["uv", "run", "--package", "researchgate-discovery", "python", "-m", "researchgate_discovery.main"]
+
+FROM academix-researchgate-discovery AS rgate-disc
+
+FROM slim AS academix-researchgate-sourcing
+CMD ["uv", "run", "--package", "researchgate-sourcing", "python", "-m", "researchgate_sourcing.main"]
+
+FROM academix-researchgate-sourcing AS rgate-src
+
+FROM slim AS academix-euroscience-discovery
+CMD ["uv", "run", "--package", "eurosciencejobs-discovery", "python", "-m", "eurosciencejobs_discovery.main"]
+
+FROM academix-euroscience-discovery AS euroscience-disc
+FROM academix-euroscience-discovery AS eurosciencejobs-discovery
+
+FROM slim AS academix-euroscience-sourcing
+CMD ["uv", "run", "--package", "eurosciencejobs-sourcing", "python", "-m", "eurosciencejobs_sourcing.main"]
+
+FROM academix-euroscience-sourcing AS euroscience-src
+FROM academix-euroscience-sourcing AS eurosciencejobs-sourcing

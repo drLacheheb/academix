@@ -36,6 +36,8 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 ├── .env.example                       # Settings template file
 ├── Dockerfile                         # Unified multi-purpose Dockerfile
 ├── docker-compose.yml                 # Unified Docker Compose orchestration config (CPU default)
+├── docker-compose.postgres.yml        # Standalone PostgreSQL database override
+├── docker-compose.dashboard.yml       # Standalone NocoDB Airtable-style dashboard override
 ├── docker-compose.gpu.yml             # Optional NVIDIA GPU hardware reservation override
 ├── docker-compose.override.yml        # Dev-mode port mapping override
 ├── docker-compose.prod.yml            # Production scaled mode with NGINX
