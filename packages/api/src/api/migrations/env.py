@@ -36,8 +36,9 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     connect_args = {}
     url = config.get_main_option("sqlalchemy.url") or get_database_url()
-    if url and url.startswith("sqlite"):
-        connect_args = {"timeout": 60, "check_same_thread": False}
+
+    if not url.startswith("sqlite"):
+        connect_args = {"options": "-c search_path=public"}
 
     configuration = config.get_section(config.config_ini_section, {}).copy()
     configuration["sqlalchemy.url"] = url
@@ -50,13 +51,15 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        from sqlalchemy import text
-        connection.execute(text("SET search_path TO public;"))
+        if not url.startswith("sqlite"):
+            from sqlalchemy import text
+
+            connection.execute(text("CREATE SCHEMA IF NOT EXISTS public;"))
+            connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            version_table_schema="public",
-            include_schemas=True,
         )
 
         with context.begin_transaction():
