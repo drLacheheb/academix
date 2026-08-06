@@ -24,11 +24,18 @@ def get_logger(agent_name: str) -> logging.Logger:
         from logging.handlers import RotatingFileHandler
 
         log_file = os.getenv("LOG_FILE", "agent.log")
-        handler = RotatingFileHandler(
-            log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
-        )
-        handler.setFormatter(JsonFormatter())
-        logger.addHandler(handler)
+        log_dir = os.path.dirname(os.path.abspath(log_file))
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+
+        try:
+            handler = RotatingFileHandler(
+                log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
+            )
+            handler.setFormatter(JsonFormatter())
+            logger.addHandler(handler)
+        except Exception as e:
+            sys.stderr.write(f"Warning: Could not create RotatingFileHandler for {log_file}: {e}\n")
 
         # Add stdout stream handler for Docker log aggregation
         stream_handler = logging.StreamHandler(sys.stdout)
