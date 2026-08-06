@@ -19,10 +19,10 @@ def markdown_to_clean_text(md_text: str) -> str:
         html_text = markdown.markdown(md_text)
         clean_text = inscriptis.get_text(html_text)
         clean_text = html.unescape(clean_text)
-        clean_text = re.sub(r"\n{3,}", "\n\n", clean_text)
+        clean_text = re.sub(r"\n{2,}", "\n", clean_text)
         return clean_text.strip()
     except Exception:
-        clean_text = re.sub(r"\n{3,}", "\n\n", md_text)
+        clean_text = re.sub(r"\n{2,}", "\n", md_text)
         return clean_text.strip()
 
 

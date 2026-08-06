@@ -22,7 +22,7 @@ def clean_html(raw_html: str) -> str:
         text = re.sub(r"\n+", "\n", text)
 
     text = html.unescape(text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"\n{2,}", "\n", text)
     return text.strip()
 
 
