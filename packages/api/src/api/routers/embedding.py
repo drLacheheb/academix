@@ -67,7 +67,7 @@ async def claim_profile_embed(
     return {"profile": profile.to_dict()}
 
 
-@router.put("/profiles/complete-embed")
+@router.put("/profiles/embed")
 @limiter.limit("60/minute")
 @notify_telegram_on_cv_completion
 async def complete_profile_embed(
