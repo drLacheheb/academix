@@ -44,7 +44,7 @@ def run():
 
                 logger.info(f"[{profile_id}] Generated profile embeddings. Submitting to API...")
                 submit_resp = api.put(
-                    "/profiles/embed",
+                    "/profiles/complete-embed",
                     json={
                         "profile_id": profile_id,
                         "skill_embedding": skill_emb,
