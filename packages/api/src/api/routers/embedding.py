@@ -3,6 +3,7 @@ from core.domain.models.schemas import (
     EmbeddingJobResult,
     ProfileEmbeddingResult,
 )
+from core.utils.decorators import notify_telegram_on_cv_completion
 from fastapi import APIRouter, Depends, Request
 
 from api.dependencies import (
@@ -66,8 +67,9 @@ async def claim_profile_embed(
     return {"profile": profile.to_dict()}
 
 
-@router.put("/profiles/embed")
+@router.put("/profiles/complete-embed")
 @limiter.limit("60/minute")
+@notify_telegram_on_cv_completion
 async def complete_profile_embed(
     request: Request,
     body: ProfileEmbeddingResult,

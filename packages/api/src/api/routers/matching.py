@@ -5,6 +5,7 @@ from core.domain.models.schemas import (
     MatchingTaskComplete,
 )
 from core.infrastructure.logging.logger import get_logger
+from core.utils.decorators import notify_telegram_on_matches_found
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
@@ -101,6 +102,7 @@ async def claim_match_explanation(
 
 @router.put("/matches/complete-explain")
 @limiter.limit("60/minute")
+@notify_telegram_on_matches_found
 async def complete_match_explanation(
     request: Request,
     body: MatchExplanationComplete,
