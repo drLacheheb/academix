@@ -28,7 +28,6 @@ from telegram_bot.handlers import (
     status_command,
     upload_cv_command,
 )
-from telegram_bot.notifier import check_match_notifications, check_profile_notifications
 
 load_dotenv()
 
@@ -45,22 +44,6 @@ async def post_init(application: Application) -> None:
         BotCommand("help", "Show available commands & guide"),
     ]
     await application.bot.set_my_commands(commands)
-
-    if application.job_queue:
-        # Check match notifications every 30 seconds
-        application.job_queue.run_repeating(
-            check_match_notifications,
-            interval=30.0,
-            first=5.0,
-            name="check_match_notifications",
-        )
-        # Check profile completion notifications every 15 seconds
-        application.job_queue.run_repeating(
-            check_profile_notifications,
-            interval=15.0,
-            first=3.0,
-            name="check_profile_notifications",
-        )
 
 
 async def global_error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
