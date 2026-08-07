@@ -1,12 +1,9 @@
 services:
-  # Standalone Modern Database Dashboard (NocoDB Airtable-style UI)
-  dashboard:
-    image: nocodb/nocodb:latest
+  # Standalone Modern Rust + React Database Dashboard (DockAdmin)
+  academix-db-dashboard:
+    image: demlabz/dockadmin:latest
     restart: unless-stopped
     ports:
-      - "8080:8080"
-    environment:
-      - NC_DB=pg://${POSTGRES_HOST:-db}:5432?u=${POSTGRES_USER:-postgres}&p=${POSTGRES_PASSWORD:-academix_pass}&d=${POSTGRES_DB:-academix_db}
-    depends_on:
-      db:
-        condition: service_healthy
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data

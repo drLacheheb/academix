@@ -1,11 +1,29 @@
 name: academix
 
 services:
+  # 0. Standalone Migration Runner (Runs pre-flight schema migrations)
+  academix-migration-runner:
+    build:
+      context: .
+      target: academix-migration-runner
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./packages:/app/packages
+    environment:
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
+      - LOG_FILE=/app/logs/migration-runner.log
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/academix.db}
+    restart: "no"
+
   # 1. FastAPI Gateway & Database Orchestrator
   academix-gateway-api:
     build:
       context: .
       target: academix-gateway-api
+    depends_on:
+      academix-migration-runner:
+        condition: service_completed_successfully
     volumes:
       - ./data:/app/data
       - ./data/uploads:/app/uploads
@@ -17,7 +35,7 @@ services:
       - HF_HOME=/app/${HF_HOME:-models}
       - HF_HUB_DISABLE_SYMLINKS_WARNING=${HF_HUB_DISABLE_SYMLINKS_WARNING:-1}
       - LOG_FILE=/app/logs/api.log
-      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/jobs.db}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/academix.db}
       - STALE_CLAIM_TIMEOUT_MINUTES=${STALE_CLAIM_TIMEOUT_MINUTES:-5}
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-ai/nomic-embed-text-v1.5}

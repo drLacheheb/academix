@@ -1,5 +1,5 @@
 services:
-  # Standalone High-Performance PostgreSQL Server (Alpine Linux ~30MB RAM)
+  # Standalone High-Performance PostgreSQL Server
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -17,77 +17,86 @@ services:
       timeout: 5s
       retries: 12
 
-  api:
+  academix-migration-runner:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
     depends_on:
       db:
         condition: service_healthy
 
-  crawler-abg-discovery:
+  academix-gateway-api:
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
+    depends_on:
+      db:
+        condition: service_healthy
+      academix-migration-runner:
+        condition: service_completed_successfully
+
+  academix-abg-discovery:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-abg-sourcing:
+  academix-abg-sourcing:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-euraxess-discovery:
+  academix-euraxess-discovery:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-euraxess-sourcing:
+  academix-euraxess-sourcing:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-naturecareers-discovery:
+  academix-naturecareers-discovery:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-naturecareers-sourcing:
+  academix-naturecareers-sourcing:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-academictransfer-discovery:
+  academix-academic-discovery:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-academictransfer-sourcing:
+  academix-academic-sourcing:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-researchgate-discovery:
+  academix-researchgate-discovery:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-researchgate-sourcing:
+  academix-researchgate-sourcing:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-eurosciencejobs-discovery:
+  academix-euroscience-discovery:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  crawler-eurosciencejobs-sourcing:
+  academix-euroscience-sourcing:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  cv-parsing-worker:
+  academix-cv-parsing-worker:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  embedding-worker:
+  academix-embedding-worker:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  refinement-worker:
+  academix-refinement-worker:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  matching-worker:
+  academix-matching-worker:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}
 
-  translation-worker:
+  academix-translation-worker:
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-academix_pass}@db:5432/${POSTGRES_DB:-academix_db}

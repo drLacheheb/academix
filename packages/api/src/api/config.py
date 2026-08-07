@@ -6,7 +6,7 @@ load_dotenv()
 
 
 def get_database_url() -> str:
-    return os.environ.get("DATABASE_URL", "sqlite:///jobs.db")
+    return os.environ.get("DATABASE_URL", "sqlite:///academix.db")
 
 
 def get_api_secret() -> str:
