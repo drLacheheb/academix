@@ -21,7 +21,6 @@ LANGUAGE_NAMES = {
 
 
 def parse_degree(degree_str: str | None) -> int:
-    """Map education levels to comparable ranks: PhD=3, Master=2, Bachelor=1, None=0."""
     if not degree_str:
         return 0
     s = degree_str.lower()
@@ -50,7 +49,6 @@ def parse_degree(degree_str: str | None) -> int:
 
 
 def check_degree_eligibility(candidate_degree: str | None, job_education_level: str | None) -> bool:
-    """Returns True if candidate's degree is equal to or higher than job's required degree."""
     if not job_education_level or job_education_level.lower() in [
         "none",
         "any",
@@ -64,7 +62,6 @@ def check_language_eligibility(
     candidate_languages: Sequence[dict[str, str] | str] | None,
     job_language_code: str | None,
 ) -> bool:
-    """Returns True if the candidate speaks the language required by the job."""
     if not job_language_code or job_language_code.lower() in ["en", "english"]:
         return True
     if not candidate_languages:
@@ -86,7 +83,6 @@ def check_language_eligibility(
 
 
 def dot_product(v1: list[float] | None, v2: list[float] | None) -> float:
-    """Calculates dot product of two L2-normalized vectors (equivalent to cosine similarity)."""
     if not v1 or not v2 or len(v1) != len(v2):
         return 0.0
     return sum(x * y for x, y in zip(v1, v2))
