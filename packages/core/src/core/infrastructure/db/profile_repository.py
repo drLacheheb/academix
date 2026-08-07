@@ -16,7 +16,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 engine = create_engine(
                     database_url_or_session_factory,
                     echo=False,
-                    connect_args={"timeout": 30},
+                    connect_args={"timeout": 60, "check_same_thread": False},
                 )
             else:
                 engine = create_engine(database_url_or_session_factory, echo=False)

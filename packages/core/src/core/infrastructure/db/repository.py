@@ -1,8 +1,9 @@
 import json
 from datetime import UTC
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy import update as sa_update
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 
 from core.domain.constants import JobStatus
@@ -10,6 +11,16 @@ from core.domain.interfaces.db import BaseJobRepository
 from core.domain.models.job import Job
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.db.models import JobModel
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if dbapi_connection.__class__.__module__.startswith("sqlite"):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.execute("PRAGMA synchronous=NORMAL;")
+        cursor.execute("PRAGMA busy_timeout=60000;")
+        cursor.close()
 
 
 class DatabaseJobRepository(BaseJobRepository):
@@ -256,6 +267,46 @@ class DatabaseJobRepository(BaseJobRepository):
                 row.last_successful_url = url
                 row.updated_at = datetime.now(UTC).replace(tzinfo=None)
             session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def delete_expired_jobs(self) -> int:
+        from datetime import datetime
+
+        from core.infrastructure.db.models import JobOrchestrationModel, MatchModel
+
+        session = self._SessionLocal()
+        try:
+            today_str = datetime.now(UTC).strftime("%Y-%m-%d")
+
+            # Query URLs of expired jobs
+            expired_jobs = session.query(JobModel.url).filter(
+                (JobModel.description.like("[EXPIRED]%")) |
+                ((JobModel.deadline.isnot(None)) & (JobModel.deadline < today_str))
+            ).all()
+
+            urls = [j.url for j in expired_jobs]
+            if not urls:
+                return 0
+
+            # Delete matches, orchestrations, and jobs
+            session.query(MatchModel).filter(MatchModel.job_url.in_(urls)).delete(
+                synchronize_session=False
+            )
+            session.query(JobOrchestrationModel).filter(
+                JobOrchestrationModel.job_url.in_(urls)
+            ).delete(synchronize_session=False)
+            deleted_count = (
+                session.query(JobModel)
+                .filter(JobModel.url.in_(urls))
+                .delete(synchronize_session=False)
+            )
+
+            session.commit()
+            return deleted_count
         except Exception:
             session.rollback()
             raise

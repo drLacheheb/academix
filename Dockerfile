@@ -223,3 +223,10 @@ CMD ["uv", "run", "--package", "eurosciencejobs-sourcing", "python", "-m", "euro
 
 FROM academix-euroscience-sourcing AS euroscience-src
 FROM academix-euroscience-sourcing AS eurosciencejobs-sourcing
+
+FROM slim AS academix-migration-runner
+CMD ["uv", "run", "python", "-m", "core.infrastructure.db.run_migrations"]
+
+FROM slim AS academix-cleanup-agent
+CMD ["uv", "run", "--package", "agent-cleanup", "python", "-m", "agent_cleanup.main"]
+

@@ -70,7 +70,7 @@ def run():
 
         logger.info(f"Loading NLLB-200 model from '{resolved_model_dir}'...")
         translator = NllbTranslator(resolved_model_dir)
-        logger.info("NLLB model loaded successfully!")
+        logger.success("NLLB model loaded successfully!")
 
     def cycle() -> bool:
         nonlocal translator, api, config, logger

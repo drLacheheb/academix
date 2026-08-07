@@ -44,7 +44,9 @@ class RefineJobUseCase:
         return RefinementResult(
             url=url,
             required_skills=extracted.required_skills or [],
+            research_interests=extracted.research_interests or [],
             education_level=extracted.education_level,
+            degree_fields=extracted.degree_fields or [],
             city=extracted.city,
             country=extracted.country,
         )

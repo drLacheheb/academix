@@ -33,7 +33,7 @@ class EmbeddingService(BaseEmbeddingService):
             cls._model = SentenceTransformer(
                 embedding_model, cache_folder=models_dir, trust_remote_code=True
             )
-            logger.info("Embedding model loaded successfully!")
+            logger.success("Embedding model loaded successfully!")
         return cls._model
 
     def encode_text(self, text: str) -> list[float]:

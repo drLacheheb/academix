@@ -1,4 +1,3 @@
-import os
 from contextlib import asynccontextmanager
 from time import time
 
@@ -24,29 +23,14 @@ logger = get_logger("api")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Running database migrations on startup...")
+    logger.info("Initializing API application lifespan...")
     try:
-        from alembic import command
-        from alembic.config import Config
-
-        ini_path = "packages/api/alembic.ini"
-        if not os.path.exists(ini_path):
-            ini_path = "alembic.ini"
-
-        if os.path.exists(ini_path):
-            alembic_cfg = Config(ini_path)
-            # Dynamically set the absolute migrations path relative to alembic.ini location
-            ini_dir = os.path.dirname(os.path.abspath(ini_path))
-            migrations_dir = os.path.abspath(os.path.join(ini_dir, "src", "api", "migrations"))
-            alembic_cfg.set_main_option("script_location", migrations_dir)
-
-            command.upgrade(alembic_cfg, "head")
-            logger.info("Database migrations completed successfully.")
-        else:
-            logger.warning(f"Alembic config not found at {ini_path}, skipping migrations.")
+        from api.dependencies import get_repo
+        repo = get_repo()
+        repo.init_db()
+        logger.success("Database connection and tables initialized.")
     except Exception as e:
-        logger.critical(f"Failed to run database migrations: {e}")
-        raise RuntimeError(f"FastAPI startup aborted due to migration failure: {e}") from e
+        logger.warning(f"Database initialization warning on startup: {e}")
 
     logger.info("Verifying storage backend connection...")
     try:
@@ -54,7 +38,7 @@ async def lifespan(app: FastAPI):
 
         storage = get_storage_service()
         storage.verify_connection()
-        logger.info("Storage backend connection verified successfully.")
+        logger.success("Storage backend connection verified successfully.")
     except Exception as e:
         logger.critical(f"Failed to verify storage connection backend: {e}")
         raise RuntimeError(

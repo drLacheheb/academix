@@ -17,6 +17,7 @@ from api.dependencies import (
     get_pending_details_usecase,
     get_recent_urls_usecase,
     get_refined_jobs_usecase,
+    get_repo,
     get_update_details_usecase,
     update_crawler_checkpoint_usecase,
     verify_token,
@@ -112,3 +113,13 @@ async def update_crawler_checkpoint(
 ):
     usecase.execute(source=body.source, url=body.url)
     return {"status": "updated", "source": body.source}
+
+
+@router.delete("/jobs/expired")
+@limiter.limit("30/minute")
+async def delete_expired_jobs(
+    request: Request,
+    repo=Depends(get_repo),
+):
+    deleted_count = repo.jobs.delete_expired_jobs()
+    return {"deleted_count": deleted_count, "status": "success"}

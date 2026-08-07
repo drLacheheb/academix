@@ -125,6 +125,8 @@ def run():
 
             logger.info(f"Refinement completed for {job_title}")
             logger.info(f"  -> Skills: {result.required_skills}")
+            logger.info(f"  -> Research Interests: {result.research_interests}")
+            logger.info(f"  -> Degree Fields: {result.degree_fields}")
             logger.info(f"  -> Education: {result.education_level}")
 
             submit_resp = api.put("/jobs/refine", json=result.model_dump())

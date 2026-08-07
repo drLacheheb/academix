@@ -56,7 +56,9 @@ class HttpClient(BaseHttpClient):
                         if retry_after and retry_after.isdigit()
                         else (20 * (attempt + 1))
                     )
-                    self.logger.warning(f"[Rate Limit 429] {url} — waiting {wait}s before retry...")
+                    self.logger.warning(
+                        f"Rate limit 429 encountered for {url} - waiting {wait}s before retry..."
+                    )
                     time.sleep(wait)
                     continue
                 else:
@@ -97,7 +99,9 @@ class HttpClient(BaseHttpClient):
                         if retry_after and retry_after.isdigit()
                         else (20 * (attempt + 1))
                     )
-                    self.logger.warning(f"[Rate Limit 429] {url} — waiting {wait}s before retry...")
+                    self.logger.warning(
+                        f"Rate limit 429 encountered for {url} - waiting {wait}s before retry..."
+                    )
                     time.sleep(wait)
                     continue
                 else:
