@@ -96,8 +96,20 @@ def run():
 
         # Background notification jobs are registered in post_init above
 
-        logger.info("Telegram bot initialized and long-polling started.")
-        app.run_polling()
+        webhook_host = os.environ.get("WEBHOOK_HOST", "academix-telegram-bot.azurecontainerapps.io")
+        port = int(os.environ.get("PORT", "8080"))
+        secret_token = os.environ.get("WEBHOOK_SECRET_TOKEN")
+
+        webhook_url = f"https://{webhook_host}/telegram/webhook"
+        logger.info(f"Starting Telegram Bot in WEBHOOK mode at {webhook_url} (port {port})")
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path="/telegram/webhook",
+            webhook_url=webhook_url,
+            secret_token=secret_token,
+            drop_pending_updates=True,
+        )
     except Exception as e:
         logger.error(f"Fatal error in Telegram Bot agent: {e}")
         raise
