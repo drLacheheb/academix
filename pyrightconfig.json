@@ -1,8 +1,43 @@
 {
+  "include": ["packages"],
   "exclude": [
+    "**/.venv",
+    ".venv",
+    ".ruff_cache",
     "**/node_modules",
     "**/__pycache__",
-    "models"
+    "models",
+    "temp",
+    "clone"
   ],
-  "pythonVersion": "3.12"
+  "pythonVersion": "3.12",
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    "packages/core/src",
+    "packages/api/src",
+    "packages/agents/abg-discovery/src",
+    "packages/agents/abg-sourcing/src",
+    "packages/agents/academictransfer-discovery/src",
+    "packages/agents/academictransfer-sourcing/src",
+    "packages/agents/cv-parsing/src",
+    "packages/agents/embedding-worker/src",
+    "packages/agents/euraxess-discovery/src",
+    "packages/agents/euraxess-sourcing/src",
+    "packages/agents/eurosciencejobs-discovery/src",
+    "packages/agents/eurosciencejobs-sourcing/src",
+    "packages/agents/lang-detection/src",
+    "packages/agents/matching/src",
+    "packages/agents/naturecareers-discovery/src",
+    "packages/agents/naturecareers-sourcing/src",
+    "packages/agents/refinement/src",
+    "packages/agents/researchgate-discovery/src",
+    "packages/agents/researchgate-sourcing/src",
+    "packages/agents/telegram-bot/src",
+    "packages/agents/translation/src"
+  ],
+  "reportUnusedImport": "error",
+  "reportUnusedVariable": "error",
+  "reportUnusedFunction": "warning",
+  "reportUnusedClass": "warning"
 }

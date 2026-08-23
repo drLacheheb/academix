@@ -155,6 +155,7 @@ FROM base AS academix-telegram-bot
 COPY --from=builder-telegram-bot /app/.venv /app/.venv
 COPY . .
 RUN uv sync --frozen --no-dev --package telegram-bot
+RUN python -m compileall -q /app/.venv /app/packages/agents/telegram-bot /app/packages/core
 CMD ["uv", "run", "--package", "telegram-bot", "python", "-m", "telegram_bot.main"]
 
 FROM academix-telegram-bot AS telegram-bot
