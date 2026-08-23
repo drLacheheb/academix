@@ -33,7 +33,7 @@ class LanguageDetectionRepository(BaseDetectionRepository):
                 session.query(JobModel)
                 .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
-                    JobModel.description.isnot(None),
+                    JobModel.job_details.isnot(None),
                     JobOrchestrationModel.detection_status == JobStatus.PENDING,
                 )
                 .first()

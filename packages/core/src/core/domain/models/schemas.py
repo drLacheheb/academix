@@ -17,14 +17,24 @@ class JobStubCreate(BaseModel):
 
 class JobDetailUpdate(BaseModel):
     url: str
-    description: str | None = None
-    requirements: str | None = None
-    deadline: str | None = None
-    employer: str | None = None
-    location: str | None = None
+    job_details: str
 
 
 class JobRefinementExtraction(BaseModel):
+    employer: str | None = Field(
+        default=None,
+        description=(
+            "Rule: Extract the full official name of the hiring university, research institute, "
+            "or organization (e.g., Delft University of Technology, Max Planck Institute)."
+        ),
+    )
+    deadline: str | None = Field(
+        default=None,
+        description=(
+            "Rule: Extract the application closing date in standard ISO YYYY-MM-DD format. "
+            "Rule: If no deadline or date is explicitly stated, return None."
+        ),
+    )
     required_skills: list[str] = Field(
         default_factory=list,
         description=(
@@ -249,6 +259,8 @@ class MatchExplanationExtraction(BaseModel):
 
 class RefinementResult(BaseModel):
     url: str
+    employer: str | None = None
+    deadline: str | None = None
     required_skills: list[str]
     research_interests: list[str] = Field(default_factory=list)
     education_level: str | None = None
@@ -288,8 +300,7 @@ class DetectionResult(BaseModel):
 
 class TranslationResult(BaseModel):
     url: str
-    description_en: str | None = None
-    requirements_en: str | None = None
+    job_details_en: str
 
 
 class MatchResult(BaseModel):

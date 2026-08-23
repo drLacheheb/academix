@@ -54,7 +54,10 @@ def format_match_card(m: dict) -> str:
     percentage = int(score * 100)
     title = html.escape(m.get("job_title", "Academic Position"))
     employer = html.escape(m.get("employer") or "Academic Institution")
-    location = html.escape(m.get("location") or "")
+    city = html.escape(m.get("city") or "")
+    country = html.escape(m.get("country") or "")
+    loc_parts = [p for p in [city, country] if p]
+    location = ", ".join(loc_parts)
     deadline = html.escape(m.get("deadline") or "Not specified")
     explanation = html.escape(m.get("explanation") or "Matching requirements satisfied.")
     job_url = m.get("job_url", "")

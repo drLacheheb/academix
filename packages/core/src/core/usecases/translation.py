@@ -20,8 +20,8 @@ class CompleteTranslationUseCase:
     def __init__(self, repo: BaseTranslationRepository):
         self._repo = repo
 
-    def execute(self, url: str, description_en: str | None, requirements_en: str | None) -> None:
-        self._repo.complete(url, description_en, requirements_en)
+    def execute(self, url: str, job_details_en: str) -> None:
+        self._repo.complete(url, job_details_en)
 
 
 class FailTranslationUseCase:

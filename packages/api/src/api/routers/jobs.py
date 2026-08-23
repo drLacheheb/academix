@@ -61,6 +61,7 @@ async def get_pending_details(
 
 
 @router.put("/jobs/details")
+@router.post("/jobs/details")
 @limiter.limit("30/minute")
 async def update_job_details(
     request: Request,

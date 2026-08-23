@@ -49,10 +49,9 @@ class PipelineJobRepository(DatabaseJobRepository, BaseStatusQueryRepository):
     def complete_translation(
         self,
         url: str,
-        description_en: str | None,
-        requirements_en: str | None,
+        job_details_en: str,
     ) -> None:
-        return self.translation.complete(url, description_en, requirements_en)
+        return self.translation.complete(url, job_details_en)
 
     def fail_translation(self, url: str) -> None:
         return self.translation.fail(url)

@@ -35,7 +35,6 @@ async def submit_translation(
 ):
     usecase.execute(
         url=result.url,
-        description_en=result.description_en,
-        requirements_en=result.requirements_en,
+        job_details_en=result.job_details_en,
     )
     return {"status": "completed", "url": result.url}

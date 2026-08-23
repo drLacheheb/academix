@@ -2,18 +2,19 @@ import json
 import logging
 import os
 from datetime import UTC, datetime
+from typing import Any, cast
 
 SUCCESS_LEVEL_NUM = 25
 logging.addLevelName(SUCCESS_LEVEL_NUM, "SUCCESS")
 
 
-def _success(self, message, *args, **kws):
-    if self.isEnabledFor(SUCCESS_LEVEL_NUM):
-        self._log(SUCCESS_LEVEL_NUM, message, args, **kws)
+class AcademixLogger(logging.Logger):
+    def success(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        if self.isEnabledFor(SUCCESS_LEVEL_NUM):
+            self._log(SUCCESS_LEVEL_NUM, msg, args, **kwargs)
 
 
-if not hasattr(logging.Logger, "success"):
-    logging.Logger.success = _success
+logging.setLoggerClass(AcademixLogger)
 
 
 class JsonFormatter(logging.Formatter):
@@ -29,8 +30,11 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_entry)
 
 
-def get_logger(agent_name: str) -> logging.Logger:
+def get_logger(agent_name: str) -> AcademixLogger:
     logger = logging.getLogger(f"agent.{agent_name}")
+    if not isinstance(logger, AcademixLogger):
+        # Fallback if logger was instantiated prior to setLoggerClass
+        logger.__class__ = AcademixLogger
     if not logger.handlers:
         import sys
         from logging.handlers import RotatingFileHandler
@@ -65,4 +69,4 @@ def get_logger(agent_name: str) -> logging.Logger:
         return record
 
     logging.setLogRecordFactory(record_factory)
-    return logger
+    return cast(AcademixLogger, logger)

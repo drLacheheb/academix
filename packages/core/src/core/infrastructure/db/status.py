@@ -13,14 +13,14 @@ class StatusQueryRepository(BaseStatusQueryRepository):
         session = self._session_factory()
         try:
             total = session.query(JobModel).count()
-            pending_details = session.query(JobModel).filter(JobModel.description.is_(None)).count()
+            pending_details = session.query(JobModel).filter(JobModel.job_details.is_(None)).count()
 
             # Detection stats
             pending_detect = (
                 session.query(JobModel)
                 .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
-                    JobModel.description.isnot(None),
+                    JobModel.job_details.isnot(None),
                     JobOrchestrationModel.detection_status == JobStatus.PENDING,
                 )
                 .count()

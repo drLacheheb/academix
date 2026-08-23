@@ -67,8 +67,7 @@ class TranslationRepository(BaseTranslationRepository):
     def complete(
         self,
         url: str,
-        description_en: str | None,
-        requirements_en: str | None,
+        job_details_en: str,
     ) -> None:
         session = self._SessionLocal()
         try:
@@ -77,8 +76,7 @@ class TranslationRepository(BaseTranslationRepository):
                 update(JobModel)
                 .where(JobModel.url == url)
                 .values(
-                    description_en=description_en,
-                    requirements_en=requirements_en,
+                    job_details_en=job_details_en,
                 )
             )
             # Update translation orchestration status

@@ -100,12 +100,8 @@ class DatabaseJobRepository(BaseJobRepository):
                 existing.deadline = job.deadline
             if job.employer is not None:
                 existing.employer = job.employer
-            if job.location is not None:
-                existing.location = job.location
-            if job.description is not None:
-                existing.description = job.description
-            if job.requirements is not None:
-                existing.requirements = job.requirements
+            if job.job_details is not None:
+                existing.job_details = job.job_details
             if job.required_skills is not None:
                 clean_skills = [s for s in job.required_skills if s]
                 existing.required_skills = json.dumps(clean_skills, ensure_ascii=False)
@@ -118,10 +114,8 @@ class DatabaseJobRepository(BaseJobRepository):
                 existing.country = job.country
             if job.language_code is not None:
                 existing.language_code = job.language_code
-            if job.description_en is not None:
-                existing.description_en = job.description_en
-            if job.requirements_en is not None:
-                existing.requirements_en = job.requirements_en
+            if job.job_details_en is not None:
+                existing.job_details_en = job.job_details_en
         else:
             session.add(JobModel.from_domain(job))
 
@@ -164,7 +158,7 @@ class DatabaseJobRepository(BaseJobRepository):
     def get_unstored(self, source: str | None = None) -> list[Job]:
         session = self._SessionLocal()
         try:
-            query = session.query(JobModel).filter(JobModel.description.is_(None))
+            query = session.query(JobModel).filter(JobModel.job_details.is_(None))
             if source:
                 query = query.filter(JobModel.source == source)
             models = query.all()
@@ -177,16 +171,8 @@ class DatabaseJobRepository(BaseJobRepository):
         try:
             for d in details:
                 values = {}
-                if d.description is not None:
-                    values["description"] = d.description
-                if d.requirements is not None:
-                    values["requirements"] = d.requirements
-                if d.deadline is not None:
-                    values["deadline"] = d.deadline
-                if d.employer is not None:
-                    values["employer"] = d.employer
-                if d.location is not None:
-                    values["location"] = d.location
+                if d.job_details:
+                    values["job_details"] = d.job_details
                 if values:
                     session.execute(
                         sa_update(JobModel).where(JobModel.url == d.url).values(**values)
@@ -283,10 +269,14 @@ class DatabaseJobRepository(BaseJobRepository):
             today_str = datetime.now(UTC).strftime("%Y-%m-%d")
 
             # Query URLs of expired jobs
-            expired_jobs = session.query(JobModel.url).filter(
-                (JobModel.description.like("[EXPIRED]%")) |
-                ((JobModel.deadline.isnot(None)) & (JobModel.deadline < today_str))
-            ).all()
+            expired_jobs = (
+                session.query(JobModel.url)
+                .filter(
+                    (JobModel.job_details.like("[EXPIRED]%"))
+                    | ((JobModel.deadline.isnot(None)) & (JobModel.deadline < today_str))
+                )
+                .all()
+            )
 
             urls = [j.url for j in expired_jobs]
             if not urls:

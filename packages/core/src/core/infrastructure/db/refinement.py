@@ -34,7 +34,7 @@ class RefinementRepository(BaseRefinementRepository):
                 session.query(JobModel)
                 .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
                 .filter(
-                    JobModel.description.isnot(None),
+                    JobModel.job_details.isnot(None),
                     JobOrchestrationModel.refinement_status == JobStatus.PENDING,
                     JobOrchestrationModel.translation_status.in_(
                         [JobStatus.COMPLETED, JobStatus.SKIPPED]
@@ -79,6 +79,8 @@ class RefinementRepository(BaseRefinementRepository):
         research_embedding: list[float] | None = None,
         city: str | None = None,
         country: str | None = None,
+        employer: str | None = None,
+        deadline: str | None = None,
     ) -> None:
         session = self._SessionLocal()
         try:
@@ -91,26 +93,28 @@ class RefinementRepository(BaseRefinementRepository):
                 if required_skills is not None
                 else None
             )
+            update_vals = {
+                "required_skills": skills_str,
+                "education_level": education_level,
+                "degree_fields": json.dumps([df for df in degree_fields if df], ensure_ascii=False)
+                if degree_fields
+                else None,
+                "city": city,
+                "country": country,
+                "skill_embedding": json.dumps(skill_embedding, ensure_ascii=False)
+                if skill_embedding is not None
+                else None,
+                "research_embedding": json.dumps(research_embedding, ensure_ascii=False)
+                if research_embedding is not None
+                else None,
+            }
+            if employer is not None:
+                update_vals["employer"] = employer
+            if deadline is not None:
+                update_vals["deadline"] = deadline
+
             # Update job metadata
-            session.execute(
-                update(JobModel)
-                .where(JobModel.url == url)
-                .values(
-                    required_skills=skills_str,
-                    education_level=education_level,
-                    degree_fields=json.dumps([df for df in degree_fields if df], ensure_ascii=False)
-                    if degree_fields
-                    else None,
-                    city=city,
-                    country=country,
-                    skill_embedding=json.dumps(skill_embedding, ensure_ascii=False)
-                    if skill_embedding is not None
-                    else None,
-                    research_embedding=json.dumps(research_embedding, ensure_ascii=False)
-                    if research_embedding is not None
-                    else None,
-                )
-            )
+            session.execute(update(JobModel).where(JobModel.url == url).values(**update_vals))
             # Update refinement orchestration statuses
             session.execute(
                 update(JobOrchestrationModel)

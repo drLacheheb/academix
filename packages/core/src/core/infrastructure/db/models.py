@@ -32,9 +32,7 @@ class JobModel(Base):
     source: Mapped[str] = mapped_column(String, nullable=False)
     deadline: Mapped[str | None] = mapped_column(String, nullable=True)
     employer: Mapped[str | None] = mapped_column(String, nullable=True)
-    location: Mapped[str | None] = mapped_column(String, nullable=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
+    job_details: Mapped[str | None] = mapped_column(Text, nullable=True)
     required_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
     research_interests: Mapped[str | None] = mapped_column(Text, nullable=True)
     education_level: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -42,8 +40,7 @@ class JobModel(Base):
     country: Mapped[str | None] = mapped_column(String, nullable=True)
 
     language_code: Mapped[str | None] = mapped_column(String, nullable=True)
-    description_en: Mapped[str | None] = mapped_column(Text, nullable=True)
-    requirements_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    job_details_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     skill_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
     research_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
     degree_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -103,17 +100,14 @@ class JobModel(Base):
             source=self.source,
             deadline=self.deadline,
             employer=self.employer,
-            location=self.location,
-            description=self.description,
-            requirements=self.requirements,
+            job_details=self.job_details,
             required_skills=required_skills_list,
             research_interests=research_interests_list,
             education_level=self.education_level,
             city=self.city,
             country=self.country,
             language_code=self.language_code,
-            description_en=self.description_en,
-            requirements_en=self.requirements_en,
+            job_details_en=self.job_details_en,
             skill_embedding=skill_emb,
             research_embedding=research_emb,
             degree_embedding=degree_emb,
@@ -139,17 +133,14 @@ class JobModel(Base):
             source=job.source,
             deadline=job.deadline,
             employer=job.employer,
-            location=job.location,
-            description=job.description,
-            requirements=job.requirements,
+            job_details=job.job_details,
             required_skills=skills_str,
             research_interests=research_str,
             education_level=job.education_level,
             city=job.city,
             country=job.country,
             language_code=job.language_code,
-            description_en=job.description_en,
-            requirements_en=job.requirements_en,
+            job_details_en=job.job_details_en,
             skill_embedding=json.dumps(job.skill_embedding, ensure_ascii=False)
             if job.skill_embedding is not None
             else None,

@@ -71,7 +71,6 @@ class MatchRepository(BaseMatchRepository):
                 domain_match = model.to_domain()
                 domain_match.job_title = job.title
                 domain_match.employer = job.employer
-                domain_match.location = job.location
                 domain_match.deadline = job.deadline
                 domain_match.job_degree_fields = job.degree_fields
                 matches.append(domain_match)
@@ -244,7 +243,8 @@ class MatchRepository(BaseMatchRepository):
                         "score": match.score,
                         "job_title": job.title,
                         "employer": job.employer,
-                        "location": job.location,
+                        "city": job.city,
+                        "country": job.country,
                         "deadline": job.deadline,
                         "degree_fields": job.degree_fields,
                         "explanation": match.explanation,

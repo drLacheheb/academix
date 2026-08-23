@@ -42,5 +42,7 @@ async def submit_refinement(
         research_embedding=result.research_embedding,
         city=result.city,
         country=result.country,
+        employer=result.employer,
+        deadline=result.deadline,
     )
     return {"status": "completed", "url": result.url}

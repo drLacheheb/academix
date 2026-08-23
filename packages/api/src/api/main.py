@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing API application lifespan...")
     try:
         from api.dependencies import get_repo
+
         repo = get_repo()
         repo.init_db()
         logger.success("Database connection and tables initialized.")

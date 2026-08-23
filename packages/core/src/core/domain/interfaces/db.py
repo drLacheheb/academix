@@ -78,7 +78,7 @@ class BaseTranslationRepository(ABC):
         pass
 
     @abstractmethod
-    def complete(self, url: str, description_en: str | None, requirements_en: str | None) -> None:
+    def complete(self, url: str, job_details_en: str) -> None:
         pass
 
     @abstractmethod
@@ -106,6 +106,8 @@ class BaseRefinementRepository(ABC):
         research_embedding: list[float] | None = None,
         city: str | None = None,
         country: str | None = None,
+        employer: str | None = None,
+        deadline: str | None = None,
     ) -> None:
         pass
 

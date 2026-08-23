@@ -23,14 +23,10 @@ class RefineJobUseCase:
         self,
         url: str,
         title: str,
-        location: str | None,
-        description: str | None,
-        requirements: str | None,
+        job_details: str | None,
         max_input_chars: int = 24000,
     ) -> RefinementResult:
-        input_text = self._build_input_text(
-            title, location, description, requirements, max_input_chars
-        )
+        input_text = self._build_input_text(title, job_details, max_input_chars)
         messages: list[ChatCompletionMessageParam] = [
             {"role": "system", "content": self._system_prompt},
             {"role": "user", "content": input_text},
@@ -43,6 +39,8 @@ class RefineJobUseCase:
 
         return RefinementResult(
             url=url,
+            employer=extracted.employer,
+            deadline=extracted.deadline,
             required_skills=extracted.required_skills or [],
             research_interests=extracted.research_interests or [],
             education_level=extracted.education_level,
@@ -54,31 +52,18 @@ class RefineJobUseCase:
     def _build_input_text(
         self,
         title: str,
-        location: str | None,
-        description: str | None,
-        requirements: str | None,
+        job_details: str | None,
         max_input_chars: int,
     ) -> str:
         title_block = f"Title: {title}\n"
-        loc_block = f"Location: {location}\n" if location else ""
 
-        avail_budget = max_input_chars - len(title_block) - len(loc_block) - 100
+        avail_budget = max_input_chars - len(title_block) - 100
         avail_budget = max(avail_budget, 500)
 
-        desc_str = description or ""
-        req_str = requirements or ""
+        main_text = job_details or ""
+        if len(main_text) > avail_budget:
+            main_text = main_text[:avail_budget]
 
-        if len(desc_str) + len(req_str) > avail_budget:
-            half_budget = avail_budget // 2
-            if len(desc_str) <= half_budget:
-                req_str = req_str[: avail_budget - len(desc_str)]
-            elif len(req_str) <= half_budget:
-                desc_str = desc_str[: avail_budget - len(req_str)]
-            else:
-                desc_str = desc_str[:half_budget]
-                req_str = req_str[:half_budget]
+        details_block = f"Job Details:\n{main_text}\n" if main_text else ""
 
-        desc_block = f"Description:\n{desc_str}\n" if desc_str else ""
-        req_block = f"Requirements:\n{req_str}\n" if req_str else ""
-
-        return title_block + loc_block + desc_block + req_block
+        return title_block + details_block

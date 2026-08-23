@@ -32,6 +32,8 @@ class CompleteRefinementUseCase:
         research_embedding: list[float] | None = None,
         city: str | None = None,
         country: str | None = None,
+        employer: str | None = None,
+        deadline: str | None = None,
     ) -> None:
         self._repo.complete(
             url,
@@ -42,6 +44,8 @@ class CompleteRefinementUseCase:
             research_embedding,
             city,
             country,
+            employer,
+            deadline,
         )
 
 
