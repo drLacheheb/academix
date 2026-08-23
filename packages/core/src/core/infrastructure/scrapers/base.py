@@ -1,124 +1,8 @@
-import html
-import re
-
 from core.domain.interfaces.http import BaseHttpClient
 from core.domain.interfaces.scrapers import BaseDiscovery, BaseSourcing
 from core.domain.models.job import Job
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.logging.logger import get_logger
-
-
-def clean_html(raw_html: str) -> str:
-    if not raw_html:
-        return ""
-    try:
-        import inscriptis
-
-        text = inscriptis.get_text(raw_html)
-    except Exception:
-        text = re.sub(r"<script[^>]*>.*?</script>", "", raw_html, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r"<.*?>", "\n", text)
-        text = re.sub(r"\n+", "\n", text)
-
-    text = html.unescape(text)
-    text = re.sub(r"\n{2,}", "\n", text)
-    return text.strip()
-
-
-def extract_requirements_from_text(text: str) -> str | None:
-    if not text:
-        return None
-
-    lines = text.split("\n")
-
-    req_patterns = [
-        r"\brequirements\b",
-        r"\bwhat\s+you\s+bring\b",
-        r"\bwhat\s+we\s+expect\b",
-        r"\byour\s+profile\b",
-        r"\bcandidate\s+profile\b",
-        r"\bqualifications\b",
-        r"\bwhat\s+you\s+need\b",
-        r"\bwe\s+are\s+looking\s+for\b",
-        r"\bwat\s+je\s+meebrengt\b",
-        r"\bjouw\s+profiel\b",
-        r"\bfunctie[- ]eisen\b",
-        r"\bprofile\b",
-        r"\bwhat\s+we\s+require\b",
-        r"\brequirements\s+and\s+skills\b",
-    ]
-    req_keywords = [
-        "requirements",
-        "qualifications",
-        "profile",
-        "profil",
-        "eisen",
-        "bring",
-        "meebrengt",
-        "expect",
-        "looking for",
-        "expectations",
-        "background",
-        "criteria",
-        "competenc",
-        "skills",
-        "experience",
-    ]
-    stop_patterns = [
-        r"what we offer",
-        r"what do we offer",
-        r"what we offer you",
-        r"we offer",
-        r"wat we bieden",
-        r"wat we jou bieden",
-        r"wat bieden wij",
-        r"arbeidsvoorwaarden",
-        r"how to apply",
-        r"application",
-        r"apply",
-        r"solliciteren",
-        r"sollicitatie",
-        r"about the university",
-        r"about the group",
-        r"^about\b",
-        r"^over\s+",
-        r"questions",
-        r"inlichtingen",
-        r"contact",
-        r"information",
-    ]
-
-    req_index = -1
-    for idx, line in enumerate(lines):
-        clean_line = line.strip().lower()
-        if len(clean_line) < 100:
-            if any(re.search(pat, clean_line) for pat in req_patterns):
-                req_index = idx
-                break
-            if any(
-                re.search(r"\b" + re.escape(kw) + r"\b", clean_line) for kw in req_keywords
-            ) and (
-                "what" in clean_line
-                or "you" in clean_line
-                or "we" in clean_line
-                or "jou" in clean_line
-                or len(clean_line) < 30
-            ):
-                req_index = idx
-                break
-
-    if req_index == -1:
-        return None
-
-    extracted = []
-    for line in lines[req_index + 1 :]:
-        clean_line = line.strip().lower()
-        if len(clean_line) < 100 and any(re.search(pat, clean_line) for pat in stop_patterns):
-            break
-        extracted.append(line)
-
-    return "\n".join(extracted).strip() or None
 
 
 class ConcreteDiscovery(BaseDiscovery):
@@ -238,7 +122,7 @@ class ConcreteSourcing(BaseSourcing):
     def source_detail(self, url: str) -> JobDetailUpdate:
         raw = self._http.fetch(url)
         if not raw:
-            return JobDetailUpdate(url=url)
+            return JobDetailUpdate(url=url, job_details="")
 
         html_str = raw.decode("utf-8", errors="ignore")
         return self._parse_detail_page(html_str, url)

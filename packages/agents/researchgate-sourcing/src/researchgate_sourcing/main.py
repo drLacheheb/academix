@@ -16,7 +16,14 @@ def run():
     logger = get_logger(agent_name)
     api = make_api_client(timeout=30.0)
 
-    http = HttpClient()
+    http = HttpClient(
+        impersonate="chrome120",
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+    )
     scraper = ResearchGateSourcing(http)
 
     logger.info(f"Starting ResearchGate crawler sourcing agent (name: {agent_name})")
@@ -41,12 +48,10 @@ def run():
             try:
                 detail_update = scraper.source_detail(job_url)
 
-                if not detail_update.description:
-                    detail_update.description = (
+                if not detail_update.job_details:
+                    detail_update.job_details = (
                         f"[EXPIRED] This job posting is no longer available. (Title: {job_title})"
                     )
-                    if not detail_update.requirements:
-                        detail_update.requirements = "None"
 
                 updates.append(detail_update.model_dump())
             except Exception as scrape_err:

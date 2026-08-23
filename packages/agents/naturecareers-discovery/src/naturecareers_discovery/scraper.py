@@ -45,7 +45,7 @@ class NatureCareersDiscovery(ConcreteDiscovery):
                 root = ET.fromstring(xml_text)
                 for loc_elem in root.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc"):
                     if loc_elem is not None and loc_elem.text:
-                        url = loc_elem.text.strip()
+                        url = "".join(loc_elem.text.split())
                         if "/naturecareers/job/" in url and url not in seen_urls:
                             seen_urls.add(url)
                             title = self._extract_title_from_url(url)

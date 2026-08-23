@@ -27,7 +27,7 @@ class EuroScienceJobsDiscovery(ConcreteDiscovery):
         jobs: list[Job] = []
         seen_urls: set[str] = set()
 
-        for idx, cat_url in enumerate(category_urls, 1):
+        for cat_url in category_urls:
             cat_raw = self._http.fetch(cat_url)
             if not cat_raw:
                 continue

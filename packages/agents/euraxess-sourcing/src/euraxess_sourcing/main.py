@@ -41,12 +41,10 @@ def run():
             try:
                 detail_update = scraper.source_detail(job_url)
 
-                if not detail_update.description:
-                    detail_update.description = (
+                if not detail_update.job_details:
+                    detail_update.job_details = (
                         f"[EXPIRED] This job posting is no longer available. (Title: {job_title})"
                     )
-                    if not detail_update.requirements:
-                        detail_update.requirements = "None"
 
                 updates.append(detail_update.model_dump())
             except Exception as scrape_err:
