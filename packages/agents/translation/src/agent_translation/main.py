@@ -129,8 +129,7 @@ def run():
 
         job_title = job_data.get("title")
         job_url = job_data.get("url")
-        job_description = job_data.get("description")
-        job_requirements = job_data.get("requirements")
+        raw_job_details = job_data.get("job_details") or ""
         source_lang = job_data.get("language_code")
 
         logger.info(f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]")
@@ -139,17 +138,15 @@ def run():
         assert translator is not None
 
         try:
-            logger.info(f"Translating description and requirements for: {job_title}...")
-            desc_en = translator.translate(job_description or "", source_lang)
-            req_en = translator.translate(job_requirements or "", source_lang)
+            logger.info(f"Translating job details for: {job_title}...")
+            job_details_en = translator.translate(raw_job_details, source_lang)
 
             logger.info("Finished translation. Submitting results...")
             submit_resp = api.put(
                 "/jobs/translate",
                 json={
                     "url": job_url,
-                    "description_en": desc_en,
-                    "requirements_en": req_en,
+                    "job_details_en": job_details_en,
                 },
             )
             submit_resp.raise_for_status()

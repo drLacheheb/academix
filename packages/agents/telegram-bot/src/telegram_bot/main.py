@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 from contextlib import asynccontextmanager
@@ -47,7 +48,7 @@ async def post_init(application: Application) -> None:
         BotCommand("delete", "Permanently delete your profile & CV for a fresh start"),
         BotCommand("help", "Show available commands & guide"),
     ]
-    await application.bot.set_my_commands(commands)
+    asyncio.create_task(application.bot.set_my_commands(commands))
 
 
 async def global_error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -85,19 +86,18 @@ async def lifespan(app_fastapi: FastAPI):
     await bot_app.initialize()
     await bot_app.start()
 
-    default_host = (
-        "academix-telegram-bot.ambitiouswave-0087f490."
-        "swedencentral.azurecontainerapps.io"
-    )
-    webhook_host = os.environ.get("WEBHOOK_HOST", default_host)
+    webhook_host = os.environ.get("WEBHOOK_HOST", "localhost:8000")
     secret_token = os.environ.get("WEBHOOK_SECRET_TOKEN")
-    webhook_url = f"https://{webhook_host}/telegram/webhook"
+    scheme = "https" if "localhost" not in webhook_host else "http"
+    webhook_url = f"{scheme}://{webhook_host}/telegram/webhook"
 
-    logger.info(f"Setting Telegram Webhook URL: {webhook_url}")
-    await bot_app.bot.set_webhook(
-        url=webhook_url,
-        secret_token=secret_token,
-        drop_pending_updates=True,
+    logger.info(f"Setting Telegram Webhook URL in background: {webhook_url}")
+    asyncio.create_task(
+        bot_app.bot.set_webhook(
+            url=webhook_url,
+            secret_token=secret_token,
+            drop_pending_updates=True,
+        )
     )
 
     yield
@@ -108,6 +108,11 @@ async def lifespan(app_fastapi: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 
 @app.post("/telegram/webhook")
@@ -126,7 +131,7 @@ async def telegram_webhook(
 
     data = await request.json()
     update = Update.de_json(data, bot_app.bot)
-    await bot_app.process_update(update)
+    asyncio.create_task(bot_app.process_update(update))
     return {"status": "ok"}
 
 

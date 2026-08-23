@@ -108,9 +108,7 @@ def run():
 
         job_title = job_data.get("title")
         job_url = job_data.get("url")
-        job_location = job_data.get("location")
-        job_description = job_data.get("description_en") or job_data.get("description")
-        job_requirements = job_data.get("requirements_en") or job_data.get("requirements")
+        job_details = job_data.get("job_details_en") or job_data.get("job_details")
 
         logger.info(f"Successfully claimed job: {job_title} ({job_url})")
 
@@ -118,9 +116,7 @@ def run():
             result = job_refiner.execute(
                 url=job_url,
                 title=job_title,
-                location=job_location,
-                description=job_description,
-                requirements=job_requirements,
+                job_details=job_details,
             )
 
             logger.info(f"Refinement completed for {job_title}")

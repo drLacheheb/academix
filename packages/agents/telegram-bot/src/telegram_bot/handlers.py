@@ -207,9 +207,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     file_name = doc.file_name or "cv.pdf"
 
     if not file_name.lower().endswith(".pdf"):
-        await update.message.reply_text(
-            "Unsupported file format. Please upload a PDF file (.pdf)."
-        )
+        await update.message.reply_text("Unsupported file format. Please upload a PDF file (.pdf).")
         return
 
     chat_id = str(update.effective_chat.id)

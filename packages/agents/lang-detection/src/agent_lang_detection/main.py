@@ -65,15 +65,14 @@ def run():
             logger.info("No pending jobs available for language detection.")
             return False
 
-        job_title = job_data.get("title")
+        job_title = job_data.get("title") or ""
         job_url = job_data.get("url")
-        job_description = job_data.get("description") or ""
-        job_requirements = job_data.get("requirements") or ""
+        job_details = job_data.get("job_details") or job_data.get("description") or ""
 
         logger.info(f"Successfully claimed job: {job_title} ({job_url})")
 
-        # Concatenate title, description, and requirements to perform language detection
-        text_for_detection = f"{job_title}\n{job_description}\n{job_requirements}"
+        # Concatenate title and job details to perform language detection
+        text_for_detection = f"{job_title}\n{job_details}"
 
         try:
             lang = detector.detect_lang(text_for_detection)
