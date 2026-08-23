@@ -1,9 +1,20 @@
-import json
-import os
 import re
 
 import sentencex
 from core.domain.interfaces.services import BaseTranslator
+
+FLORES_MAP: dict[str, str] = {
+    "fr": "fra_Latn",
+    "de": "deu_Latn",
+    "nl": "nld_Latn",
+    "sv": "swe_Latn",
+    "es": "spa_Latn",
+    "it": "ita_Latn",
+    "pl": "pol_Latn",
+    "pt": "por_Latn",
+    "zh": "zho_Hans",
+    "ja": "jpn_Jpan",
+}
 
 
 class NllbTranslator(BaseTranslator):
@@ -14,18 +25,14 @@ class NllbTranslator(BaseTranslator):
         self._translator = ctranslate2.Translator(model_path, device="cpu")
         sp_path = f"{model_path}/sentencepiece.bpe.model"
         self._sp = spm.SentencePieceProcessor(sp_path)
-
-        # Load language mapping from JSON file
-        json_path = os.path.join(os.path.dirname(__file__), "languages.json")
-        with open(json_path, "r", encoding="utf-8") as f:
-            self._lang_map = json.load(f)
+        self._lang_map = FLORES_MAP
 
     def translate(self, text: str, source_lang: str) -> str:
         if not text or not text.strip():
             return text
         src_code = self._lang_map.get(source_lang)
         if not src_code:
-            return text  # Unknown language -> return as-is
+            return text
 
         paragraphs = text.split("\n")
         translated_paragraphs = []
@@ -35,7 +42,6 @@ class NllbTranslator(BaseTranslator):
                 translated_paragraphs.append("")
                 continue
 
-            # Split paragraph into sentences using SOTA sentencex (with regex fallback)
             try:
                 segment_fn = getattr(sentencex, "segment")
                 sentences = segment_fn(source_lang, paragraph)
@@ -52,7 +58,7 @@ class NllbTranslator(BaseTranslator):
                     target_prefix=[["eng_Latn"]],
                     beam_size=1,
                 )
-                output_tokens = results[0].hypotheses[0][1:]  # Skip lang token
+                output_tokens = results[0].hypotheses[0][1:]
                 translated_sentences.append(self._sp.decode(output_tokens))
             translated_paragraphs.append(" ".join(translated_sentences))
 

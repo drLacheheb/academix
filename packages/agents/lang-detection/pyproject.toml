@@ -6,7 +6,7 @@ requires-python = ">=3.11, <3.14"
 dependencies = [
     "core",
     "httpx>=0.28.0",
-    "fast-langdetect>=1.0.0",
+    "lingua-language-detector>=2.1.1",
     "python-dotenv>=1.2.2",
 ]
 
