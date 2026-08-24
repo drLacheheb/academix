@@ -193,7 +193,10 @@ def main():
     signal.signal(signal.SIGTERM, handle_shutdown)
 
     port = int(os.environ.get("PORT", "8000"))
-    logger.info(f"Starting Academix Unified Server on port {port}...")
+    os.environ["API_URL"] = f"http://127.0.0.1:{port}"
+    logger.info(
+        f"Starting Academix Unified Server on port {port} (API_URL: {os.environ['API_URL']})..."
+    )
 
     # Start FastAPI server in a dedicated thread
     import uvicorn
