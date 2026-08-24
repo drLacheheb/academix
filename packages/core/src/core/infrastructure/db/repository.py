@@ -222,52 +222,6 @@ class DatabaseJobRepository(BaseJobRepository):
         finally:
             session.close()
 
-    def get_total_count(self, source: str) -> int:
-        session = self._SessionLocal()
-        try:
-            return session.query(JobModel).filter(JobModel.source == source).count()
-        finally:
-            session.close()
-
-    def get_crawler_checkpoint(self, source: str) -> str | None:
-        from core.infrastructure.db.models import CrawlerCheckpointModel
-
-        session = self._SessionLocal()
-        try:
-            row = (
-                session.query(CrawlerCheckpointModel)
-                .filter(CrawlerCheckpointModel.source == source)
-                .first()
-            )
-            return str(row.last_successful_url) if (row and row.last_successful_url) else None
-        finally:
-            session.close()
-
-    def update_crawler_checkpoint(self, source: str, url: str) -> None:
-        from datetime import datetime
-
-        from core.infrastructure.db.models import CrawlerCheckpointModel
-
-        session = self._SessionLocal()
-        try:
-            row = (
-                session.query(CrawlerCheckpointModel)
-                .filter(CrawlerCheckpointModel.source == source)
-                .first()
-            )
-            if not row:
-                row = CrawlerCheckpointModel(source=source, last_successful_url=url)
-                session.add(row)
-            else:
-                row.last_successful_url = url
-                row.updated_at = datetime.now(UTC).replace(tzinfo=None)
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
     def delete_expired_jobs(self) -> int:
         from datetime import datetime
 

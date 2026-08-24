@@ -315,8 +315,3 @@ class MatchingTaskComplete(BaseModel):
 class MatchExplanationComplete(BaseModel):
     match_id: int
     explanation: str
-
-
-class CheckpointUpdate(BaseModel):
-    source: str
-    url: str

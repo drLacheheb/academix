@@ -374,13 +374,3 @@ class MatchModel(Base):
             telegram_notified_at=self.telegram_notified_at,
             created_at=self.created_at,
         )
-
-
-class CrawlerCheckpointModel(Base):
-    __tablename__ = "crawler_checkpoints"
-
-    source: Mapped[str] = mapped_column(String, primary_key=True)
-    last_successful_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
-    )

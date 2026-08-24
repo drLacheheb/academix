@@ -34,14 +34,20 @@ def test_api_create_and_query_jobs(api_client: TestClient):
     assert "https://example.com/job-api-1" in known_urls
     assert "https://example.com/unknown" not in known_urls
 
-    # 3. Get pending details
+    # 3. Get recent URLs
+    urls_resp = api_client.get("/jobs/urls?source=euraxess")
+    assert urls_resp.status_code == 200
+    assert "urls" in urls_resp.json()
+    assert "https://example.com/job-api-1" in urls_resp.json()["urls"]
+
+    # 4. Get pending details
     pending_resp = api_client.get("/jobs/pending-details?source=euraxess")
     assert pending_resp.status_code == 200
     pending = pending_resp.json()
     assert len(pending) >= 1
     assert pending[0]["url"] == "https://example.com/job-api-1"
 
-    # 4. Update scraped details
+    # 5. Update scraped details
     update_resp = api_client.put(
         "/jobs/details",
         json=[
@@ -52,3 +58,7 @@ def test_api_create_and_query_jobs(api_client: TestClient):
         ],
     )
     assert update_resp.status_code == 200
+
+    # 6. Verify checkpoint endpoints are removed (404)
+    checkpoint_resp = api_client.get("/jobs/checkpoint?source=euraxess")
+    assert checkpoint_resp.status_code == 404

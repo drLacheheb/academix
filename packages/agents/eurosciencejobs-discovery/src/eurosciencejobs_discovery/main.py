@@ -43,15 +43,6 @@ def run():
             resp.raise_for_status()
             logger.info(f"Submitted {len(truly_new)} new job stubs to API")
 
-        # Always update crawler checkpoint to newest job URL found
-        checkpoint_payload = {
-            "source": scraper.SOURCE_NAME,
-            "url": all_jobs[0].url,
-        }
-        update_resp = api.put("/jobs/checkpoint", json=checkpoint_payload)
-        update_resp.raise_for_status()
-        logger.info(f"Updated crawler checkpoint to: {all_jobs[0].url}")
-
         return len(truly_new) > 0
 
     try:

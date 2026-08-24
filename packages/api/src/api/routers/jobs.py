@@ -1,5 +1,4 @@
 from core.domain.models.schemas import (
-    CheckpointUpdate,
     JobDetailUpdate,
     JobStubCreate,
     KnownUrlsRequest,
@@ -12,14 +11,12 @@ from api.dependencies import (
     GetPendingDetailsUseCase,
     UpdateJobDetailsUseCase,
     get_check_known_urls_usecase,
-    get_crawler_checkpoint_usecase,
     get_create_jobs_usecase,
     get_pending_details_usecase,
     get_recent_urls_usecase,
     get_refined_jobs_usecase,
     get_repo,
     get_update_details_usecase,
-    update_crawler_checkpoint_usecase,
     verify_token,
 )
 from api.limiter_config import limiter
@@ -90,30 +87,8 @@ async def get_recent_urls(
     limit: int = 500,
     usecase=Depends(get_recent_urls_usecase),
 ):
-    urls, total_count = usecase.execute(source=source, limit=limit)
-    return {"urls": urls, "total_count": total_count}
-
-
-@router.get("/jobs/checkpoint")
-@limiter.limit("60/minute")
-async def get_crawler_checkpoint(
-    request: Request,
-    source: str,
-    usecase=Depends(get_crawler_checkpoint_usecase),
-):
-    val = usecase.execute(source=source)
-    return {"checkpoint_url": val}
-
-
-@router.put("/jobs/checkpoint")
-@limiter.limit("30/minute")
-async def update_crawler_checkpoint(
-    request: Request,
-    body: CheckpointUpdate,
-    usecase=Depends(update_crawler_checkpoint_usecase),
-):
-    usecase.execute(source=body.source, url=body.url)
-    return {"status": "updated", "source": body.source}
+    urls = usecase.execute(source=source, limit=limit)
+    return {"urls": urls}
 
 
 @router.delete("/jobs/expired")

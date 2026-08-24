@@ -28,27 +28,16 @@ def run():
     logger.info(f"Starting EURAXESS crawler discovery agent (name: {agent_name})")
 
     def cycle() -> bool:
-        logger.info("Fetching recent known URLs and checkpoint to optimize pagination...")
+        logger.info("Fetching recent known URLs to optimize insertion...")
         known_resp = api.get(f"/jobs/urls?source={scraper.SOURCE_NAME}&limit=500")
         known_resp.raise_for_status()
-        known_data = known_resp.json()
-        known_urls = set(known_data.get("urls", []))
-        db_total_count = known_data.get("total_count", len(known_urls))
+        known_urls = set(known_resp.json().get("urls", []))
 
-        checkpoint_resp = api.get(f"/jobs/checkpoint?source={scraper.SOURCE_NAME}")
-        checkpoint_resp.raise_for_status()
-        checkpoint_url = checkpoint_resp.json().get("checkpoint_url")
-
-        logger.info(
-            f"Loaded {len(known_urls)} recent known URLs (total DB count: {db_total_count}). "
-            f"Checkpoint URL: {checkpoint_url}"
-        )
-        new_jobs = scraper.search_all(
-            known_urls, checkpoint_url=checkpoint_url, db_total_count=db_total_count
-        )
+        logger.info(f"Loaded {len(known_urls)} recent known URLs from API")
+        new_jobs = scraper.search_all(known_urls)
 
         if not new_jobs:
-            logger.info("No new listings found in this cycle")
+            logger.info("No listings found in this cycle")
             return False
 
         found_urls = [j.url for j in new_jobs]
@@ -64,15 +53,6 @@ def run():
             resp = api.post("/jobs", json=stubs)
             resp.raise_for_status()
             logger.info(f"Submitted {len(truly_new)} new job stubs to API")
-
-        # Always update crawler checkpoint to newest job URL found on page 0
-        checkpoint_payload = {
-            "source": scraper.SOURCE_NAME,
-            "url": new_jobs[0].url,
-        }
-        update_resp = api.put("/jobs/checkpoint", json=checkpoint_payload)
-        update_resp.raise_for_status()
-        logger.info(f"Updated crawler checkpoint to: {new_jobs[0].url}")
 
         return len(truly_new) > 0
 
