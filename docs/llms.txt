@@ -37,13 +37,13 @@ Academix is an open-source, self-hosted academic recruitment and candidate disco
 - `packages/api`: FastAPI gateway server with Alembic database migrations.
 - `packages/agents`: Autonomous worker services (discovery, sourcing, translation, refinement, embedding, matching, cv-parsing, telegram-bot, cleanup).
 
-## Technical Guides & Documentation
-- Documentation Hub: https://drLacheheb.github.io/academix/blog/
-- Academic Job Sourcing Across 6 Portals: https://drLacheheb.github.io/academix/blog/academic-job-sourcing/
-- Multilingual Translation Pipeline: https://drLacheheb.github.io/academix/blog/multilingual-translation-pipeline/
-- Semantic Degree Gating & Asymmetric Matching: https://drLacheheb.github.io/academix/blog/matching-algorithm-degree-gating/
-- Self-Hosting with Docker & Ollama: https://drLacheheb.github.io/academix/blog/self-hosted-ollama-refinement/
-- Telegram Bot Academic Alerts: https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/
+## Technical Guides & Career Resources
+- Resources & Blog Hub: https://drLacheheb.github.io/academix/blog/
+- The 6 Best Academic Job Boards for PhDs & Postdocs in 2026: https://drLacheheb.github.io/academix/blog/best-academic-job-boards/
+- How to Find Fully Funded PhD & Postdoc Positions in Europe: https://drLacheheb.github.io/academix/blog/find-fully-funded-phd-europe/
+- How to Get Real-Time Academic Position Alerts on Telegram: https://drLacheheb.github.io/academix/blog/telegram-phd-postdoc-alerts/
+- How to Write an Academic CV for PhD & Postdoc Applications: https://drLacheheb.github.io/academix/blog/academic-cv-for-phd-postdoc/
+- The Complete Guide to EURAXESS Jobs & EU Research Roles: https://drLacheheb.github.io/academix/blog/euraxess-jobs-guide/
 
 ## Links
 - Website: https://drLacheheb.github.io/academix/
