@@ -23,7 +23,7 @@ class BaseLanguageDetector(ABC):
 
 class BaseTranslator(ABC):
     @abstractmethod
-    def translate(self, text: str, source_lang: str) -> str:
+    def translate(self, text: str) -> tuple[str, bool]:
         pass
 
 

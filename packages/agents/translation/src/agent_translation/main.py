@@ -2,11 +2,10 @@ import os
 import sys
 
 from core.infrastructure.logging.logger import get_logger
+from core.infrastructure.services.translator import NllbTranslator
 from core.utils.agent import get_agent_name, run_agent_loop
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
-
-from agent_translation.translator import NllbTranslator
 
 load_dotenv()
 
@@ -30,7 +29,7 @@ def run():
 
     logger.info(f"Starting Job Translation Agent (name: {agent_name})")
 
-    translator = None
+    translator: NllbTranslator | None = None
     api = make_api_client(timeout=60.0)
 
     def load_translator_if_needed():
@@ -72,8 +71,14 @@ def run():
         translator = NllbTranslator(resolved_model_dir)
         logger.success("NLLB model loaded successfully!")
 
+    # Preload translator on startup
+    load_translator_if_needed()
+    assert translator is not None
+
     def cycle() -> bool:
         nonlocal translator, api, config, logger
+        assert translator is not None
+
         # 1. Try to claim candidate profile translation task
         profile_data = None
         try:
@@ -87,24 +92,28 @@ def run():
             profile_id = profile_data["id"]
             try:
                 raw_text = profile_data.get("raw_text") or ""
-                source_lang = profile_data.get("language_code")
                 logger.info(
-                    f"Successfully claimed candidate profile for translation: "
-                    f"ID {profile_id} [lang: {source_lang}]"
+                    f"Claimed candidate profile ID {profile_id}. Running paragraph detection..."
                 )
 
-                load_translator_if_needed()
-                assert translator is not None
+                translated_text, was_translated = translator.translate(raw_text)
 
-                logger.info("Translating candidate CV text...")
-                translated = translator.translate(raw_text, source_lang)
-
-                submit_resp = api.put(
-                    "/profiles/translate",
-                    json={"profile_id": profile_id, "raw_text_en": translated},
-                )
+                if was_translated:
+                    logger.info(f"Translated foreign sections for profile ID {profile_id}.")
+                    submit_resp = api.put(
+                        "/profiles/translate",
+                        json={"profile_id": profile_id, "raw_text_en": translated_text},
+                    )
+                else:
+                    logger.info(f"All sections in profile ID {profile_id} were English. Skipping.")
+                    submit_resp = api.put(
+                        "/profiles/translate",
+                        json={"profile_id": profile_id, "raw_text_en": None},
+                    )
                 submit_resp.raise_for_status()
-                logger.info(f"Successfully uploaded translation result for profile ID {profile_id}")
+                logger.info(
+                    f"Successfully processed translation result for profile ID {profile_id}"
+                )
             except Exception as e:
                 logger.error(
                     f"Error during profile translation processing for ID {profile_id}: {e}"
@@ -127,30 +136,35 @@ def run():
             logger.info("No pending jobs available for translation.")
             return False
 
-        job_title = job_data.get("title")
-        job_url = job_data.get("url")
+        job_title = job_data.get("title", "")
+        job_url = job_data.get("url", "")
         raw_job_details = job_data.get("job_details") or ""
-        source_lang = job_data.get("language_code")
 
-        logger.info(f"Successfully claimed job: {job_title} ({job_url}) [lang: {source_lang}]")
-
-        load_translator_if_needed()
-        assert translator is not None
+        logger.info(f"Claimed job: {job_title} ({job_url}). Running paragraph detection...")
 
         try:
-            logger.info(f"Translating job details for: {job_title}...")
-            job_details_en = translator.translate(raw_job_details, source_lang)
+            translated_text, was_translated = translator.translate(raw_job_details)
 
-            logger.info("Finished translation. Submitting results...")
-            submit_resp = api.put(
-                "/jobs/translate",
-                json={
-                    "url": job_url,
-                    "job_details_en": job_details_en,
-                },
-            )
+            if was_translated:
+                logger.info(f"Finished translating foreign sections for: {job_title}")
+                submit_resp = api.put(
+                    "/jobs/translate",
+                    json={
+                        "url": job_url,
+                        "job_details_en": translated_text,
+                    },
+                )
+            else:
+                logger.info(f"All sections in job '{job_title}' were English. Skipping.")
+                submit_resp = api.put(
+                    "/jobs/translate",
+                    json={
+                        "url": job_url,
+                        "job_details_en": None,
+                    },
+                )
             submit_resp.raise_for_status()
-            logger.info("Successfully uploaded translation results")
+            logger.info("Successfully uploaded translation results.")
 
         except Exception as e:
             logger.error(f"Error during translation processing or upload: {e}")
