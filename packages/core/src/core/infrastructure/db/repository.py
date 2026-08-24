@@ -87,7 +87,6 @@ class DatabaseJobRepository(BaseJobRepository):
             )
             existing_orchestrator = JobOrchestrationModel(
                 job_url=job.url,
-                detection_status=JobStatus.PENDING,
                 translation_status=JobStatus.PENDING,
                 refinement_status=ref_status,
             )
@@ -112,8 +111,6 @@ class DatabaseJobRepository(BaseJobRepository):
                 existing.city = job.city
             if job.country is not None:
                 existing.country = job.country
-            if job.language_code is not None:
-                existing.language_code = job.language_code
             if job.job_details_en is not None:
                 existing.job_details_en = job.job_details_en
         else:

@@ -8,7 +8,6 @@ from slowapi.errors import RateLimitExceeded
 
 from api.limiter_config import limiter
 from api.routers import (
-    detection,
     embedding,
     jobs,
     matching,
@@ -77,7 +76,6 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # Include Routers
 app.include_router(status.router)
 app.include_router(jobs.router)
-app.include_router(detection.router)
 app.include_router(translation.router)
 app.include_router(refinement.router)
 app.include_router(embedding.router)

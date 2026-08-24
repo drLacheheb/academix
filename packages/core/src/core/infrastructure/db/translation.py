@@ -67,24 +67,25 @@ class TranslationRepository(BaseTranslationRepository):
     def complete(
         self,
         url: str,
-        job_details_en: str,
+        job_details_en: str | None = None,
     ) -> None:
         session = self._SessionLocal()
         try:
-            # Update job EN text values
-            session.execute(
-                update(JobModel)
-                .where(JobModel.url == url)
-                .values(
-                    job_details_en=job_details_en,
+            if job_details_en is not None:
+                session.execute(
+                    update(JobModel)
+                    .where(JobModel.url == url)
+                    .values(
+                        job_details_en=job_details_en,
+                    )
                 )
-            )
-            # Update translation orchestration status
+
+            status = JobStatus.COMPLETED if job_details_en is not None else JobStatus.SKIPPED
             session.execute(
                 update(JobOrchestrationModel)
                 .where(JobOrchestrationModel.job_url == url)
                 .values(
-                    translation_status=JobStatus.COMPLETED,
+                    translation_status=status,
                     translation_claimed_by=None,
                     translation_claimed_at=None,
                 )

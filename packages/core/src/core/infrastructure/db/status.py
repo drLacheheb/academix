@@ -15,32 +15,6 @@ class StatusQueryRepository(BaseStatusQueryRepository):
             total = session.query(JobModel).count()
             pending_details = session.query(JobModel).filter(JobModel.job_details.is_(None)).count()
 
-            # Detection stats
-            pending_detect = (
-                session.query(JobModel)
-                .join(JobOrchestrationModel, JobModel.url == JobOrchestrationModel.job_url)
-                .filter(
-                    JobModel.job_details.isnot(None),
-                    JobOrchestrationModel.detection_status == JobStatus.PENDING,
-                )
-                .count()
-            )
-            claimed_detect = (
-                session.query(JobOrchestrationModel)
-                .filter(JobOrchestrationModel.detection_status == JobStatus.CLAIMED)
-                .count()
-            )
-            completed_detect = (
-                session.query(JobOrchestrationModel)
-                .filter(JobOrchestrationModel.detection_status == JobStatus.COMPLETED)
-                .count()
-            )
-            failed_detect = (
-                session.query(JobOrchestrationModel)
-                .filter(JobOrchestrationModel.detection_status == JobStatus.FAILED)
-                .count()
-            )
-
             # Translation stats
             pending_translate = (
                 session.query(JobOrchestrationModel)
@@ -98,10 +72,6 @@ class StatusQueryRepository(BaseStatusQueryRepository):
             return {
                 "total_jobs": total,
                 "pending_details": pending_details,
-                "pending_detection": pending_detect,
-                "claimed_detection": claimed_detect,
-                "completed_detection": completed_detect,
-                "failed_detection": failed_detect,
                 "pending_translation": pending_translate,
                 "claimed_translation": claimed_translate,
                 "completed_translation": completed_translate,

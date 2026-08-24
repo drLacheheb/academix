@@ -20,7 +20,6 @@ class Job:
     city: str | None = None
     country: str | None = None
 
-    language_code: str | None = None
     job_details_en: str | None = None
 
     skill_embedding: list[float] | None = None

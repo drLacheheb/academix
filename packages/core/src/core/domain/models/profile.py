@@ -11,7 +11,6 @@ class CandidateProfile:
     email: str | None = None
     cv_file_path: str | None = None
     raw_text: str | None = None
-    language_code: str | None = None
     raw_text_en: str | None = None
     highest_degree: str | None = None
     degree_fields: list[str] | None = None

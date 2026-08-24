@@ -26,7 +26,6 @@
     "packages/agents/euraxess-sourcing/src",
     "packages/agents/eurosciencejobs-discovery/src",
     "packages/agents/eurosciencejobs-sourcing/src",
-    "packages/agents/lang-detection/src",
     "packages/agents/matching/src",
     "packages/agents/naturecareers-discovery/src",
     "packages/agents/naturecareers-sourcing/src",

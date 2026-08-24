@@ -20,7 +20,6 @@ COPY packages/agents/researchgate-discovery/pyproject.toml packages/agents/resea
 COPY packages/agents/researchgate-sourcing/pyproject.toml packages/agents/researchgate-sourcing/
 COPY packages/agents/eurosciencejobs-discovery/pyproject.toml packages/agents/eurosciencejobs-discovery/
 COPY packages/agents/eurosciencejobs-sourcing/pyproject.toml packages/agents/eurosciencejobs-sourcing/
-COPY packages/agents/lang-detection/pyproject.toml packages/agents/lang-detection/
 COPY packages/agents/refinement/pyproject.toml packages/agents/refinement/
 COPY packages/agents/translation/pyproject.toml packages/agents/translation/
 COPY packages/agents/cv-parsing/pyproject.toml packages/agents/cv-parsing/
@@ -41,11 +40,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --package naturecareers-discovery --package naturecareers-sourcing \
     --package researchgate-discovery --package researchgate-sourcing \
     --package eurosciencejobs-discovery --package eurosciencejobs-sourcing && \
-    sh /app/prune.sh
-
-FROM builder-base AS builder-lang-detection
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package lang-detection && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-refinement
@@ -94,14 +88,6 @@ CMD ["uv", "run", "--package", "api", "fastapi", "run", "packages/api/src/api/ma
 FROM academix-gateway-api AS slim
 
 # Core Worker Stages
-FROM base AS academix-lang-detection-worker
-COPY --from=builder-lang-detection /app/.venv /app/.venv
-COPY . .
-RUN uv sync --frozen --no-dev --package lang-detection
-CMD ["uv", "run", "--package", "lang-detection", "python", "-m", "agent_lang_detection.main"]
-
-FROM academix-lang-detection-worker AS lang-detection
-
 FROM base AS academix-refinement-worker
 COPY --from=builder-refinement /app/.venv /app/.venv
 COPY . .

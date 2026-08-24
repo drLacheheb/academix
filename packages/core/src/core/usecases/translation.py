@@ -20,7 +20,7 @@ class CompleteTranslationUseCase:
     def __init__(self, repo: BaseTranslationRepository):
         self._repo = repo
 
-    def execute(self, url: str, job_details_en: str) -> None:
+    def execute(self, url: str, job_details_en: str | None = None) -> None:
         self._repo.complete(url, job_details_en)
 
 

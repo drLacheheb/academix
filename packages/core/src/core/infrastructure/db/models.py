@@ -39,7 +39,6 @@ class JobModel(Base):
     city: Mapped[str | None] = mapped_column(String, nullable=True)
     country: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    language_code: Mapped[str | None] = mapped_column(String, nullable=True)
     job_details_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     skill_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
     research_embedding: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -106,7 +105,6 @@ class JobModel(Base):
             education_level=self.education_level,
             city=self.city,
             country=self.country,
-            language_code=self.language_code,
             job_details_en=self.job_details_en,
             skill_embedding=skill_emb,
             research_embedding=research_emb,
@@ -139,7 +137,6 @@ class JobModel(Base):
             education_level=job.education_level,
             city=job.city,
             country=job.country,
-            language_code=job.language_code,
             job_details_en=job.job_details_en,
             skill_embedding=json.dumps(job.skill_embedding, ensure_ascii=False)
             if job.skill_embedding is not None
@@ -164,12 +161,6 @@ class JobOrchestrationModel(Base):
         ForeignKey("jobs.url", ondelete="CASCADE"),
         primary_key=True,
     )
-
-    detection_status: Mapped[str] = mapped_column(
-        String, nullable=False, default=JobStatus.PENDING, index=True
-    )
-    detection_claimed_by: Mapped[str | None] = mapped_column(String, nullable=True)
-    detection_claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     translation_status: Mapped[str] = mapped_column(
         String, nullable=False, default=JobStatus.PENDING, index=True
@@ -207,7 +198,6 @@ class CandidateProfileModel(Base):
     email: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
     cv_file_path: Mapped[str | None] = mapped_column(String, nullable=True)
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    language_code: Mapped[str | None] = mapped_column(String, nullable=True)
     raw_text_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     highest_degree: Mapped[str | None] = mapped_column(String, nullable=True)
     degree_fields: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -236,7 +226,6 @@ class CandidateProfileModel(Base):
             email=self.email,
             cv_file_path=self.cv_file_path,
             raw_text=self.raw_text,
-            language_code=self.language_code,
             raw_text_en=self.raw_text_en,
             highest_degree=self.highest_degree,
             degree_fields=_safe_json_loads(self.degree_fields, None),
@@ -260,12 +249,10 @@ class CandidateProfileModel(Base):
     @classmethod
     def from_domain(cls, profile: CandidateProfile) -> "CandidateProfileModel":
         return cls(
-            id=profile.id,
-            name=profile.name if profile.name else None,
+            name=profile.name,
             email=profile.email,
             cv_file_path=profile.cv_file_path,
             raw_text=profile.raw_text,
-            language_code=profile.language_code,
             raw_text_en=profile.raw_text_en,
             highest_degree=profile.highest_degree if profile.highest_degree else None,
             skills=json.dumps([s for s in profile.skills if s], ensure_ascii=False)

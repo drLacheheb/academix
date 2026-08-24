@@ -54,31 +54,13 @@ class BaseJobRepository(ABC):
         pass
 
 
-class BaseDetectionRepository(ABC):
-    @abstractmethod
-    def claim_next(self, agent_name: str, stale_cutoff: datetime) -> Job | None:
-        pass
-
-    @abstractmethod
-    def complete(self, url: str, language_code: str) -> None:
-        pass
-
-    @abstractmethod
-    def fail(self, url: str) -> None:
-        pass
-
-    @abstractmethod
-    def recover_stale(self, stale_cutoff: datetime) -> int:
-        pass
-
-
 class BaseTranslationRepository(ABC):
     @abstractmethod
     def claim_next(self, agent_name: str, stale_cutoff: datetime) -> Job | None:
         pass
 
     @abstractmethod
-    def complete(self, url: str, job_details_en: str) -> None:
+    def complete(self, url: str, job_details_en: str | None = None) -> None:
         pass
 
     @abstractmethod
@@ -192,23 +174,13 @@ class BaseCandidateProfileRepository(ABC):
         pass
 
     @abstractmethod
-    def claim_next_for_detection(
-        self, agent_name: str, stale_cutoff: datetime
-    ) -> CandidateProfile | None:
-        pass
-
-    @abstractmethod
-    def complete_detection(self, profile_id: int, language_code: str) -> None:
-        pass
-
-    @abstractmethod
     def claim_next_for_translation(
         self, agent_name: str, stale_cutoff: datetime
     ) -> CandidateProfile | None:
         pass
 
     @abstractmethod
-    def complete_translation(self, profile_id: int, raw_text_en: str) -> None:
+    def complete_translation(self, profile_id: int, raw_text_en: str | None = None) -> None:
         pass
 
     @abstractmethod

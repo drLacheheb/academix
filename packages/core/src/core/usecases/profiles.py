@@ -102,27 +102,6 @@ class SubmitRawTextUseCase:
         self._repo.submit_raw_text(profile_id, raw_text, name, email)
 
 
-class ClaimProfileDetectionUseCase:
-    def __init__(self, repo: BaseCandidateProfileRepository):
-        self._repo = repo
-
-    def execute(self, agent_name: str) -> CandidateProfile | None:
-        from datetime import datetime, timedelta
-
-        from core.domain.constants import STALE_CLAIM_TIMEOUT_MINUTES
-
-        cutoff = datetime.now() - timedelta(minutes=STALE_CLAIM_TIMEOUT_MINUTES)
-        return self._repo.claim_next_for_detection(agent_name, cutoff)
-
-
-class CompleteProfileDetectionUseCase:
-    def __init__(self, repo: BaseCandidateProfileRepository):
-        self._repo = repo
-
-    def execute(self, profile_id: int, language_code: str) -> None:
-        self._repo.complete_detection(profile_id, language_code)
-
-
 class ClaimProfileTranslationUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
@@ -140,7 +119,7 @@ class CompleteProfileTranslationUseCase:
     def __init__(self, repo: BaseCandidateProfileRepository):
         self._repo = repo
 
-    def execute(self, profile_id: int, raw_text_en: str) -> None:
+    def execute(self, profile_id: int, raw_text_en: str | None = None) -> None:
         self._repo.complete_translation(profile_id, raw_text_en)
 
 

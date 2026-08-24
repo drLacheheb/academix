@@ -293,14 +293,9 @@ class KnownUrlsRequest(BaseModel):
     urls: list[str]
 
 
-class DetectionResult(BaseModel):
-    url: str
-    language_code: str
-
-
 class TranslationResult(BaseModel):
     url: str
-    job_details_en: str
+    job_details_en: str | None = None
 
 
 class MatchResult(BaseModel):
@@ -308,7 +303,6 @@ class MatchResult(BaseModel):
     job_url: str
     score: float
     degree_eligible: bool
-    language_eligible: bool
     skill_score: float
     research_score: float
 

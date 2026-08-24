@@ -2,29 +2,24 @@ from core.domain.interfaces.services import BaseStorageService
 from core.infrastructure.db.pipeline_repository import PipelineJobRepository
 from core.usecases import (
     CheckKnownUrlsUseCase,
-    ClaimDetectionJobUseCase,
     ClaimEmbeddingJobUseCase,
     ClaimIngestionUseCase,
     ClaimMatchExplanationUseCase,
     ClaimMatchingTaskUseCase,
-    ClaimProfileDetectionUseCase,
     ClaimProfileEmbeddingUseCase,
     ClaimProfileRefinementUseCase,
     ClaimProfileTranslationUseCase,
     ClaimRefinementJobUseCase,
     ClaimTranslationJobUseCase,
-    CompleteDetectionUseCase,
     CompleteEmbeddingJobUseCase,
     CompleteIngestionUseCase,
     CompleteMatchExplanationUseCase,
-    CompleteProfileDetectionUseCase,
     CompleteProfileEmbeddingUseCase,
     CompleteProfileRefinementUseCase,
     CompleteProfileTranslationUseCase,
     CompleteRefinementUseCase,
     CompleteTranslationUseCase,
     CreateJobsUseCase,
-    FailDetectionUseCase,
     FailEmbeddingJobUseCase,
     FailIngestionUseCase,
     FailMatchExplanationUseCase,
@@ -65,24 +60,6 @@ def get_repo() -> PipelineJobRepository:
 
 
 # Dependency providers for Use Cases
-def get_detect_claim_usecase(
-    repo: PipelineJobRepository = Depends(get_repo),
-) -> ClaimDetectionJobUseCase:
-    return ClaimDetectionJobUseCase(repo.detection)
-
-
-def get_detect_complete_usecase(
-    repo: PipelineJobRepository = Depends(get_repo),
-) -> CompleteDetectionUseCase:
-    return CompleteDetectionUseCase(repo.detection)
-
-
-def get_detect_fail_usecase(
-    repo: PipelineJobRepository = Depends(get_repo),
-) -> FailDetectionUseCase:
-    return FailDetectionUseCase(repo.detection)
-
-
 def get_translate_claim_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> ClaimTranslationJobUseCase:
@@ -295,18 +272,6 @@ def get_submit_raw_text_usecase(
     repo: PipelineJobRepository = Depends(get_repo),
 ) -> SubmitRawTextUseCase:
     return SubmitRawTextUseCase(repo.profiles)
-
-
-def get_claim_profile_detect_usecase(
-    repo: PipelineJobRepository = Depends(get_repo),
-) -> ClaimProfileDetectionUseCase:
-    return ClaimProfileDetectionUseCase(repo.profiles)
-
-
-def get_complete_profile_detect_usecase(
-    repo: PipelineJobRepository = Depends(get_repo),
-) -> CompleteProfileDetectionUseCase:
-    return CompleteProfileDetectionUseCase(repo.profiles)
 
 
 def get_claim_profile_translate_usecase(

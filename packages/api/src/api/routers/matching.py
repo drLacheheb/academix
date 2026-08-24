@@ -66,7 +66,7 @@ async def submit_task_matches(
             job_url=m.job_url,
             score=m.score,
             degree_eligible=m.degree_eligible,
-            language_eligible=m.language_eligible,
+            language_eligible=True,
             skill_score=m.skill_score,
             research_score=m.research_score,
         )

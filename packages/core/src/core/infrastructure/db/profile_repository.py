@@ -475,85 +475,8 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     existing.name = name
                 if email:
                     existing.email = email
-                existing.status = "PENDING_DETECTION"
+                existing.status = "PENDING_TRANSLATION"
                 existing.status_message = "Raw text parsed successfully"
-                existing.claimed_by = None
-                existing.claimed_at = None
-                session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
-    def claim_next_for_detection(
-        self, agent_name: str, stale_cutoff: datetime
-    ) -> CandidateProfile | None:
-        session = self._SessionLocal()
-        try:
-            session.execute(
-                update(CandidateProfileModel)
-                .where(
-                    CandidateProfileModel.status == "DETECTION_CLAIMED",
-                    CandidateProfileModel.claimed_at < stale_cutoff,
-                )
-                .values(
-                    status="PENDING_DETECTION",
-                    claimed_by=None,
-                    claimed_at=None,
-                )
-            )
-            candidate = (
-                session.query(CandidateProfileModel)
-                .filter(
-                    CandidateProfileModel.status == "PENDING_DETECTION",
-                    CandidateProfileModel.claimed_by.is_(None),
-                )
-                .first()
-            )
-            if not candidate:
-                session.commit()
-                return None
-
-            result = session.execute(
-                update(CandidateProfileModel)
-                .where(
-                    CandidateProfileModel.id == candidate.id,
-                    CandidateProfileModel.status == "PENDING_DETECTION",
-                    CandidateProfileModel.claimed_by.is_(None),
-                )
-                .values(
-                    status="DETECTION_CLAIMED",
-                    claimed_by=agent_name,
-                    claimed_at=datetime.now(),
-                )
-            )
-            session.commit()
-            if getattr(result, "rowcount", 0) > 0:
-                session.refresh(candidate)
-                return candidate.to_domain()
-            return None
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-
-    def complete_detection(self, profile_id: int, language_code: str) -> None:
-        session = self._SessionLocal()
-        try:
-            existing = (
-                session.query(CandidateProfileModel)
-                .filter(CandidateProfileModel.id == profile_id)
-                .first()
-            )
-            if existing:
-                existing.language_code = language_code
-                if language_code == "en":
-                    existing.status = "PENDING_REFINEMENT"
-                else:
-                    existing.status = "PENDING_TRANSLATION"
-                existing.status_message = f"Language detected: {language_code}"
                 existing.claimed_by = None
                 existing.claimed_at = None
                 session.commit()
@@ -616,7 +539,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
         finally:
             session.close()
 
-    def complete_translation(self, profile_id: int, raw_text_en: str) -> None:
+    def complete_translation(self, profile_id: int, raw_text_en: str | None = None) -> None:
         session = self._SessionLocal()
         try:
             existing = (
@@ -625,9 +548,12 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                 .first()
             )
             if existing:
-                existing.raw_text_en = raw_text_en
+                if raw_text_en is not None:
+                    existing.raw_text_en = raw_text_en
                 existing.status = "PENDING_REFINEMENT"
-                existing.status_message = "Translation completed"
+                existing.status_message = (
+                    "Translation completed" if raw_text_en else "Translation skipped (English)"
+                )
                 existing.claimed_by = None
                 existing.claimed_at = None
                 session.commit()
@@ -724,9 +650,6 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     existing_email.raw_text = placeholder.raw_text or existing_email.raw_text
                     existing_email.raw_text_en = (
                         placeholder.raw_text_en or existing_email.raw_text_en
-                    )
-                    existing_email.language_code = (
-                        placeholder.language_code or existing_email.language_code
                     )
                     existing_email.telegram_chat_id = (
                         placeholder.telegram_chat_id or existing_email.telegram_chat_id

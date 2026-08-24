@@ -303,27 +303,7 @@ services:
       - CRAWL_INTERVAL=${CRAWL_INTERVAL:-15}
     restart: unless-stopped
 
-  # 14. Language Detection worker
-  academix-lang-detection-worker:
-    build:
-      context: .
-      target: academix-lang-detection-worker
-    depends_on:
-      academix-gateway-api:
-        condition: service_healthy
-    volumes:
-      - ./logs:/app/logs
-      - ./packages:/app/packages
-    environment:
-      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
-      - LOG_FILE=/app/logs/academix-lang-detection-worker.log
-      - API_URL=http://academix-gateway-api:8000
-      - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
-      - AGENT_POLL_INTERVAL=${AGENT_POLL_INTERVAL:-10}
-      - FTLANG_CACHE=/app/${HF_HOME:-models}
-    restart: unless-stopped
-
-  # 15. Translation worker
+  # 14. Translation worker
   academix-translation-worker:
     build:
       context: .

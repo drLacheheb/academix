@@ -4,11 +4,9 @@ from core.domain.models.schemas import ClaimRequest
 from core.infrastructure.logging.logger import get_logger
 from core.usecases import (
     ClaimIngestionUseCase,
-    ClaimProfileDetectionUseCase,
     ClaimProfileRefinementUseCase,
     ClaimProfileTranslationUseCase,
     CompleteIngestionUseCase,
-    CompleteProfileDetectionUseCase,
     CompleteProfileRefinementUseCase,
     CompleteProfileTranslationUseCase,
     FailIngestionUseCase,
@@ -22,11 +20,9 @@ from pydantic import BaseModel
 from api.dependencies import (
     get_candidate_profile_usecase,
     get_claim_ingestion_usecase,
-    get_claim_profile_detect_usecase,
     get_claim_profile_refine_usecase,
     get_claim_profile_translate_usecase,
     get_complete_ingestion_usecase,
-    get_complete_profile_detect_usecase,
     get_complete_profile_refine_usecase,
     get_complete_profile_translate_usecase,
     get_fail_ingestion_usecase,
@@ -43,7 +39,7 @@ logger = get_logger("api-profiles")
 
 # Create the uploads directory if it does not exist
 UPLOADS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "uploads")
+    os.environ.get("UPLOADS_DIR", os.path.join(os.getcwd(), "data", "uploads"))
 )
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
@@ -64,14 +60,9 @@ class SubmitRawTextRequest(BaseModel):
     email: str | None = None
 
 
-class ProfileDetectionResult(BaseModel):
-    profile_id: int
-    language_code: str
-
-
 class ProfileTranslationResult(BaseModel):
     profile_id: int
-    raw_text_en: str
+    raw_text_en: str | None = None
 
 
 class ProfileRefinementResult(BaseModel):
@@ -229,33 +220,6 @@ async def submit_raw_text(
 ):
     usecase.execute(profile_id, body.raw_text, body.name, body.email)
     return {"status": "success", "profile_id": profile_id}
-
-
-@router.post("/profiles/claim-detect")
-@limiter.limit("60/minute")
-async def claim_profile_detect(
-    request: Request,
-    body: ClaimRequest,
-    usecase: ClaimProfileDetectionUseCase = Depends(get_claim_profile_detect_usecase),
-):
-    profile = usecase.execute(body.agent_name)
-    if profile is None:
-        return {
-            "profile": None,
-            "message": "No pending profile detection tasks available",
-        }
-    return {"profile": profile.to_dict()}
-
-
-@router.put("/profiles/detect")
-@limiter.limit("60/minute")
-async def complete_profile_detect(
-    request: Request,
-    body: ProfileDetectionResult,
-    usecase: CompleteProfileDetectionUseCase = Depends(get_complete_profile_detect_usecase),
-):
-    usecase.execute(body.profile_id, body.language_code)
-    return {"status": "success", "profile_id": body.profile_id}
 
 
 @router.post("/profiles/claim-translate")

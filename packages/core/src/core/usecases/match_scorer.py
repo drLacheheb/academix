@@ -1,5 +1,4 @@
 import os
-from collections.abc import Sequence
 
 from core.domain.models.job import Job
 from core.domain.models.match import Match
@@ -7,17 +6,6 @@ from core.domain.models.profile import CandidateProfile
 from core.infrastructure.logging.logger import get_logger
 
 logger = get_logger("core-match-scorer")
-
-
-LANGUAGE_NAMES = {
-    "de": ["german", "deutsch", "de"],
-    "fr": ["french", "français", "francais", "fr"],
-    "pl": ["polish", "polski", "pl"],
-    "es": ["spanish", "español", "espanol", "es"],
-    "nl": ["dutch", "nederlands", "nl"],
-    "it": ["italian", "italiano", "it"],
-    "en": ["english", "en"],
-}
 
 
 def parse_degree(degree_str: str | None) -> int:
@@ -58,30 +46,6 @@ def check_degree_eligibility(candidate_degree: str | None, job_education_level: 
     return parse_degree(candidate_degree) >= parse_degree(job_education_level)
 
 
-def check_language_eligibility(
-    candidate_languages: Sequence[dict[str, str] | str] | None,
-    job_language_code: str | None,
-) -> bool:
-    if not job_language_code or job_language_code.lower() in ["en", "english"]:
-        return True
-    if not candidate_languages:
-        return False
-
-    code = job_language_code.lower()
-    allowed_names = LANGUAGE_NAMES.get(code, [code])
-
-    for item in candidate_languages:
-        if isinstance(item, dict):
-            lang_name = item.get("language", "").lower()
-        elif isinstance(item, str):
-            lang_name = item.lower()
-        else:
-            continue
-        if any(name in lang_name for name in allowed_names):
-            return True
-    return False
-
-
 def dot_product(v1: list[float] | None, v2: list[float] | None) -> float:
     if not v1 or not v2 or len(v1) != len(v2):
         return 0.0
@@ -105,19 +69,13 @@ class MatchScorer:
             degree_field_score = dot_product(candidate.degree_embedding, job.degree_embedding)
             degree_threshold = float(os.environ.get("DEGREE_SIMILARITY_THRESHOLD", "0.71"))
             if degree_field_score < degree_threshold:
-                # Degree fields are too semantically divergent (e.g. CS vs Biology)
                 return None
 
-        # 3. Hard Filter: Language Eligibility
-        lang_ok = check_language_eligibility(candidate.languages, job.language_code)
-        if not lang_ok:
-            return None
-
-        # 4. Soft Scores: Semantic similarity via pre-computed embeddings
+        # 3. Soft Scores: Semantic similarity via pre-computed embeddings
         skill_score = dot_product(candidate.skill_embedding, job.skill_embedding)
         research_score = dot_product(candidate.research_embedding, job.research_embedding)
 
-        # 5. Composite Score: Max-Dominance Asymmetric Pooling (Approach A)
+        # 4. Composite Score: Max-Dominance Asymmetric Pooling
         max_score = max(skill_score, research_score)
         min_score = min(skill_score, research_score)
         composite_score = 0.70 * max_score + 0.30 * min_score
