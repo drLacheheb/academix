@@ -45,10 +45,28 @@ def notify_telegram_on_cv_completion(func):
 
         try:
             profile = None
-            if isinstance(result, dict) and "profile" in result:
-                profile = result["profile"]
-            elif isinstance(result, dict) and "id" in result:
-                profile = result
+            if isinstance(result, dict):
+                if "profile" in result and isinstance(result["profile"], dict):
+                    profile = result["profile"]
+                elif "telegram_chat_id" in result:
+                    profile = result
+
+            # If result only returned profile_id (e.g. {"status": "success", "profile_id": 1})
+            if not profile:
+                profile_id = None
+                if isinstance(result, dict) and "profile_id" in result:
+                    profile_id = result["profile_id"]
+                elif "body" in kwargs and hasattr(kwargs["body"], "profile_id"):
+                    profile_id = kwargs["body"].profile_id
+
+                if profile_id:
+                    from api.config import get_database_url
+                    from core.infrastructure.db.pipeline_repository import PipelineJobRepository
+
+                    repo = PipelineJobRepository(get_database_url())
+                    p = repo.profiles.get_by_id(int(profile_id))
+                    if p:
+                        profile = p.to_dict()
 
             if profile and isinstance(profile, dict):
                 chat_id = profile.get("telegram_chat_id")
@@ -80,6 +98,22 @@ def notify_telegram_on_matches_found(func):
             elif isinstance(result, dict) and "match" in result:
                 matches = [result["match"]]
 
+            # If result only returned match_id (e.g. {"status": "completed", "match_id": 10})
+            if not matches:
+                match_id = None
+                if isinstance(result, dict) and "match_id" in result:
+                    match_id = result["match_id"]
+                elif "body" in kwargs and hasattr(kwargs["body"], "match_id"):
+                    match_id = kwargs["body"].match_id
+
+                if match_id:
+                    from api.config import get_database_url
+                    from core.infrastructure.db.pipeline_repository import PipelineJobRepository
+
+                    repo = PipelineJobRepository(get_database_url())
+                    unnotified = repo.matches.get_unnotified_matches(limit=20)
+                    matches = [m for m in unnotified if m.get("match_id") == int(match_id)]
+
             for m in matches:
                 if not isinstance(m, dict):
                     continue
@@ -88,7 +122,13 @@ def notify_telegram_on_matches_found(func):
                     continue
 
                 msg = format_match_card(m)
-                send_telegram_message(chat_id, msg)
+                if send_telegram_message(chat_id, msg):
+                    if "match_id" in m:
+                        from api.config import get_database_url
+                        from core.infrastructure.db.pipeline_repository import PipelineJobRepository
+
+                        repo = PipelineJobRepository(get_database_url())
+                        repo.matches.mark_as_notified([m["match_id"]])
         except Exception as e:
             logger.error(f"Error in notify_telegram_on_matches_found decorator: {e}")
 
