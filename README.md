@@ -38,6 +38,8 @@ Automated academic job sourcing, metadata refinement, and candidate CV matching 
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
 ├── Dockerfile                         # Unified multi-purpose Dockerfile
+├── docs/                              # SEO documentation site & guides (GitHub Pages)
+├── LICENSE                            # Business Source License 1.1 (BSL 1.1)
 ├── docker-compose.yml                 # Unified Docker Compose orchestration config (CPU default)
 ├── docker-compose.postgres.yml        # Standalone PostgreSQL database override
 ├── docker-compose.dashboard.yml       # Standalone NocoDB Airtable-style dashboard override
@@ -260,3 +262,15 @@ uv run pyright .
 ```bash
 uv run --package api alembic -c packages/api/alembic.ini revision --autogenerate -m "describe_your_change"
 ```
+
+---
+
+## 9. License
+
+Academix is licensed under the **Business Source License 1.1 (BSL 1.1)**.
+
+- **Personal & Educational Use**: Free for personal, educational, research, and non-commercial self-hosting.
+- **Commercial Restrictions**: You may not provide Academix as a hosted, managed, or paid commercial service to third parties without a commercial license from the author ([`drLacheheb`](https://github.com/drLacheheb)).
+- **Change to Open Source**: On **January 1, 2030**, the license automatically converts to the **GNU Affero General Public License, Version 3 (AGPL-3.0)**.
+
+See the full terms in the [`LICENSE`](LICENSE) file.
