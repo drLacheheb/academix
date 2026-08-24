@@ -21,12 +21,30 @@ def run_worker_safe(target_func, worker_name: str):
         except Exception as e:
             if shutdown_event.is_set():
                 break
-            logger.error(f"Worker {worker_name} crashed with error: {e}. Restarting in 5s...")
+            logger.error(f"Worker {worker_name} crashed: {e}. Restarting in 5s...")
             time.sleep(5)
+
+
+def run_crawler_safe(target_func, crawler_name: str, interval: int = 3600):
+    logger.info(f"Starting crawler worker: {crawler_name} (interval: {interval}s)")
+    while not shutdown_event.is_set():
+        try:
+            target_func()
+        except Exception as e:
+            if shutdown_event.is_set():
+                break
+            logger.error(f"Crawler {crawler_name} error: {e}")
+
+        # Sleep interval seconds before next crawl cycle
+        for _ in range(interval):
+            if shutdown_event.is_set():
+                break
+            time.sleep(1)
 
 
 def start_all_workers():
     workers = []
+    crawl_interval = int(os.environ.get("CRAWL_INTERVAL", "3600"))
 
     # 1. Telegram Bot (Long polling)
     if os.environ.get("TELEGRAM_BOT_TOKEN"):
@@ -118,8 +136,8 @@ def start_all_workers():
         from agent_cleanup.main import run as run_cleanup
 
         t_clean = threading.Thread(
-            target=run_worker_safe,
-            args=(run_cleanup, "cleanup-agent"),
+            target=run_crawler_safe,
+            args=(run_cleanup, "cleanup-agent", 86400),
             daemon=True,
             name="Worker-Cleanup",
         )
@@ -150,8 +168,8 @@ def start_all_workers():
             mod = importlib.import_module(mod_path)
             if hasattr(mod, "run"):
                 t_c = threading.Thread(
-                    target=run_worker_safe,
-                    args=(mod.run, name),
+                    target=run_crawler_safe,
+                    args=(mod.run, name, crawl_interval),
                     daemon=True,
                     name=f"Crawler-{name}",
                 )
@@ -188,31 +206,7 @@ def wait_for_api_ready(port: int, max_wait: float = 30.0) -> bool:
     return False
 
 
-def main():
-    signal.signal(signal.SIGINT, handle_shutdown)
-    signal.signal(signal.SIGTERM, handle_shutdown)
-
-    port = int(os.environ.get("PORT", "8000"))
-    os.environ["API_URL"] = f"http://127.0.0.1:{port}"
-    logger.info(
-        f"Starting Academix Unified Server on port {port} (API_URL: {os.environ['API_URL']})..."
-    )
-
-    # Start FastAPI server in a dedicated thread
-    import uvicorn
-
-    config = uvicorn.Config(
-        "api.main:app",
-        host="0.0.0.0",
-        port=port,
-        log_level="info",
-        access_log=True,
-    )
-    server = uvicorn.Server(config)
-    t_server = threading.Thread(target=server.run, daemon=True, name="FastAPI-Server")
-    t_server.start()
-
-    # Wait for API server to become healthy before launching worker loops
+def init_background_workers(port: int):
     logger.info(f"Waiting for API server to initialize on port {port}...")
     if wait_for_api_ready(port):
         logger.success(f"FastAPI server online and healthy on port {port}.")
@@ -224,11 +218,36 @@ def main():
     # Start all background workers
     start_all_workers()
 
-    # Keep main thread alive until shutdown
-    while not shutdown_event.is_set():
-        time.sleep(1)
 
-    server.should_exit = True
+def main():
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+
+    port = int(os.environ.get("PORT", "8000"))
+    os.environ["API_URL"] = f"http://127.0.0.1:{port}"
+    logger.info(
+        f"Starting Academix Unified Server on port {port} (API_URL: {os.environ['API_URL']})..."
+    )
+
+    # Start background worker supervisor in daemon thread
+    t_supervisor = threading.Thread(
+        target=init_background_workers,
+        args=(port,),
+        daemon=True,
+        name="Worker-Supervisor",
+    )
+    t_supervisor.start()
+
+    # Run Uvicorn directly on the main thread for optimal networking performance
+    import uvicorn
+
+    uvicorn.run(
+        "api.main:app",
+        host="0.0.0.0",
+        port=port,
+        log_level="info",
+        access_log=True,
+    )
 
 
 if __name__ == "__main__":
