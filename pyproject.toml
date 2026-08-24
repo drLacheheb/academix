@@ -58,11 +58,24 @@ extraPaths = [
     "packages/agents/researchgate-sourcing/src",
     "packages/agents/telegram-bot/src",
     "packages/agents/translation/src",
+    "tests",
 ]
 reportUnusedImport = "error"
 reportUnusedVariable = "error"
 reportUnusedFunction = "warning"
 reportUnusedClass = "warning"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
 
 [tool.ruff.format]
 quote-style = "double"

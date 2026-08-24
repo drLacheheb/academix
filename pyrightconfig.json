@@ -33,7 +33,8 @@
     "packages/agents/researchgate-discovery/src",
     "packages/agents/researchgate-sourcing/src",
     "packages/agents/telegram-bot/src",
-    "packages/agents/translation/src"
+    "packages/agents/translation/src",
+    "tests"
   ],
   "reportUnusedImport": "error",
   "reportUnusedVariable": "error",
