@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM python:3.12-slim AS base
 WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
