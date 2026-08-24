@@ -1,7 +1,12 @@
+import json
+
 from abg_sourcing.scraper import AbgSourcing
 from academictransfer_sourcing.scraper import AcademicTransferSourcing
 from core.infrastructure.http.http_client import HttpClient
 from euraxess_sourcing.scraper import EuraxessSourcing
+from eurosciencejobs_sourcing.scraper import EuroScienceJobsSourcing
+from naturecareers_sourcing.scraper import NatureCareersSourcing
+from researchgate_sourcing.scraper import ResearchGateSourcing
 
 
 def test_abg_html_parsing():
@@ -113,3 +118,96 @@ def test_academictransfer_html_parsing():
     assert "TU Delft" in detail.job_details
     assert "Delft, NL" in detail.job_details
     assert "artificial intelligence" in detail.job_details
+
+
+def test_naturecareers_html_parsing():
+    data = {
+        "@type": "JobPosting",
+        "title": "Principal Investigator in Cancer Biology",
+        "hiringOrganization": {"name": "Francis Crick Institute"},
+        "jobLocation": {"address": {"addressLocality": "London", "addressCountry": "UK"}},
+        "validThrough": "2026-11-30",
+        "description": (
+            "<h2>About the Role</h2>"
+            "<p>Leading research in oncogenic signaling and cellular senescence.</p>"
+        ),
+    }
+    html = f"""
+    <html>
+        <head>
+            <script type="application/ld+json">
+            {json.dumps(data)}
+            </script>
+        </head>
+        <body></body>
+    </html>
+    """
+    http = HttpClient()
+    scraper = NatureCareersSourcing(http)
+    detail = scraper._parse_detail_page(html, "https://www.nature.com/naturecareers/job/123/")
+
+    assert detail.job_details is not None
+    assert "Francis Crick Institute" in detail.job_details
+    assert "London, UK" in detail.job_details
+    assert "oncogenic signaling" in detail.job_details
+
+
+def test_researchgate_html_parsing():
+    data = {
+        "@type": "JobPosting",
+        "title": "Senior Postdoctoral Fellow in Neuroscience",
+        "hiringOrganization": {"name": "Harvard University"},
+        "jobLocation": {"address": {"addressLocality": "Cambridge", "addressCountry": "US"}},
+        "validThrough": "2026-09-30",
+        "description": (
+            "<h2>Project Description</h2>"
+            "<p>Investigating neural circuits of decision making in primates.</p>"
+        ),
+    }
+    html = f"""
+    <html>
+        <head>
+            <script type="application/ld+json">
+            {json.dumps(data)}
+            </script>
+        </head>
+        <body></body>
+    </html>
+    """
+    http = HttpClient()
+    scraper = ResearchGateSourcing(http)
+    detail = scraper._parse_detail_page(html, "https://www.researchgate.net/job/123_Neuro/")
+
+    assert detail.job_details is not None
+    assert "Harvard University" in detail.job_details
+    assert "Cambridge, US" in detail.job_details
+    assert "neural circuits" in detail.job_details
+
+
+def test_eurosciencejobs_html_parsing():
+    html = """
+    <html>
+        <body>
+            <div class="col-xl-9">
+                <h1>Policy Officer - Climate Science</h1>
+                <h2>Policy Officer - Climate Science</h2>
+                <h2>European Science Foundation</h2>
+                <h2>Strasbourg, France</h2>
+                <div class="row">
+                    <h2>Description</h2>
+                    <p>Supporting environmental research synthesis and scientific communication.</p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+    http = HttpClient()
+    scraper = EuroScienceJobsSourcing(http)
+    detail = scraper._parse_detail_page(
+        html, "https://www.eurosciencejobs.com/job_display/123/Policy"
+    )
+
+    assert detail.job_details is not None
+    assert "European Science Foundation" in detail.job_details
+    assert "Strasbourg, France" in detail.job_details
+    assert "environmental research synthesis" in detail.job_details
