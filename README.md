@@ -1,6 +1,6 @@
 # Academic Job Sourcing & Refinement
 
-Automated academic job sourcing, metadata refinement, and CV matching pipeline. Uses local, high-performance models (SentenceTransformers, NLLB-200, and Ollama with instructor) to translate, detect languages, extract structured skills, prerequisite degrees, and match candidates against positions.
+Automated academic job sourcing, metadata refinement, and candidate CV matching pipeline. Uses local, high-performance models (Nomic Embeddings, NLLB-200 with CTranslate2 and Lingua, and Ollama with instructor) to translate, extract structured research profiles, prerequisite degrees, and match candidates against academic opportunities.
 
 ---
 
@@ -14,23 +14,26 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
 │   └── agents/                        # Isolated worker packages running in parallel
 │       ├── euraxess-discovery/            # EURAXESS search pagination discovery agent
 │       ├── euraxess-sourcing/             # EURAXESS page details fetcher agent
-│       ├── academictransfer-discovery/    # AcademicTransfer search pagination discovery agent
+│       ├── academictransfer-discovery/    # AcademicTransfer sitemap & search discovery agent
 │       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher agent
 │       ├── abg-discovery/                 # ABG L'Intelli'agence discovery agent
 │       ├── abg-sourcing/                  # ABG L'Intelli'agence page details fetcher agent
-│       ├── naturecareers-discovery/       # Nature Careers search pagination discovery agent
+│       ├── naturecareers-discovery/       # Nature Careers XML sitemap discovery agent
 │       ├── naturecareers-sourcing/        # Nature Careers page details fetcher agent
 │       ├── researchgate-discovery/        # ResearchGate search pagination discovery agent
 │       ├── researchgate-sourcing/         # ResearchGate page details fetcher agent
-│       ├── eurosciencejobs-discovery/     # EuroScienceJobs search pagination discovery agent
+│       ├── eurosciencejobs-discovery/     # EuroScienceJobs sitemap & search discovery agent
 │       ├── eurosciencejobs-sourcing/      # EuroScienceJobs page details fetcher agent
-│       ├── lang-detection/                # Standalone local language detection agent
-│       ├── translation/                   # Standalone local NLLB-200 translation agent
+│       ├── translation/                   # Unified paragraph-aware detection & NLLB-200 translation agent
 │       ├── refinement/                    # Metadata refinement worker (Ollama + instructor)
 │       ├── embedding-worker/              # Dedicated nomic vector embedding generation agent
 │       ├── matching/                      # Candidate CV matching & LLM explanation agent
 │       ├── cv-parsing/                    # Background CV ingest and layout parsing agent
+│       ├── cleanup/                       # Expired job pruning maintenance agent
 │       └── telegram-bot/                  # Telegram Bot candidate interaction interface agent
+├── tests/                             # Automated test suite (unit, integration, E2E)
+│   ├── unit/                              # Core domain, repositories, NLP, and scraper tests
+│   └── integration/                       # FastAPI API lifecycle and full E2E pipeline tests
 ├── pyproject.toml                     # Root workspace configuration
 ├── uv.lock                           # Workspace dependency lockfile
 ├── .env.example                       # Settings template file
@@ -55,7 +58,7 @@ Automated academic job sourcing, metadata refinement, and CV matching pipeline. 
     *   **LLM Service (Ollama)**: Centralized Ollama container running `gemma4` (or any model configured via `LLM_MODEL`).
     *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
     *   **Matching Agent**: Uses `nomic-embed-text-v1.5` for vector similarities and delegates structured reasoning to Ollama via `InstructorLlmClient`.
-*   **Database**: SQLite (default local file `academix.db` mounted in containers) or PostgreSQL.
+*   **Database**: SQLite (default local file `jobs.db` mounted in containers) or PostgreSQL.
 
 ---
 
@@ -113,25 +116,25 @@ uv run --package api fastapi run packages/api/src/api/main.py --port 8000
 
 | Agent Package | Main Module | Agent Role |
 | :--- | :--- | :--- |
-| `euraxess-discovery` | `euraxess_discovery.main` | Pagination crawl discovery (EURAXESS) |
+| `euraxess-discovery` | `euraxess_discovery.main` | Full-scroll crawl discovery (EURAXESS) |
 | `euraxess-sourcing` | `euraxess_sourcing.main` | Page details fetcher (EURAXESS) |
-| `academictransfer-discovery` | `academictransfer_discovery.main` | Pagination crawl discovery (AcademicTransfer) |
+| `academictransfer-discovery` | `academictransfer_discovery.main` | XML sitemap & crawl discovery (AcademicTransfer) |
 | `academictransfer-sourcing` | `academictransfer_sourcing.main` | Page details fetcher (AcademicTransfer) |
-| `abg-discovery` | `abg_discovery.main` | Pagination crawl discovery (ABG) |
+| `abg-discovery` | `abg_discovery.main` | Full-scroll crawl discovery (ABG) |
 | `abg-sourcing` | `abg_sourcing.main` | Page details fetcher (ABG) |
-| `naturecareers-discovery` | `naturecareers_discovery.main` | Pagination crawl discovery (Nature Careers) |
+| `naturecareers-discovery` | `naturecareers_discovery.main` | XML sitemap discovery (Nature Careers) |
 | `naturecareers-sourcing` | `naturecareers_sourcing.main` | Page details fetcher (Nature Careers) |
-| `researchgate-discovery` | `researchgate_discovery.main` | Pagination crawl discovery (ResearchGate) |
+| `researchgate-discovery` | `researchgate_discovery.main` | Full-scroll crawl discovery (ResearchGate) |
 | `researchgate-sourcing` | `researchgate_sourcing.main` | Page details fetcher (ResearchGate) |
-| `eurosciencejobs-discovery` | `eurosciencejobs_discovery.main` | Pagination crawl discovery (EuroScienceJobs) |
+| `eurosciencejobs-discovery` | `eurosciencejobs_discovery.main` | XML sitemap & category discovery (EuroScienceJobs) |
 | `eurosciencejobs-sourcing` | `eurosciencejobs_sourcing.main` | Page details fetcher (EuroScienceJobs) |
-| `lang-detection` | `agent_lang_detection.main` | Language Detection (All Sources) |
-| `translation` | `agent_translation.main` | Local NLLB-200 Translation (All Sources) |
-| `refinement` | `agent_refinement.main` | Skills & Metadata Refinement Worker |
-| `embedding-worker` | `agent_embedding.main` | Local Nomic Vector Embeddings |
-| `matching` | `agent_matching.main` | Candidate CV Matcher & Explainer |
-| `cv-parsing` | `agent_cv_parsing.main` | Background CV Ingest and Layout Parsing |
-| `telegram-bot` | `telegram_bot.main` | Telegram Bot User Interface Agent |
+| `translation` | `agent_translation.main` | Paragraph-aware detection & NLLB-200 translation |
+| `refinement` | `agent_refinement.main` | Skills & metadata refinement worker (Instructor + Ollama) |
+| `embedding-worker` | `agent_embedding.main` | Local Nomic vector embeddings generator |
+| `matching` | `agent_matching.main` | Candidate CV matcher & LLM reasoning explainer |
+| `cv-parsing` | `agent_cv_parsing.main` | Background CV ingest and layout parsing |
+| `cleanup` | `agent_cleanup.main` | Expired listings cleanup worker |
+| `telegram-bot` | `telegram_bot.main` | Telegram Bot user interface agent |
 
 Run any agent using:
 ```bash
@@ -143,7 +146,7 @@ uv run --package <Agent Package> python -m <Main Module>
 ## 5. Core API & Pipeline Workflow
 
 ### A. Ingest a Candidate CV
-Upload a candidate's CV (PDF format). The API saves the file and queues it for asynchronous parsing, language detection, translation, and structured field extraction:
+Upload a candidate's CV (PDF format). The API saves the file and queues it for asynchronous parsing, translation, structured refinement, and vector embedding:
 ```bash
 curl -X POST http://localhost:8000/profiles/upload-cv \
   -H "Authorization: Bearer dev_secret_key" \
@@ -153,7 +156,7 @@ curl -X POST http://localhost:8000/profiles/upload-cv \
 ```
 
 ### B. Retrieve Matched Jobs & Explanations
-Retrieve a list of qualified academic positions for a candidate (ranked by vector similarity with LLM-generated explanations):
+Retrieve qualified academic positions for a candidate (evaluated with hierarchical degree filtering, semantic domain thresholds, and asymmetric max-dominance pooling):
 ```bash
 curl -X GET http://localhost:8000/profiles/1/matches?limit=10 \
   -H "Authorization: Bearer dev_secret_key"
@@ -169,11 +172,13 @@ Key `.env` options:
 |---|---|---|
 | `API_URL` | `http://localhost:8000` | Target URL of the FastAPI gateway |
 | `API_SECRET_KEY` | *None* | Shared bearer credential and API validation key |
-| `DATABASE_URL` | `sqlite:///academix.db` | SQL database connection string |
+| `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
 | `LLM_SERVICE_URL` | `http://ollama:11434/v1` | OpenAI-compatible endpoint for Ollama service |
-| `LLM_MODEL` | `hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M` | Target model name |
+| `LLM_MODEL` | `hf.co/unsloth/gemma-4-E2B-it-GGUF:gemma-4-E2B-it-Q3_K_M.gguf` | Target LLM model |
 | `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model |
-| `MATCH_THRESHOLD` | `0.7` | Minimum score threshold for candidate-job match |
+| `MATCH_THRESHOLD` | `0.75` | Minimum composite score threshold for candidate-job match |
+| `DEGREE_SIMILARITY_THRESHOLD` | `0.71` | Minimum cosine similarity threshold for degree field match |
+| `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Quantized CTranslate2 translation model |
 | `STORAGE_PROVIDER` | `local` | Storage backend: `local` filesystem or `s3` |
 
 ---
@@ -198,12 +203,11 @@ graph TD
         DB[(Database SQLite/PostgreSQL)]
     end
 
-    subgraph Core Domain Use Cases & Infrastructure
-        ExtractCV[ExtractCvUseCase]
-        RefineJob[RefineJobUseCase]
-        ExplainMatch[ExplainMatchUseCase]
-        InstructorClient[InstructorLlmClient Adapter]
-        Ollama[Ollama Container Service /v1]
+    subgraph Processing Pipeline
+        Trans["translation Agent<br/>(Lingua + CTranslate2 NLLB-200)"]
+        Refine["refinement Agent<br/>(Instructor + Ollama)"]
+        Embed["embedding-worker<br/>(nomic-embed-text-v1.5)"]
+        Match["matching Agent<br/>(MatchScorer + ExplainMatchUseCase)"]
     end
 
     Sources --> Disc
@@ -214,32 +218,45 @@ graph TD
     TG -->|POST /profiles/upload-cv| API
     CV -->|Claim & parse PDF| API
 
-    ExtractCV --> InstructorClient
-    RefineJob --> InstructorClient
-    ExplainMatch --> InstructorClient
-    InstructorClient -->|OpenAI API /v1| Ollama
+    API -->|Claim translate| Trans
+    Trans -->|Submit English| API
+
+    API -->|Claim refine| Refine
+    Refine -->|Submit structured metadata| API
+
+    API -->|Claim embed| Embed
+    Embed -->|Submit vector embeddings| API
+
+    API -->|Claim match| Match
+    Match -->|Save high-score matches & explanations| API
 
     API <-->|SQLAlchemy ORM| DB
 ```
 
 ---
 
-## 8. Code Quality & Verification
+## 8. Code Quality & Automated Testing
 
-Ensure all linting and static type checks pass cleanly before committing code:
+Ensure all tests, linting, and static type checks pass cleanly:
 
-### A. Code Formatting & Linting (Ruff)
+### A. Run Automated Test Suite (Pytest)
+Run all 53 unit, integration, and E2E pipeline tests:
+```bash
+uv run pytest
+```
+
+### B. Code Formatting & Linting (Ruff)
 ```bash
 uv run ruff check .
 uv run ruff format .
 ```
 
-### B. Static Type Checking (Pyright)
+### C. Static Type Checking (Pyright)
 ```bash
 uv run pyright .
 ```
 
-### C. Database Schema Migrations (Alembic)
+### D. Database Schema Migrations (Alembic)
 ```bash
 uv run --package api alembic -c packages/api/alembic.ini revision --autogenerate -m "describe_your_change"
 ```
