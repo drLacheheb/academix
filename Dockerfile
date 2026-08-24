@@ -26,6 +26,7 @@ COPY packages/agents/cv-parsing/pyproject.toml packages/agents/cv-parsing/
 COPY packages/agents/matching/pyproject.toml packages/agents/matching/
 COPY packages/agents/embedding-worker/pyproject.toml packages/agents/embedding-worker/
 COPY packages/agents/telegram-bot/pyproject.toml packages/agents/telegram-bot/
+COPY packages/agents/cleanup/pyproject.toml packages/agents/cleanup/
 
 RUN echo 'find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
     find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + && \
@@ -39,7 +40,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --package abg-discovery --package abg-sourcing \
     --package naturecareers-discovery --package naturecareers-sourcing \
     --package researchgate-discovery --package researchgate-sourcing \
-    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing && \
+    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing \
+    --package agent-cleanup && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-refinement
@@ -82,8 +84,9 @@ RUN uv sync --frozen --no-dev --package api \
     --package abg-discovery --package abg-sourcing \
     --package naturecareers-discovery --package naturecareers-sourcing \
     --package researchgate-discovery --package researchgate-sourcing \
-    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing
-CMD ["uv", "run", "--package", "api", "fastapi", "run", "packages/api/src/api/main.py", "--host", "0.0.0.0", "--port", "8000"]
+    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing \
+    --package agent-cleanup
+CMD ["sh", "-c", "uv run --package api fastapi run packages/api/src/api/main.py --host 0.0.0.0 --port ${PORT:-8000}"]
 
 FROM academix-gateway-api AS slim
 
@@ -216,4 +219,8 @@ CMD ["uv", "run", "python", "-m", "core.infrastructure.db.run_migrations"]
 
 FROM slim AS academix-cleanup-agent
 CMD ["uv", "run", "--package", "agent-cleanup", "python", "-m", "agent_cleanup.main"]
+
+# Default Final Target for Railway and Standalone Container Deployments
+FROM academix-gateway-api AS default
+
 
