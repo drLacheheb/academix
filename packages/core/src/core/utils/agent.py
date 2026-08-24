@@ -22,11 +22,15 @@ def handle_shutdown(signum, frame):
     shutdown_event.set()
 
 
-# Register standard OS signals for clean exit
-signal.signal(signal.SIGINT, handle_shutdown)
-signal.signal(signal.SIGTERM, handle_shutdown)
-if hasattr(signal, "SIGBREAK"):  # Windows support
-    signal.signal(signal.SIGBREAK, handle_shutdown)
+# Register standard OS signals for clean exit if running on main thread
+try:
+    if threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGINT, handle_shutdown)
+        signal.signal(signal.SIGTERM, handle_shutdown)
+        if hasattr(signal, "SIGBREAK"):  # Windows support
+            signal.signal(signal.SIGBREAK, handle_shutdown)
+except (ValueError, AttributeError):
+    pass
 
 
 def run_agent_loop(cycle_fn: Callable[[], bool | None], default_interval: float = 10.0):

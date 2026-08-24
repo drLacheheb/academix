@@ -97,5 +97,5 @@ async def delete_expired_jobs(
     request: Request,
     repo=Depends(get_repo),
 ):
-    deleted_count = repo.jobs.delete_expired_jobs()
+    deleted_count = repo.delete_expired_jobs()
     return {"deleted_count": deleted_count, "status": "success"}
