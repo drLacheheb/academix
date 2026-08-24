@@ -34,8 +34,7 @@ RUN echo 'find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
     find /app/.venv -name "*.pyc" -delete' > /app/prune.sh && chmod +x /app/prune.sh
 
 FROM builder-base AS builder-api
-RUN --mount=type=cache,id=uv-cache-api,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package api \
+RUN uv sync --frozen --no-install-workspace --no-dev --package api \
     --package academictransfer-discovery --package academictransfer-sourcing \
     --package euraxess-discovery --package euraxess-sourcing \
     --package abg-discovery --package abg-sourcing \
@@ -46,33 +45,27 @@ RUN --mount=type=cache,id=uv-cache-api,target=/root/.cache/uv \
     sh /app/prune.sh
 
 FROM builder-base AS builder-refinement
-RUN --mount=type=cache,id=uv-cache-refinement,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package refinement && \
+RUN uv sync --frozen --no-install-workspace --no-dev --package refinement && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-translation
-RUN --mount=type=cache,id=uv-cache-translation,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package translation && \
+RUN uv sync --frozen --no-install-workspace --no-dev --package translation && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-matching
-RUN --mount=type=cache,id=uv-cache-matching,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package matching && \
+RUN uv sync --frozen --no-install-workspace --no-dev --package matching && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-embedding
-RUN --mount=type=cache,id=uv-cache-embedding,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package embedding-worker && \
+RUN uv sync --frozen --no-install-workspace --no-dev --package embedding-worker && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-cv-parsing
-RUN --mount=type=cache,id=uv-cache-cv-parsing,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --no-cache --package cv-parsing && \
+RUN uv sync --frozen --no-install-workspace --no-dev --no-cache --package cv-parsing && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-telegram-bot
-RUN --mount=type=cache,id=uv-cache-telegram-bot,target=/root/.cache/uv \
-    uv sync --frozen --no-install-workspace --no-dev --package telegram-bot && \
+RUN uv sync --frozen --no-install-workspace --no-dev --package telegram-bot && \
     sh /app/prune.sh
 
 # API Gateway Stage
