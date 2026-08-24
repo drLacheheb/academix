@@ -1,5 +1,6 @@
 import html
 import io
+import json
 
 from core.infrastructure.logging.logger import get_logger
 from core.utils.formatters import format_profile_card
@@ -164,12 +165,24 @@ async def matches_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             employer = html.escape(m.get("employer") or "Academic Institution")
             location = html.escape(m.get("location") or "")
             deadline = html.escape(m.get("deadline") or "Not specified")
-            degree_fields = m.get("job_degree_fields") or []
             explanation = html.escape(m.get("explanation") or "Matching criteria satisfied.")
+            raw_degrees = m.get("job_degree_fields") or m.get("degree_fields") or []
+            if isinstance(raw_degrees, str):
+                try:
+                    parsed = json.loads(raw_degrees)
+                    degree_fields = parsed if isinstance(parsed, list) else [raw_degrees]
+                except Exception:
+                    degree_fields = [raw_degrees]
+            elif isinstance(raw_degrees, list):
+                degree_fields = raw_degrees
+            else:
+                degree_fields = []
 
             location_str = f" ({location})" if location else ""
             degree_str = (
-                f"\nDegree: {html.escape(', '.join(degree_fields))}" if degree_fields else ""
+                f"\nDegree: {html.escape(', '.join(str(d) for d in degree_fields))}"
+                if degree_fields
+                else ""
             )
 
             msg_lines.append(

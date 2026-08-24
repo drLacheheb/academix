@@ -61,8 +61,25 @@ def format_match_card(m: dict) -> str:
     deadline = html.escape(m.get("deadline") or "Not specified")
     explanation = html.escape(m.get("explanation") or "Matching requirements satisfied.")
     job_url = m.get("job_url", "")
-    degree_fields = m.get("degree_fields") or ""
-    degree_str = f"\nDegree: {html.escape(degree_fields)}" if degree_fields else ""
+    raw_degrees = m.get("job_degree_fields") or m.get("degree_fields") or []
+    if isinstance(raw_degrees, str):
+        try:
+            import json
+
+            parsed = json.loads(raw_degrees)
+            degree_fields = parsed if isinstance(parsed, list) else [raw_degrees]
+        except Exception:
+            degree_fields = [raw_degrees]
+    elif isinstance(raw_degrees, list):
+        degree_fields = raw_degrees
+    else:
+        degree_fields = []
+
+    degree_str = (
+        f"\nDegree: {html.escape(', '.join(str(d) for d in degree_fields))}"
+        if degree_fields
+        else ""
+    )
     location_str = f" ({location})" if location else ""
 
     return (
