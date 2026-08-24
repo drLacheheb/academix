@@ -48,5 +48,5 @@ Academix is an open-source, self-hosted academic recruitment and candidate disco
 ## Links
 - Website: https://drLacheheb.github.io/academix/
 - GitHub Repository: https://github.com/drLacheheb/academix
-- Telegram Bot: https://t.me/academix_bot
+- Telegram Bot: https://t.me/AcadamixBot
 - License: Business Source License 1.1 (BSL 1.1)
