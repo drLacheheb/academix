@@ -1,65 +1,12 @@
-import copy
 import json
 import re
 from datetime import datetime
 from typing import Any
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.scrapers.base import ConcreteSourcing
-
-
-def _clean_html_to_markdown(raw_html_or_tag: Tag | str) -> str:
-    if isinstance(raw_html_or_tag, str):
-        soup = BeautifulSoup(raw_html_or_tag, "html.parser")
-        node = soup
-    else:
-        node = copy.copy(raw_html_or_tag)
-
-    for br in node.find_all("br"):
-        br.replace_with("\n")
-    for bad in node.find_all(["script", "style", "svg", "button", "iframe", "form"]):
-        bad.decompose()
-
-    lines: list[str] = []
-    for child in node.children:
-        if isinstance(child, str):
-            t = child.strip()
-            if t:
-                lines.append(t)
-        elif isinstance(child, Tag):
-            c_name = child.name.lower()
-            if c_name in ["h1", "h2", "h3", "h4", "h5"]:
-                lvl = int(c_name[1]) + 1
-                htext = child.get_text(strip=True)
-                if htext:
-                    lines.append(f"\n{'#' * lvl} {htext}\n")
-            elif c_name in ["ul", "ol"]:
-                for li in child.find_all("li", recursive=False):
-                    litext = li.get_text(separator=" ", strip=True)
-                    if litext:
-                        lines.append(f"- {litext}")
-                lines.append("")
-            elif c_name in ["p", "div", "section"]:
-                if child.find(["p", "ul", "ol", "h1", "h2", "h3", "h4", "table"]):
-                    lines.append(_clean_html_to_markdown(child))
-                else:
-                    ptext = child.get_text(separator="\n", strip=True)
-                    if ptext:
-                        lines.append(f"{ptext}\n")
-            elif c_name == "table":
-                rows = child.find_all("tr")
-                for r in rows:
-                    cols = [c.get_text(separator=" ", strip=True) for c in r.find_all(["td", "th"])]
-                    if cols:
-                        lines.append("| " + " | ".join(cols) + " |")
-                lines.append("")
-            elif c_name == "a":
-                href = child.get("href", "")
-                text = child.get_text(strip=True) or href
-                if href:
-                    lines.append(f"[{text}]({href})")
-    return "\n".join(line for line in lines if line)
+from core.utils.html_cleaner import html_to_markdown, normalize_markdown_separators
 
 
 class NatureCareersSourcing(ConcreteSourcing):
@@ -186,18 +133,17 @@ class NatureCareersSourcing(ConcreteSourcing):
         # 2. Main Job Description
         raw_desc = job_posting.get("description")
         if raw_desc:
-            desc_md = _clean_html_to_markdown(str(raw_desc))
+            desc_md = html_to_markdown(str(raw_desc))
         else:
             panel = soup.find(
                 "div", class_=re.compile(r"job-details|mds-tabs__panel__content", re.I)
             )
-            desc_md = _clean_html_to_markdown(panel or soup)
+            desc_md = html_to_markdown(panel or soup)
 
         if desc_md:
             doc.append("## Description\n")
             doc.append(desc_md)
             doc.append("")
 
-        cleaned_text = "\n".join(doc)
-        cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text).strip()
+        cleaned_text = normalize_markdown_separators("\n".join(doc))
         return JobDetailUpdate(url=url, job_details=cleaned_text)

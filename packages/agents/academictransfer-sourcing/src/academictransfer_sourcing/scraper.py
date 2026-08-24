@@ -2,158 +2,10 @@ import json
 import re
 from typing import Any
 
-from bs4 import BeautifulSoup
-from bs4.element import NavigableString, PageElement, Tag
+from bs4 import BeautifulSoup, Tag
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.scrapers.base import ConcreteSourcing
-
-BLOCK_TAGS = {
-    "p",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "ul",
-    "ol",
-    "table",
-    "blockquote",
-    "hr",
-    "section",
-    "article",
-}
-
-
-def _inline_to_markdown(node: PageElement) -> str:
-    if isinstance(node, NavigableString):
-        text = (
-            str(node)
-            .replace("\u200d", "")
-            .replace("\u200b", "")
-            .replace("\ufeff", "")
-            .replace("\xa0", " ")
-        )
-        return text
-
-    if not isinstance(node, Tag):
-        return ""
-
-    tag_name = node.name.lower()
-    if tag_name == "br":
-        return "\n"
-    if tag_name in ["script", "style", "svg", "button", "iframe", "form"]:
-        return ""
-
-    inner_text = "".join(_inline_to_markdown(c) for c in node.children)
-
-    if tag_name in ["strong", "b"]:
-        s = inner_text.strip()
-        if not s:
-            return ""
-        prefix = " " if inner_text.startswith(" ") else ""
-        suffix = " " if inner_text.endswith(" ") else ""
-        return f"{prefix}**{s}**{suffix}"
-    elif tag_name in ["em", "i"]:
-        s = inner_text.strip()
-        if not s:
-            return ""
-        prefix = " " if inner_text.startswith(" ") else ""
-        suffix = " " if inner_text.endswith(" ") else ""
-        return f"{prefix}*{s}*{suffix}"
-    elif tag_name == "a":
-        href = str(node.get("href") or "").strip()
-        s = inner_text.strip()
-        if not s:
-            return ""
-        s = re.sub(r"^\[+|\]+$", "", s).strip()
-        if href and not href.startswith("javascript"):
-            return f"[{s}]({href})"
-        return s
-    elif tag_name in ["u", "span"]:
-        return inner_text
-    elif tag_name == "code":
-        s = inner_text.strip()
-        return f"`{s}`" if s else ""
-    else:
-        return inner_text
-
-
-def _element_to_markdown(node: Tag) -> str:
-    out: list[str] = []
-    inline_buffer: list[PageElement] = []
-
-    def flush_inline():
-        nonlocal inline_buffer
-        if inline_buffer:
-            p_text = "".join(_inline_to_markdown(n) for n in inline_buffer).strip()
-            lines = [re.sub(r"[ \t]+", " ", line).strip() for line in p_text.splitlines()]
-            p_clean = "\n".join(line for line in lines if line)
-            if p_clean:
-                out.append(p_clean)
-                out.append("")
-            inline_buffer = []
-
-    for child in node.children:
-        if isinstance(child, NavigableString):
-            inline_buffer.append(child)
-            continue
-
-        if not isinstance(child, Tag):
-            continue
-
-        name = child.name.lower()
-        if name in ["script", "style", "svg", "button", "iframe", "form"]:
-            continue
-
-        if name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-            flush_inline()
-            lvl = int(name[1])
-            htext = child.get_text(strip=True)
-            if htext:
-                out.append(f"\n{'#' * lvl} {htext}\n")
-        elif name in ["ul", "ol"]:
-            flush_inline()
-            for li in child.find_all("li", recursive=False):
-                li_md = "".join(_inline_to_markdown(c) for c in li.children).strip()
-                li_md = re.sub(r"[ \t]+", " ", li_md)
-                if li_md:
-                    out.append(f"- {li_md}")
-            out.append("")
-        elif name == "blockquote":
-            flush_inline()
-            b_md = "".join(_inline_to_markdown(c) for c in child.children).strip()
-            if b_md:
-                out.append(f"> {b_md}\n")
-        elif name == "table":
-            flush_inline()
-            for tr in child.find_all("tr"):
-                cols = [c.get_text(separator=" ", strip=True) for c in tr.find_all(["td", "th"])]
-                if cols:
-                    out.append("| " + " | ".join(cols) + " |")
-            out.append("")
-        elif name in ["p", "div", "section", "article"]:
-            if any(isinstance(c, Tag) and c.name.lower() in BLOCK_TAGS for c in child.children):
-                flush_inline()
-                out.append(_element_to_markdown(child))
-            else:
-                flush_inline()
-                p_text = "".join(_inline_to_markdown(c) for c in child.children).strip()
-                lines = [re.sub(r"[ \t]+", " ", line).strip() for line in p_text.splitlines()]
-                p_clean = "\n".join(line for line in lines if line)
-                if p_clean:
-                    out.append(p_clean)
-                    out.append("")
-        else:
-            inline_buffer.append(child)
-
-    flush_inline()
-
-    res = "\n".join(out)
-    res = re.sub(r"\*{2,}\s*\*{2,}", "", res)
-    res = re.sub(r"\*{4,}", "**", res)
-    res = re.sub(r"\n{3,}", "\n\n", res).strip()
-    return res
+from core.utils.html_cleaner import html_to_markdown, normalize_markdown_separators
 
 
 class AcademicTransferSourcing(ConcreteSourcing):
@@ -295,7 +147,7 @@ class AcademicTransferSourcing(ConcreteSourcing):
             content_div = sec.find("div", recursive=False) or sec.find("div")
             if content_div and isinstance(content_div, Tag):
                 doc.append(f"## {h2_title}\n")
-                doc.append(_element_to_markdown(content_div))
+                doc.append(html_to_markdown(content_div))
                 doc.append("")
                 sections_found = True
 
@@ -303,9 +155,8 @@ class AcademicTransferSourcing(ConcreteSourcing):
         if not sections_found and job_posting.get("description"):
             desc_soup = BeautifulSoup(str(job_posting["description"]), "html.parser")
             doc.append("## Description\n")
-            doc.append(_element_to_markdown(desc_soup))
+            doc.append(html_to_markdown(desc_soup))
             doc.append("")
 
-        cleaned_text = "\n".join(doc)
-        cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text).strip()
+        cleaned_text = normalize_markdown_separators("\n".join(doc))
         return JobDetailUpdate(url=url, job_details=cleaned_text)

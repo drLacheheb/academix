@@ -4,44 +4,7 @@ import re
 from bs4 import BeautifulSoup, Tag
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.scrapers.base import ConcreteSourcing
-
-
-def _clean_text_content(tag: Tag) -> str:
-    node = copy.copy(tag)
-    for br in node.find_all("br"):
-        br.replace_with("\n")
-    for bad in node.find_all(
-        ["script", "style", "svg", "button", "iframe", "form", "h1", "h2", "h3", "h4", "h5"]
-    ):
-        bad.decompose()
-
-    lines: list[str] = []
-    for child in node.children:
-        if isinstance(child, str):
-            t = child.strip()
-            if t:
-                lines.append(t)
-        elif isinstance(child, Tag):
-            c_name = child.name.lower()
-            if c_name in ["ul", "ol"]:
-                for li in child.find_all("li", recursive=False):
-                    litext = li.get_text(separator=" ", strip=True)
-                    if litext:
-                        lines.append(f"- {litext}")
-                lines.append("")
-            elif c_name in ["p", "div"]:
-                if child.find(["p", "ul", "ol"]):
-                    lines.append(_clean_text_content(child))
-                else:
-                    ptext = child.get_text(separator="\n", strip=True)
-                    if ptext:
-                        lines.append(f"{ptext}\n")
-            elif c_name == "a":
-                href = child.get("href", "")
-                text = child.get_text(strip=True) or href
-                if href:
-                    lines.append(f"[{text}]({href})")
-    return "\n".join(line for line in lines if line)
+from core.utils.html_cleaner import html_to_markdown, normalize_markdown_separators
 
 
 class AbgSourcing(ConcreteSourcing):
@@ -123,18 +86,30 @@ class AbgSourcing(ConcreteSourcing):
                         else ([raw_cls] if isinstance(raw_cls, str) else [])
                     )
                     if "text" in cls_list:
-                        txt = _clean_text_content(child)
+                        txt = html_to_markdown(child)
                         if txt:
                             box_items.append((None, txt))
                     elif "item" in cls_list:
-                        h3 = child.find("h3")
-                        h3_title = h3.get_text(strip=True) if h3 and isinstance(h3, Tag) else None
-                        item_text_div = child.find("div", class_="text") or child
-                        txt = _clean_text_content(item_text_div)
+                        head_elem = child.find(["h3", "h4", "label", "strong"])
+                        h3_title = (
+                            head_elem.get_text(strip=True).rstrip(":")
+                            if head_elem and isinstance(head_elem, Tag)
+                            else None
+                        )
+                        item_text_div = child.find("div", class_="text")
+                        if not item_text_div:
+                            child_copy = copy.copy(child)
+                            if head_elem:
+                                h_in_copy = child_copy.find(["h3", "h4", "label", "strong"])
+                                if h_in_copy and isinstance(h_in_copy, Tag):
+                                    h_in_copy.decompose()
+                            txt = html_to_markdown(child_copy)
+                        else:
+                            txt = html_to_markdown(item_text_div)
                         if txt:
                             box_items.append((h3_title, txt))
                     elif child.name in ["ul", "ol", "p", "div"]:
-                        txt = _clean_text_content(child)
+                        txt = html_to_markdown(child)
                         if txt:
                             box_items.append((None, txt))
 
@@ -163,14 +138,15 @@ class AbgSourcing(ConcreteSourcing):
                         start_date = f"{y}-{mth}-{d}"
                     else:
                         start_date = text.splitlines()[0].strip()
-                elif "profil du candidat" in h2_lower:
-                    lines = [line.strip() for line in text.splitlines() if line.strip()]
-                    if lines:
-                        last_line = lines[-1]
-                        m = re.search(r"(\d{2})/(\d{2})/(\d{4})", last_line)
-                        if m:
-                            d, mth, y = m.groups()
-                            deadline = f"{y}-{mth}-{d}"
+                elif (
+                    "date limite" in h3_lower
+                    or "candidature" in h3_lower
+                    or "profil du candidat" in h2_lower
+                ):
+                    m = re.search(r"(\d{2})/(\d{2})/(\d{4})", text)
+                    if m and not deadline:
+                        d, mth, y = m.groups()
+                        deadline = f"{y}-{mth}-{d}"
 
         employer = employer or "Unknown Employer"
         location = location or "France"
@@ -201,16 +177,12 @@ class AbgSourcing(ConcreteSourcing):
             doc.append(f"## {h2_title}\n")
             for h3_title, text in items:
                 if h3_title:
-                    doc.append(f"### {h3_title}\n")
-                doc.append(text)
+                    if "\n" not in text and len(text) < 100:
+                        doc.append(f"- **{h3_title}:** {text}")
+                    else:
+                        doc.append(f"### {h3_title}\n\n{text}")
+                else:
+                    doc.append(text)
                 doc.append("")
-
-        cleaned_text = "\n".join(doc)
-        cleaned_text = re.sub(
-            r"(?:^[ \t]*[-=_*~]{3,}[ \t]*(?:\r?\n)?)+",
-            "\n---\n\n",
-            cleaned_text,
-            flags=re.MULTILINE,
-        )
-        cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text).strip()
+        cleaned_text = normalize_markdown_separators("\n".join(doc))
         return JobDetailUpdate(url=url, job_details=cleaned_text)

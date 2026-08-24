@@ -1,74 +1,10 @@
 import copy
 import re
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from core.domain.models.schemas import JobDetailUpdate
 from core.infrastructure.scrapers.base import ConcreteSourcing
-
-
-def _clean_esj_node(tag: Tag) -> str:
-    node = copy.copy(tag)
-    for br in node.find_all("br"):
-        br.replace_with("\n")
-
-    for bad in node.find_all(["script", "style", "svg", "button", "iframe", "form"]):
-        bad.decompose()
-
-    lines: list[str] = []
-    for child in node.children:
-        if isinstance(child, str):
-            t = child.strip()
-            if t and not any(
-                b in t.lower()
-                for b in [
-                    "job description start",
-                    "job description end",
-                    "share this job",
-                    "don't forget to mention eurosciencejobs",
-                ]
-            ):
-                lines.append(t)
-        elif isinstance(child, Tag):
-            c_name = child.name.lower()
-            if c_name in ["h1", "h2", "h3", "h4", "h5"]:
-                lvl = int(c_name[1]) + 1
-                htext = child.get_text(strip=True)
-                if htext and not any(
-                    b in htext.lower()
-                    for b in ["share this job", "more job searches", "never miss a job"]
-                ):
-                    lines.append(f"\n{'#' * lvl} {htext}\n")
-            elif c_name in ["ul", "ol"]:
-                for li in child.find_all("li", recursive=False):
-                    litext = li.get_text(separator=" ", strip=True)
-                    if litext:
-                        lines.append(f"- {litext}")
-                lines.append("")
-            elif c_name in ["p", "div"]:
-                if child.find(["p", "ul", "ol", "h1", "h2", "h3", "h4"]):
-                    lines.append(_clean_esj_node(child))
-                else:
-                    ptext = child.get_text(separator="\n", strip=True)
-                    if ptext and not any(
-                        b in ptext.lower()
-                        for b in [
-                            "job description start",
-                            "job description end",
-                            "share this job",
-                            "don't forget to mention eurosciencejobs",
-                        ]
-                    ):
-                        lines.append(f"{ptext}\n")
-            elif c_name == "a":
-                href = str(child.get("href") or "").strip()
-                text = str(child.get_text(strip=True) or href)
-                if (
-                    href
-                    and not href.startswith("javascript")
-                    and not any(b in text.lower() for b in ["share", "apply now"])
-                ):
-                    lines.append(f"[{text}]({href})")
-    return "\n".join(line for line in lines if line)
+from core.utils.html_cleaner import html_to_markdown, normalize_markdown_separators
 
 
 class EuroScienceJobsSourcing(ConcreteSourcing):
@@ -144,7 +80,16 @@ class EuroScienceJobsSourcing(ConcreteSourcing):
             else:
                 bad_row.decompose()
 
-        body_md = _clean_esj_node(job_row_copy)
+        unwanted_pattern = (
+            r"job description (start|end)|share this job|"
+            r"don't forget to mention eurosciencejobs"
+        )
+        for unwanted in job_row_copy.find_all(
+            string=re.compile(unwanted_pattern, re.I)
+        ):
+            unwanted.extract()
+
+        body_md = html_to_markdown(job_row_copy)
 
         doc: list[str] = [
             f"# {title}",
@@ -161,6 +106,5 @@ class EuroScienceJobsSourcing(ConcreteSourcing):
             doc.append(body_md)
             doc.append("")
 
-        cleaned_text = "\n".join(doc)
-        cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text).strip()
+        cleaned_text = normalize_markdown_separators("\n".join(doc))
         return JobDetailUpdate(url=url, job_details=cleaned_text)
