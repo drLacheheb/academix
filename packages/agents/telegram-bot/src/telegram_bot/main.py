@@ -160,7 +160,7 @@ def run_polling():
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
     logger.info("Starting Telegram Bot with direct long-polling...")
-    application.run_polling(drop_pending_updates=True)
+    application.run_polling(drop_pending_updates=True, stop_signals=None)
 
 
 def run():

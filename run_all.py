@@ -173,6 +173,21 @@ def handle_shutdown(signum, frame):
     sys.exit(0)
 
 
+def wait_for_api_ready(port: int, max_wait: float = 30.0) -> bool:
+    import urllib.request
+
+    url = f"http://127.0.0.1:{port}/health"
+    start = time.time()
+    while time.time() - start < max_wait and not shutdown_event.is_set():
+        try:
+            with urllib.request.urlopen(url, timeout=1.0) as resp:
+                if resp.status == 200:
+                    return True
+        except Exception:
+            time.sleep(0.3)
+    return False
+
+
 def main():
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
@@ -180,19 +195,37 @@ def main():
     port = int(os.environ.get("PORT", "8000"))
     logger.info(f"Starting Academix Unified Server on port {port}...")
 
-    # Start all background workers
-    start_all_workers()
-
-    # Start FastAPI server on main thread
+    # Start FastAPI server in a dedicated thread
     import uvicorn
 
-    uvicorn.run(
+    config = uvicorn.Config(
         "api.main:app",
         host="0.0.0.0",
         port=port,
         log_level="info",
         access_log=True,
     )
+    server = uvicorn.Server(config)
+    t_server = threading.Thread(target=server.run, daemon=True, name="FastAPI-Server")
+    t_server.start()
+
+    # Wait for API server to become healthy before launching worker loops
+    logger.info(f"Waiting for API server to initialize on port {port}...")
+    if wait_for_api_ready(port):
+        logger.success(f"FastAPI server online and healthy on port {port}.")
+    else:
+        logger.warning(
+            f"FastAPI server health check timed out on port {port}. Starting workers anyway."
+        )
+
+    # Start all background workers
+    start_all_workers()
+
+    # Keep main thread alive until shutdown
+    while not shutdown_event.is_set():
+        time.sleep(1)
+
+    server.should_exit = True
 
 
 if __name__ == "__main__":
