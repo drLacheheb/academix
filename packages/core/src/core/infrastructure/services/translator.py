@@ -24,7 +24,9 @@ def to_flores_code(lang_code: str) -> str | None:
 DATE_REGEX = re.compile(r"^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$|^\d{4}[./-]\d{1,2}[./-]\d{1,2}$")
 DIVIDER_REGEX = re.compile(r"^[-*_]{3,}$")
 URL_REGEX = re.compile(r"^https?://\S+$")
-PREFIX_REGEX = re.compile(r"^((?:#{1,6}\s+|-\s*\*\*[^*]+:\*\*\s*|[-*]\s+|\d+\.\s+))(.*)$")
+PREFIX_REGEX = re.compile(
+    r"^((?:#{1,6}\s+|-\s*\*\*[^*]+:\*\*\s*|[-*]\s+|\d+[\.\)]\s+|[a-zA-Z][\.\)]\s+|\([a-zA-Z0-9]+\)\s+))(.*)$"
+)
 
 
 class NllbTranslator(BaseTranslator):

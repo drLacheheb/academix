@@ -10,6 +10,9 @@ from core.infrastructure.services.translator import (
     to_flores_code,
 )
 
+MODEL_PATH = os.path.abspath("models/mijuanlo/nllb-200-distilled-600M-ct2-int8")
+MODEL_EXISTS = os.path.exists(os.path.join(MODEL_PATH, "model.bin"))
+
 
 def test_to_flores_code_dynamic_resolution():
     assert to_flores_code("en") == "eng_Latn"
@@ -48,8 +51,9 @@ def test_structure_preservation_regexes():
 
 @pytest.fixture(scope="module")
 def translator() -> NllbTranslator:
-    model_path = os.path.abspath("models/mijuanlo/nllb-200-distilled-600M-ct2-int8")
-    return NllbTranslator(model_path)
+    if not MODEL_EXISTS:
+        pytest.skip("NLLB model weights not available locally")
+    return NllbTranslator(MODEL_PATH)
 
 
 def test_pure_english_skips_translation(translator: NllbTranslator):

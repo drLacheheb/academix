@@ -6,6 +6,9 @@ from core.infrastructure.db.models import CandidateProfileModel, JobModel, JobOr
 from core.infrastructure.db.pipeline_repository import PipelineJobRepository
 from core.infrastructure.services.translator import NllbTranslator
 
+MODEL_PATH = os.path.abspath("models/mijuanlo/nllb-200-distilled-600M-ct2-int8")
+MODEL_EXISTS = os.path.exists(os.path.join(MODEL_PATH, "model.bin"))
+
 
 def test_full_e2e_job_pipeline_flow(memory_repo: PipelineJobRepository):
     # 1. Job Sourcing
@@ -28,10 +31,15 @@ def test_full_e2e_job_pipeline_flow(memory_repo: PipelineJobRepository):
     assert claimed_job is not None
     assert claimed_job.url == french_job.url
 
-    model_path = os.path.abspath("models/mijuanlo/nllb-200-distilled-600M-ct2-int8")
-    translator = NllbTranslator(model_path)
-    translated_text, was_translated = translator.translate(claimed_job.job_details or "")
-    assert was_translated is True
+    if MODEL_EXISTS:
+        translator = NllbTranslator(MODEL_PATH)
+        translated_text, was_translated = translator.translate(claimed_job.job_details or "")
+        assert was_translated is True
+    else:
+        translated_text = (
+            "## Description of the subject\n\n"
+            "This doctoral project aims to explore optical conversion."
+        )
 
     memory_repo.complete_translation(
         url=claimed_job.url,
@@ -120,10 +128,15 @@ def test_full_e2e_profile_pipeline_flow(memory_repo: PipelineJobRepository):
     )
     assert claimed_prof is not None
 
-    model_path = os.path.abspath("models/mijuanlo/nllb-200-distilled-600M-ct2-int8")
-    translator = NllbTranslator(model_path)
-    trans_cv, was_trans = translator.translate(claimed_prof.raw_text or "")
-    assert was_trans is True
+    if MODEL_EXISTS:
+        translator = NllbTranslator(MODEL_PATH)
+        trans_cv, was_trans = translator.translate(claimed_prof.raw_text or "")
+        assert was_trans is True
+    else:
+        trans_cv = (
+            "Curriculum Vitae: Marie Curie.\n\n"
+            "I am a researcher with a doctorate in physics and chemistry..."
+        )
 
     memory_repo.profiles.complete_translation(profile_id, trans_cv)
 
@@ -160,7 +173,10 @@ def test_full_e2e_profile_pipeline_flow(memory_repo: PipelineJobRepository):
     prof_db = (
         session.query(CandidateProfileModel).filter(CandidateProfileModel.id == profile_id).first()
     )
+
     assert prof_db is not None
-    assert prof_db.status == "COMPLETED"
     assert prof_db.raw_text_en is not None
+    assert prof_db.highest_degree == "PhD"
+    assert prof_db.skill_embedding is not None
+    assert prof_db.status == "COMPLETED"
     session.close()
