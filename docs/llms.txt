@@ -1,0 +1,52 @@
+# Academix
+> Automated academic job sourcing, multilingual translation, and intelligent candidate CV matching pipeline.
+
+## Overview
+Academix is an open-source, self-hosted academic recruitment and candidate discovery platform written in Python. It aggregates over 20,000 active academic listings from 6 premier research portals (EURAXESS, AcademicTransfer, ABG, Nature Careers, ResearchGate, and EuroScienceJobs), normalizes multilingual text with local neural machine translation (NLLB-200), extracts structured research profiles using local LLMs (Ollama with Instructor), and executes high-precision matching using semantic degree gating and asymmetric vector similarity pooling.
+
+## Key Features
+- Full-scroll discovery & sourcing across 6 major academic job boards:
+  - EURAXESS (EU Commission research portal)
+  - AcademicTransfer (Dutch universities & research institutes)
+  - ABG - Association Bernard Gregory (French doctorates, CIFRE, CNRS)
+  - Nature Careers (Global scientific faculty & postdoc openings)
+  - ResearchGate (Global scientific & academic jobs)
+  - EuroScienceJobs (European science & policy positions)
+- Local multilingual translation engine:
+  - Paragraph & sentence boundary splitting with Sentencex
+  - Fast language detection with Lingua
+  - Dynamic FLORES-200 code resolution via Langcodes
+  - CTranslate2 quantized int8 NLLB-200 inference (~600MB RAM)
+  - Markdown structure & URL preservation
+- Structured metadata refinement:
+  - OpenAI-compatible local LLM inference via Ollama (Gemma 4, Llama 3)
+  - Type-safe schema extraction using Instructor and Pydantic
+  - Structured extraction of education level, required skills, degree fields, research areas, and deadlines
+- Multi-vector embedding & matching algorithm:
+  - Nomic Embeddings (`nomic-embed-text-v1.5`)
+  - Hierarchical degree level filtering (PhD >= Master >= Bachelor)
+  - Semantic degree field similarity threshold (0.71 cosine cutoff)
+  - Asymmetric Max-Dominance pooling (0.70 * max(skill, research) + 0.30 * min(skill, research))
+  - LLM-generated matching explanations for candidates
+- Multi-channel interfaces:
+  - RESTful FastAPI gateway
+  - Telegram Bot interface for candidate onboarding, CV PDF upload, and instant position alerts
+
+## Architecture & Monorepo Structure
+- `packages/core`: Clean architecture domain models, database repositories, use cases, and LLM adapters.
+- `packages/api`: FastAPI gateway server with Alembic database migrations.
+- `packages/agents`: Autonomous worker services (discovery, sourcing, translation, refinement, embedding, matching, cv-parsing, telegram-bot, cleanup).
+
+## Technical Guides & Documentation
+- Documentation Hub: https://drLacheheb.github.io/academix/blog/
+- Academic Job Sourcing Across 6 Portals: https://drLacheheb.github.io/academix/blog/academic-job-sourcing/
+- Multilingual Translation Pipeline: https://drLacheheb.github.io/academix/blog/multilingual-translation-pipeline/
+- Semantic Degree Gating & Asymmetric Matching: https://drLacheheb.github.io/academix/blog/matching-algorithm-degree-gating/
+- Self-Hosting with Docker & Ollama: https://drLacheheb.github.io/academix/blog/self-hosted-ollama-refinement/
+- Telegram Bot Academic Alerts: https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/
+
+## Links
+- Website: https://drLacheheb.github.io/academix/
+- GitHub Repository: https://github.com/drLacheheb/academix
+- Telegram Bot: https://t.me/academix_bot
+- License: Business Source License 1.1 (BSL 1.1)

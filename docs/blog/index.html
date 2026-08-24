@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary Meta Tags -->
+  <title>Architecture & Technical Guides — Academix Documentation</title>
+  <meta name="title" content="Architecture & Technical Guides — Academix Documentation">
+  <meta name="description"
+    content="In-depth tutorials and architectural deep dives on academic job scraping, local NLLB-200 translation, Ollama refinement, and semantic CV matching algorithms.">
+  <meta name="keywords"
+    content="academic job scraping, nllb 200 translation tutorial, cv matching algorithm, degree gating, ollama instructor extraction, academix documentation">
+  <meta name="author" content="drLacheheb">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://drLacheheb.github.io/academix/blog/">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <link rel="apple-touch-icon" href="../assets/logo.png">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://drLacheheb.github.io/academix/blog/">
+  <meta property="og:title" content="Architecture & Technical Guides — Academix Documentation">
+  <meta property="og:description"
+    content="Technical guides on academic scraping, local neural translation, and semantic vector matching architectures.">
+  <meta property="og:image" content="https://drLacheheb.github.io/academix/assets/logo.png">
+  <meta property="og:site_name" content="Academix">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://drLacheheb.github.io/academix/blog/">
+  <meta name="twitter:title" content="Academix Technical Guides">
+  <meta name="twitter:description"
+    content="In-depth tutorials on academic job sourcing, local NLLB-200 translation, and semantic CV matching.">
+  <meta name="twitter:image" content="https://drLacheheb.github.io/academix/assets/logo.png">
+
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": "https://drLacheheb.github.io/academix/blog/#hub",
+    "name": "Academix Technical Guides & Architecture Documentation",
+    "description": "Comprehensive engineering documentation on multi-portal academic scraping, local translation, and candidate matching.",
+    "url": "https://drLacheheb.github.io/academix/blog/",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Academix",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://drLacheheb.github.io/academix/assets/logo.png"
+      }
+    }
+  }
+  </script>
+
+  <!-- Typography & Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="blog-wrapper">
+    <nav class="blog-nav">
+      <a href="../" class="nav-brand">
+        <img src="../assets/logo.png" alt="Academix Logo" class="nav-logo" width="32" height="32">
+        <span>Academix</span>
+      </a>
+      <div class="nav-links">
+        <a href="../" class="nav-link">Home</a>
+        <a href="./" class="nav-link">Guides</a>
+        <a href="https://github.com/drLacheheb/academix" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+
+    <main>
+      <header class="article-header" style="text-align: center;">
+        <span class="badge">Architecture & Guides</span>
+        <h1 class="article-title">Academix Technical Documentation</h1>
+        <p style="color: var(--text-secondary); max-width: 32rem; margin: 0 auto;">
+          Engineering deep-dives on multi-portal academic crawling, local neural translation, structured LLM extraction, and semantic matching.
+        </p>
+      </header>
+
+      <div class="posts-grid">
+        <a href="academic-job-sourcing/" class="post-card">
+          <span class="badge">Architecture</span>
+          <h2 class="post-card-title">How Academix Crawls & Ingests 20,000+ Listings Across 6 Academic Portals</h2>
+          <p class="post-card-desc">
+            Discover how Academix orchestrates full-scroll discovery and XML sitemap crawlers for EURAXESS, AcademicTransfer, ABG, Nature Careers, ResearchGate, and EuroScienceJobs.
+          </p>
+          <div class="post-card-meta">By drLacheheb • 7 min read</div>
+        </a>
+
+        <a href="multilingual-translation-pipeline/" class="post-card">
+          <span class="badge">NLP & Translation</span>
+          <h2 class="post-card-title">Local Multilingual NMT: Sentence Splitting & CTranslate2 NLLB-200 for Scientific Offers</h2>
+          <p class="post-card-desc">
+            An engineering analysis of sentence-level language detection with Lingua, Sentencex segmentation, and structure-preserving NLLB-200 translation in CTranslate2.
+          </p>
+          <div class="post-card-meta">By drLacheheb • 6 min read</div>
+        </a>
+
+        <a href="matching-algorithm-degree-gating/" class="post-card">
+          <span class="badge">Matching Engine</span>
+          <h2 class="post-card-title">Semantic Degree Gating & Asymmetric Max-Dominance Vector Matching</h2>
+          <p class="post-card-desc">
+            How Academix combines hierarchical degree filtering, 0.71 cosine degree domain gating, and asymmetric skill/research vector pooling with natural language explanations.
+          </p>
+          <div class="post-card-meta">By drLacheheb • 8 min read</div>
+        </a>
+
+        <a href="self-hosted-ollama-refinement/" class="post-card">
+          <span class="badge">Deployment & LLMs</span>
+          <h2 class="post-card-title">Self-Hosting Academix with Docker, Ollama, and Structured Instructor Extraction</h2>
+          <p class="post-card-desc">
+            Step-by-step guide to deploying the entire Academix monorepo locally with Docker Compose, local Ollama LLMs, and Pydantic schema validation.
+          </p>
+          <div class="post-card-meta">By drLacheheb • 5 min read</div>
+        </a>
+
+        <a href="telegram-bot-academic-alerts/" class="post-card">
+          <span class="badge">User Interface</span>
+          <h2 class="post-card-title">Real-Time Academic Position Alerts & CV Ingestion via Telegram</h2>
+          <p class="post-card-desc">
+            How candidate researchers upload their CV PDFs, receive instant parsing confirmation, and get notified about matching PhD and postdoc vacancies in Telegram.
+          </p>
+          <div class="post-card-meta">By drLacheheb • 5 min read</div>
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      <p><a href="../">Academix</a> — Open Source Academic Job Sourcing & CV Matching under BSL 1.1 License.</p>
+    </footer>
+  </div>
+
+</body>
+
+</html>

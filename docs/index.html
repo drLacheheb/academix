@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Primary Search Engine Meta Tags -->
+  <title>Academix — Automated Academic Job Sourcing, Translation & CV Matching</title>
+  <meta name="title" content="Academix — Automated Academic Job Sourcing, Translation & CV Matching">
+  <meta name="description"
+    content="Automated academic job sourcing, metadata refinement, and CV matching platform. Aggregates PhD and Postdoc listings across 6 portals with local NLLB-200 translation and semantic matching.">
+  <meta name="keywords"
+    content="academic job tracker, phd job crawler, postdoc job search, euraxess scraper, academictransfer, nature careers scraper, researchgate jobs, cv parsing academia, academic matching algorithm, nllb 200 translation, ollama academic metadata, self hosted academic job board">
+  <meta name="author" content="drLacheheb">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#0a0a0c">
+  <link rel="canonical" href="https://drLacheheb.github.io/academix/">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+
+  <!-- Open Graph / Facebook / LinkedIn / Discord -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://drLacheheb.github.io/academix/">
+  <meta property="og:title" content="Academix — Automated Academic Job Sourcing & Intelligent CV Matching">
+  <meta property="og:description"
+    content="Discover PhD, Postdoc, and Research positions across 6 European & global portals with local NLLB-200 translation, structured LLM extraction, and semantic vector matching.">
+  <meta property="og:image" content="https://drLacheheb.github.io/academix/assets/logo.png">
+  <meta property="og:image:alt" content="Academix - Academic Job Sourcing & CV Matching Logo">
+  <meta property="og:site_name" content="Academix">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://drLacheheb.github.io/academix/">
+  <meta name="twitter:title" content="Academix — Automated Academic Job Sourcing & CV Matching">
+  <meta name="twitter:description"
+    content="Automated academic job aggregation across 6 portals with local AI translation and intelligent CV matching.">
+  <meta name="twitter:image" content="https://drLacheheb.github.io/academix/assets/logo.png">
+
+  <!-- JSON-LD Multi-Entity Structured Data (SoftwareApplication + FAQPage) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://drLacheheb.github.io/academix/#software",
+        "name": "Academix",
+        "alternateName": ["Academix Sourcing", "Academix Academic Matcher", "Academix Telegram Bot"],
+        "headline": "Automated Academic Job Sourcing, Translation & Candidate CV Matching",
+        "operatingSystem": "Linux, macOS, Windows, Docker",
+        "applicationCategory": "BusinessApplication, EducationalApplication, ProductivityApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Academix is an open-source, self-hosted academic recruiting and sourcing pipeline. It automatically discovers and aggregates PhD, postdoc, and faculty openings from 6 premier platforms, translates multilingual descriptions using local NLLB-200 CTranslate2 models, extracts structured competencies with Ollama and Instructor, and matches candidate CVs using hierarchical degree gating and asymmetric vector similarity pooling.",
+        "url": "https://drLacheheb.github.io/academix/",
+        "image": "https://drLacheheb.github.io/academix/assets/logo.png",
+        "softwareVersion": "1.0.0",
+        "author": {
+          "@type": "Person",
+          "name": "drLacheheb",
+          "url": "https://github.com/drLacheheb"
+        },
+        "keywords": "academic job board, phd recruitment, postdoc crawler, euraxess scraper, academictransfer, cv matching, nllb 200 translation, nomic embeddings, self hosted academic platform",
+        "featureList": [
+          "Automated full-scroll crawling across 6 academic portals (EURAXESS, AcademicTransfer, ABG, Nature Careers, ResearchGate, EuroScienceJobs)",
+          "Local Neural Machine Translation with CTranslate2 NLLB-200 and Sentencex segmentation",
+          "Structured research profile extraction using Ollama LLMs and Instructor",
+          "Multi-vector semantic similarity using nomic-embed-text-v1.5",
+          "Hierarchical degree level eligibility verification (PhD >= Master >= Bachelor)",
+          "Semantic degree field compatibility gating (0.71 cosine threshold)",
+          "Asymmetric Max-Dominance score pooling (0.70 * max + 0.30 * min)",
+          "Automated natural language match reason explanations for candidates",
+          "Telegram Bot for candidate onboarding, CV PDF upload, and instant notifications"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://drLacheheb.github.io/academix/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is Academix?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Academix is an automated, self-hosted platform that aggregates academic job offers (PhDs, postdocs, faculty roles) from major international portals, translates them locally, extracts structured requirements with local LLMs, and matches them to candidate research profiles."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Which job boards does Academix support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Academix connects to EURAXESS, AcademicTransfer, Association Bernard Gregory (ABG), Nature Careers, ResearchGate, and EuroScienceJobs, covering over 20,000 active academic listings across Europe and globally."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does the Academix matching algorithm work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The matching engine uses a four-step funnel: 1) Hierarchical degree verification, 2) Semantic degree field compatibility check (0.71 cosine threshold), 3) Pre-computed skill and research embedding dot products, and 4) Asymmetric Max-Dominance pooling (0.70 * max + 0.30 * min) with LLM-generated match explanations."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does Academix handle non-English listings?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Academix includes a local CTranslate2 NLLB-200 engine that splits listings into paragraphs and sentences, detects languages with Lingua in sub-milliseconds, and translates French, German, Dutch, and other languages to English while preserving markdown formatting."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Performance & Typography Preconnect -->
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="page-wrapper">
+    <main class="hero">
+      <div class="logo-wrapper">
+        <img src="assets/logo.png" alt="Academix Logo - Automated Academic Job Sourcing & Matching" class="hero-logo" width="108" height="108">
+      </div>
+
+      <h1>Academix</h1>
+      <p class="subtitle">
+        Automated academic job sourcing, multilingual translation, and intelligent candidate CV matching across 6 premier international research portals.
+      </p>
+
+      <div class="cta-group">
+        <a href="https://t.me/academix_bot" class="btn btn-primary" target="_blank" rel="noopener noreferrer" aria-label="Start with Academix Telegram Bot">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.05-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.99-1.74 6.66-2.88 8.01-3.44 3.81-1.59 4.6-1.87 5.12-1.88.11 0 .37.03.54.17.14.12.18.28.2.45-.02.07-.02.13-.03.22z" />
+          </svg>
+          <span>Launch Telegram Bot</span>
+        </a>
+
+        <a href="https://github.com/drLacheheb/academix" class="btn btn-secondary" target="_blank"
+          rel="noopener noreferrer" aria-label="View Academix Open Source Repository on GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+          </svg>
+          <span>View on GitHub</span>
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      <p style="margin-bottom: 0.5rem;"><a href="blog/">Architecture Guides & Documentation &rarr;</a></p>
+      <p>Academix | Free for Personal & Non-Commercial Use under BSL 1.1.</p>
+    </footer>
+  </div>
+
+</body>
+
+</html>

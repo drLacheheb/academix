@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary Meta Tags -->
+  <title>Real-Time Academic Position Alerts & CV Ingestion via Telegram — Academix</title>
+  <meta name="title" content="Real-Time Academic Position Alerts & CV Ingestion via Telegram — Academix">
+  <meta name="description"
+    content="Learn how candidate researchers upload CV PDFs, configure research preferences, and receive real-time PhD and postdoc job match notifications in Telegram.">
+  <meta name="keywords"
+    content="telegram academic job bot, phd alert telegram bot, cv upload telegram bot, academic job notifications, aiogram 3 telegram bot, academix telegram bot">
+  <meta name="author" content="drLacheheb">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="../../assets/logo.png">
+  <link rel="apple-touch-icon" href="../../assets/logo.png">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/">
+  <meta property="og:title" content="Real-Time Academic Position Alerts & CV Ingestion via Telegram">
+  <meta property="og:description"
+    content="Turn Telegram into your personal academic job discovery assistant with instant push alerts for high-matching PhD and postdoc roles.">
+  <meta property="og:image" content="https://drLacheheb.github.io/academix/assets/logo.png">
+  <meta property="og:site_name" content="Academix">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/">
+  <meta name="twitter:title" content="Real-Time Academic Position Alerts & CV Ingestion via Telegram">
+  <meta name="twitter:description"
+    content="Turn Telegram into your personal academic job discovery assistant with instant push alerts.">
+  <meta name="twitter:image" content="https://drLacheheb.github.io/academix/assets/logo.png">
+
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "HowTo",
+        "@id": "https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/#howto",
+        "name": "Real-Time Academic Position Alerts & CV Ingestion via Telegram",
+        "description": "Tutorial on connecting your Telegram account to Academix to receive instant academic job matches.",
+        "image": "https://drLacheheb.github.io/academix/assets/logo.png",
+        "step": [
+          {
+            "@type": "HowToStep",
+            "name": "Start the Telegram Bot",
+            "text": "Initiate a chat with @academix_bot and choose your preferred academic tracks.",
+            "url": "https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/#step1"
+          },
+          {
+            "@type": "HowToStep",
+            "name": "Upload your CV Document",
+            "text": "Send your academic CV as a PDF attachment. The background parser automatically extracts your research background.",
+            "url": "https://drLacheheb.github.io/academix/blog/telegram-bot-academic-alerts/#step2"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Typography & Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+
+  <div class="blog-wrapper">
+    <nav class="blog-nav">
+      <a href="../../" class="nav-brand">
+        <img src="../../assets/logo.png" alt="Academix Logo" class="nav-logo" width="32" height="32">
+        <span>Academix</span>
+      </a>
+      <div class="nav-links">
+        <a href="../../" class="nav-link">Home</a>
+        <a href="../" class="nav-link">Guides</a>
+        <a href="https://github.com/drLacheheb/academix" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+
+    <main class="article-content">
+      <header class="article-header">
+        <span class="badge">User Interface</span>
+        <h1 class="article-title">Real-Time Academic Position Alerts & CV Ingestion via Telegram</h1>
+        <div class="article-meta">Published by drLacheheb • 5 min read</div>
+      </header>
+
+      <p>
+        Researchers are busy and rarely have time to manually browse multiple job boards every day. The <strong>Academix Telegram Bot</strong> bridges the gap between background crawlers and candidate researchers by delivering real-time alerts the moment a matching position is identified.
+      </p>
+
+      <h2>1. The Candidate Onboarding Flow</h2>
+      <ol>
+        <li><strong>Chat Initialization</strong>: The researcher begins a session with the bot via <code>/start</code>.</li>
+        <li><strong>CV Document Upload</strong>: The candidate uploads their CV in PDF format.</li>
+        <li><strong>Asynchronous Ingestion</strong>: The <code>cv-parsing</code> agent extracts the raw text layout, <code>translation</code> normalizes non-English text, <code>refinement</code> structures degrees and skills, and <code>embedding-worker</code> computes vector representations.</li>
+      </ol>
+
+      <h2>2. Push Notifications & Explanations</h2>
+      <p>
+        As new jobs are discovered by the 12 crawler agents, the matching engine continuously evaluates newly refined positions against all active candidate profiles.
+      </p>
+      <p>
+        When a match exceeds the candidate's threshold, a push alert is delivered directly to their Telegram chat with:
+      </p>
+      <ul>
+        <li><strong>Position Title & Institution</strong></li>
+        <li><strong>Application Deadline</strong></li>
+        <li><strong>Match Score Percentage</strong></li>
+        <li><strong>Personalized LLM Match Explanation</strong></li>
+        <li><strong>Direct Application Link</strong></li>
+      </ul>
+
+      <h2>3. Summary</h2>
+      <p>
+        By combining frictionless PDF ingestion with automated Telegram push alerts, Academix turns complex multi-portal academic searching into an effortless, personalized mobile experience.
+      </p>
+    </main>
+
+    <footer>
+      <p><a href="../../">Academix</a> — Open Source Academic Job Sourcing & CV Matching under BSL 1.1 License.</p>
+    </footer>
+  </div>
+
+</body>
+
+</html>
