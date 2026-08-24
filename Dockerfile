@@ -34,14 +34,7 @@ RUN echo 'find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
     find /app/.venv -name "*.pyc" -delete' > /app/prune.sh && chmod +x /app/prune.sh
 
 FROM builder-base AS builder-api
-RUN uv sync --frozen --no-install-workspace --no-dev --package api \
-    --package academictransfer-discovery --package academictransfer-sourcing \
-    --package euraxess-discovery --package euraxess-sourcing \
-    --package abg-discovery --package abg-sourcing \
-    --package naturecareers-discovery --package naturecareers-sourcing \
-    --package researchgate-discovery --package researchgate-sourcing \
-    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing \
-    --package agent-cleanup && \
+RUN uv sync --frozen --no-install-workspace --no-dev --all-packages && \
     sh /app/prune.sh
 
 FROM builder-base AS builder-refinement
@@ -68,19 +61,12 @@ FROM builder-base AS builder-telegram-bot
 RUN uv sync --frozen --no-install-workspace --no-dev --package telegram-bot && \
     sh /app/prune.sh
 
-# API Gateway Stage
+# API Gateway & Unified Runner Stage
 FROM base AS academix-gateway-api
 COPY --from=builder-api /app/.venv /app/.venv
 COPY . .
-RUN uv sync --frozen --no-dev --package api \
-    --package academictransfer-discovery --package academictransfer-sourcing \
-    --package euraxess-discovery --package euraxess-sourcing \
-    --package abg-discovery --package abg-sourcing \
-    --package naturecareers-discovery --package naturecareers-sourcing \
-    --package researchgate-discovery --package researchgate-sourcing \
-    --package eurosciencejobs-discovery --package eurosciencejobs-sourcing \
-    --package agent-cleanup
-CMD ["sh", "-c", "uv run --package api fastapi run packages/api/src/api/main.py --host 0.0.0.0 --port ${PORT:-8000}"]
+RUN uv sync --frozen --no-dev --all-packages
+CMD ["sh", "-c", "uv run python run_all.py"]
 
 FROM academix-gateway-api AS slim
 

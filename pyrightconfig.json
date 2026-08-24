@@ -34,6 +34,7 @@
     "packages/agents/researchgate-sourcing/src",
     "packages/agents/telegram-bot/src",
     "packages/agents/translation/src",
+    "packages/agents/cleanup/src",
     "tests"
   ],
   "reportUnusedImport": "error",

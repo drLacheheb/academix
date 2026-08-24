@@ -135,9 +135,41 @@ async def telegram_webhook(
     return {"status": "ok"}
 
 
+def run_polling():
+    logger = get_logger("telegram-bot-polling")
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        logger.warning("TELEGRAM_BOT_TOKEN is not set. Telegram bot polling will not start.")
+        return
+
+    api = make_api_client(timeout=30.0)
+    application = ApplicationBuilder().token(token).post_init(post_init).build()
+    application.bot_data["api"] = api
+    application.add_error_handler(global_error_handler)
+
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("status", status_command))
+    application.add_handler(CommandHandler("profile", profile_command))
+    application.add_handler(CommandHandler("matches", matches_command))
+    application.add_handler(CommandHandler(["upload_cv", "uploadcv", "newcv"], upload_cv_command))
+    application.add_handler(CommandHandler(["delete", "reset", "deleteprofile"], delete_command))
+    application.add_handler(CallbackQueryHandler(delete_callback_handler, pattern="^delete_"))
+    application.add_handler(get_edit_handler())
+    application.add_handler(MessageHandler(filters.Document.PDF, handle_document))
+    application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+
+    logger.info("Starting Telegram Bot with direct long-polling...")
+    application.run_polling(drop_pending_updates=True)
+
+
 def run():
-    port = int(os.environ.get("PORT", "8080"))
-    uvicorn_run("telegram_bot.main:app", host="0.0.0.0", port=port)
+    webhook_host = os.environ.get("WEBHOOK_HOST")
+    if webhook_host:
+        port = int(os.environ.get("PORT", "8080"))
+        uvicorn_run("telegram_bot.main:app", host="0.0.0.0", port=port)
+    else:
+        run_polling()
 
 
 if __name__ == "__main__":
