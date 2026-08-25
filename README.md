@@ -180,8 +180,10 @@ Key `.env` options:
 | `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model |
 | `MATCH_THRESHOLD` | `0.75` | Minimum composite score threshold for candidate-job match |
 | `DEGREE_SIMILARITY_THRESHOLD` | `0.71` | Minimum cosine similarity threshold for degree field match |
+| `ENABLE_MATCH_EXPLANATION` | `true` | Toggle LLM-powered explanation generation for matches |
 | `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Quantized CTranslate2 translation model |
 | `STORAGE_PROVIDER` | `local` | Storage backend: `local` filesystem or `s3` |
+| `TELEGRAM_BOT_TOKEN` | *None* | Bot token for the Academix Telegram bot (@AcadamixBot) |
 
 ---
 

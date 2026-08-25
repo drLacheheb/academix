@@ -47,6 +47,7 @@ services:
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
       - S3_REGION=${S3_REGION:-us-east-1}
       - DEGREE_SIMILARITY_THRESHOLD=${DEGREE_SIMILARITY_THRESHOLD:-0.71}
+      - ENABLE_MATCH_EXPLANATION=${ENABLE_MATCH_EXPLANATION:-true}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/status')"]
       interval: 10s
@@ -387,6 +388,7 @@ services:
       - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
       - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.75}
       - DEGREE_SIMILARITY_THRESHOLD=${DEGREE_SIMILARITY_THRESHOLD:-0.71}
+      - ENABLE_MATCH_EXPLANATION=${ENABLE_MATCH_EXPLANATION:-true}
       - LOG_FILE=/app/logs/academix-matching-worker.log
       - API_URL=http://academix-gateway-api:8000
       - API_SECRET_KEY=${API_SECRET_KEY:-dev_secret_key}
