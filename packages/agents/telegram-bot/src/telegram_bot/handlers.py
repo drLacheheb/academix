@@ -65,6 +65,25 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_name = update.effective_user.first_name if update.effective_user else "Researcher"
     chat_id = str(update.effective_chat.id)
 
+    # Support deep-linking payloads (e.g., https://t.me/AcadamixBot?start=matches)
+    if context.args:
+        payload = context.args[0].lower().strip()
+        if payload in ("matches", "match"):
+            await matches_command(update, context)
+            return
+        if payload in ("profile", "cv"):
+            await profile_command(update, context)
+            return
+        if payload in ("status", "pipeline"):
+            await status_command(update, context)
+            return
+        if payload in ("upload", "upload_cv", "newcv"):
+            await upload_cv_command(update, context)
+            return
+        if payload in ("help", "guide"):
+            await help_command(update, context)
+            return
+
     # Detect returning users for idempotent /start
     api = context.bot_data.get("api")
     is_returning = False
@@ -95,7 +114,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     else:
         welcome_text = (
             f"Welcome <b>{html.escape(user_name)}</b> to Academix.\n\n"
-            "AI-powered academic job matching. Send your CV as a PDF to get started."
+            "AI-powered academic job matching. Send your CV as a PDF "
+            "or press /start to open the menu."
         )
         keyboard = InlineKeyboardMarkup(
             [
@@ -384,7 +404,7 @@ async def matches_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def upload_cv_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     prompt = (
         "<b>Upload Your CV</b>\n\n"
-        "Send your CV as a <b>PDF file</b> in this chat.\n"
+        "Send your CV as a <b>PDF file</b> in this chat, or press /start to return to the menu.\n"
         "The AI pipeline will extract your skills, degree, and research domains automatically."
     )
     if update.callback_query:

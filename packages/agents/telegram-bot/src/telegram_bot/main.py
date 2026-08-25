@@ -56,12 +56,12 @@ async def post_init(application: Application) -> None:
         await application.bot.set_my_description(
             "Academix connects researchers, postdocs, and PhD candidates with top "
             "academic vacancies across Europe.\n\n"
-            "Upload your CV (PDF) to extract your skills, research domains, and qualifications, "
-            "and receive real-time match recommendations."
+            "Upload your CV (PDF) or press /start to extract your skills, research domains, "
+            "and qualifications, and receive real-time match recommendations."
         )
 
         await application.bot.set_my_short_description(
-            "AI-powered academic job matching engine for researchers and scholars."
+            "AI academic job matching. Upload your CV (PDF) or press /start to begin."
         )
 
         await application.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
