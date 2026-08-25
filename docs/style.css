@@ -144,6 +144,104 @@ h1 {
   transform: translateY(-0.125rem);
 }
 
+.btn-kofi {
+  background-color: #ff5e5b;
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.btn-kofi:hover {
+  background-color: #e04b48;
+  transform: translateY(-0.125rem);
+}
+
+/* Live Telemetry Card */
+.telemetry-card {
+  width: 100%;
+  margin-top: clamp(1.75rem, 5vw, 2.25rem);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.875rem;
+  padding: clamp(1rem, 3vw, 1.25rem);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.2s ease;
+}
+
+.telemetry-card:hover {
+  border-color: var(--border-hover);
+}
+
+.telemetry-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pulse-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 12px #10b981; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.telemetry-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.telemetry-badge {
+  margin-left: auto;
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem;
+}
+
+.telemetry-value {
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: -0.02em;
+}
+
+.telemetry-label {
+  font-size: clamp(0.65rem, 1.8vw, 0.725rem);
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  white-space: nowrap;
+}
+
 /* Footer */
 footer {
   margin-top: clamp(2rem, 6dvh, 3.25rem);

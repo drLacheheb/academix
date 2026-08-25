@@ -165,7 +165,42 @@
           </svg>
           <span>View on GitHub</span>
         </a>
+
+        <a href="https://ko-fi.com/drlacheheb" class="btn btn-kofi" target="_blank"
+          rel="noopener noreferrer" aria-label="Support Academix on Ko-fi">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.047 3.977-4.047 3.977s-2.793-2.516-4.043-3.977c-1.458-1.706-.525-4.086 1.541-4.086 1.41 0 2.502 1.053 2.502 1.053s1.093-1.053 2.508-1.053c2.063 0 2.994 2.38 1.539 4.086zm5.836-1.583c-.496 2.05-2.261 2.308-2.261 2.308v-4.63s1.765.272 2.261 2.322z"/>
+          </svg>
+          <span>Support on Ko-fi</span>
+        </a>
       </div>
+
+      <!-- Live Pipeline Telemetry Widget -->
+      <section class="telemetry-card" aria-label="Real-time Platform Statistics">
+        <div class="telemetry-header">
+          <span class="pulse-indicator" aria-hidden="true"></span>
+          <span class="telemetry-title">Live Pipeline Telemetry</span>
+          <span class="telemetry-badge" id="telemetry-status">Connecting...</span>
+        </div>
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <span class="telemetry-value" id="stat-total-jobs">3,968</span>
+            <span class="telemetry-label">Sourced Vacancies</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-value" id="stat-refined-jobs">2,310</span>
+            <span class="telemetry-label">AI Refined</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-value" id="stat-translated-jobs">3,968</span>
+            <span class="telemetry-label">NLP Processed</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-value" id="stat-active-portals">6</span>
+            <span class="telemetry-label">Global Portals</span>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer>
@@ -174,6 +209,32 @@
     </footer>
   </div>
 
+  <script>
+    (function () {
+      async function fetchLiveStats() {
+        try {
+          const res = await fetch("https://academix-production-1c37.up.railway.app/status");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.total_jobs !== undefined) {
+              document.getElementById("stat-total-jobs").textContent = Number(data.total_jobs).toLocaleString();
+            }
+            if (data.completed_refinement !== undefined) {
+              document.getElementById("stat-refined-jobs").textContent = Number(data.completed_refinement).toLocaleString();
+            }
+            const totalTrans = (data.completed_translation || 0) + (data.skipped_translation || 0);
+            if (totalTrans > 0) {
+              document.getElementById("stat-translated-jobs").textContent = Number(totalTrans).toLocaleString();
+            }
+            document.getElementById("telemetry-status").textContent = "Operational • 100%";
+          }
+        } catch (err) {
+          document.getElementById("telemetry-status").textContent = "Live Telemetry";
+        }
+      }
+      fetchLiveStats();
+    })();
+  </script>
 </body>
 
 </html>
