@@ -5,16 +5,24 @@
 <h1 align="center">Academix</h1>
 
 <p align="center">
-  <em>An automated academic job sourcing, metadata refinement, and AI candidate matching engine. Connects researchers, postdocs, and PhD candidates with top European academic vacancies through real-time scraping, multilingual translation, vector similarity, and Telegram notifications.</em>
+  <a href="https://t.me/AcadamixBot"><img src="https://img.shields.io/badge/Telegram-@AcadamixBot-2CA5E0?style=flat&logo=telegram&logoColor=white" alt="Telegram Bot"></a>
+  <a href="https://drlacheheb.github.io/academix"><img src="https://img.shields.io/badge/Website-drlacheheb.github.io-blue?style=flat" alt="Website"></a>
+  <a href="https://ko-fi.com/drlacheheb"><img src="https://img.shields.io/badge/Support-Buy%20Me%20a%20Coffee-FF5E5B?style=flat&logo=kofi&logoColor=white" alt="Ko-fi"></a>
+  <a href="https://academix-production-1c37.up.railway.app/status"><img src="https://img.shields.io/badge/Sourced%20Vacancies-3%2C968%2B-0ea5e9?style=flat" alt="Sourced Vacancies"></a>
+  <a href="https://academix-production-1c37.up.railway.app/status"><img src="https://img.shields.io/badge/AI%20Refined-2%2C310%2B-10b981?style=flat" alt="AI Refined"></a>
+</p>
+
+<p align="center">
+  <em>An automated academic job sourcing, metadata refinement, and AI candidate matching engine. Connects researchers, postdocs, and PhD candidates with top global academic vacancies through real-time scraping, multilingual translation, vector similarity, and Telegram notifications.</em>
 </p>
 
 ---
 
 ## What It Does
 
-Finding the right academic position (PhD, Postdoc, or Faculty) across European institutions is often fragmented across multiple national portals and languages. Academix automates the entire discovery, extraction, and matching workflow:
+Finding the right academic position (PhD, Postdoc, or Faculty) across universities and research institutions worldwide is often fragmented across multiple national portals and languages. Academix automates the entire discovery, extraction, and matching workflow:
 
-1. **Multi-Portal Discovery & Sourcing**: Continuously crawls 6 major academic job boards across Europe (EURAXESS, AcademicTransfer, ABG, NatureCareers, ResearchGate, and EuroScienceJobs).
+1. **Multi-Portal Discovery & Sourcing**: Continuously crawls 6 major academic job boards worldwide (EURAXESS, AcademicTransfer, ABG, NatureCareers, ResearchGate, and EuroScienceJobs).
 2. **Multilingual NLP & Translation**: Paragraph-aware language detection (Lingua & OpenLID) and NLLB-200 translation for non-English academic vacancy listings.
 3. **Structured CV Parsing**: Asynchronously extracts degrees, institutions, specialized technical skills, and research domains from uploaded candidate CVs (PDF).
 4. **Hybrid Multi-Factor Matching**: Evaluates candidates using Nomic Embed v1.5 vector similarity, BM25 keyword matching, and prerequisite degree compatibility.
@@ -210,6 +218,20 @@ uv run ruff format .
 ```bash
 uv run pytest
 ```
+
+---
+
+## Support the Project
+
+If you find Academix useful in your academic job search or research workflow, consider supporting its open-source development:
+
+<p align="left">
+  <a href="https://ko-fi.com/drlacheheb" target="_blank" rel="noopener noreferrer">
+    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" alt="Buy Me a Coffee at ko-fi.com" height="40" />
+  </a>
+</p>
+
+* Every coffee helps cover server hosting costs, multi-portal crawler infrastructure, and ongoing maintenance.
 
 ---
 
