@@ -1,278 +1,224 @@
-# Academic Job Sourcing & Refinement
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Academix Logo" width="180" />
+</p>
 
-Automated academic job sourcing, metadata refinement, and candidate CV matching pipeline. Uses local, high-performance models (Nomic Embeddings, NLLB-200 with CTranslate2 and Lingua, and Ollama with instructor) to translate, extract structured research profiles, prerequisite degrees, and match candidates against academic opportunities.
+<h1 align="center">Academix</h1>
+
+<p align="center">
+  <em>An automated academic job sourcing, metadata refinement, and AI candidate matching engine. Connects researchers, postdocs, and PhD candidates with top European academic vacancies through real-time scraping, multilingual translation, vector similarity, and Telegram notifications.</em>
+</p>
 
 ---
 
-## 1. Project Structure
+## What It Does
 
-```text
-├── packages/
-│   ├── core/                          # Shared domain models, DB repositories, Use Cases, & Instructor LLM Client
-│   │   └── src/core/usecases/         # Domain use case experts (ExtractCvUseCase, RefineJobUseCase, ExplainMatchUseCase)
-│   ├── api/                           # FastAPI gateway server and database coordinator
-│   └── agents/                        # Isolated worker packages running in parallel
-│       ├── euraxess-discovery/            # EURAXESS search pagination discovery agent
-│       ├── euraxess-sourcing/             # EURAXESS page details fetcher agent
-│       ├── academictransfer-discovery/    # AcademicTransfer sitemap & search discovery agent
-│       ├── academictransfer-sourcing/     # AcademicTransfer page details fetcher agent
-│       ├── abg-discovery/                 # ABG L'Intelli'agence discovery agent
-│       ├── abg-sourcing/                  # ABG L'Intelli'agence page details fetcher agent
-│       ├── naturecareers-discovery/       # Nature Careers XML sitemap discovery agent
-│       ├── naturecareers-sourcing/        # Nature Careers page details fetcher agent
-│       ├── researchgate-discovery/        # ResearchGate search pagination discovery agent
-│       ├── researchgate-sourcing/         # ResearchGate page details fetcher agent
-│       ├── eurosciencejobs-discovery/     # EuroScienceJobs sitemap & search discovery agent
-│       ├── eurosciencejobs-sourcing/      # EuroScienceJobs page details fetcher agent
-│       ├── translation/                   # Unified paragraph-aware detection & NLLB-200 translation agent
-│       ├── refinement/                    # Metadata refinement worker (Ollama + instructor)
-│       ├── embedding-worker/              # Dedicated nomic vector embedding generation agent
-│       ├── matching/                      # Candidate CV matching & LLM explanation agent
-│       ├── cv-parsing/                    # Background CV ingest and layout parsing agent
-│       ├── cleanup/                       # Expired job pruning maintenance agent
-│       └── telegram-bot/                  # Telegram Bot candidate interaction interface agent
-├── tests/                             # Automated test suite (unit, integration, E2E)
-│   ├── unit/                              # Core domain, repositories, NLP, and scraper tests
-│   └── integration/                       # FastAPI API lifecycle and full E2E pipeline tests
-├── pyproject.toml                     # Root workspace configuration
-├── uv.lock                           # Workspace dependency lockfile
-├── .env.example                       # Settings template file
-├── Dockerfile                         # Unified multi-purpose Dockerfile
-├── docs/                              # SEO documentation site & guides (GitHub Pages)
-├── LICENSE                            # Business Source License 1.1 (BSL 1.1)
-├── docker-compose.yml                 # Unified Docker Compose orchestration config (CPU default)
-├── docker-compose.postgres.yml        # Standalone PostgreSQL database override
-├── docker-compose.dashboard.yml       # Standalone NocoDB Airtable-style dashboard override
-├── docker-compose.gpu.yml             # Optional NVIDIA GPU hardware reservation override
-├── docker-compose.override.yml        # Dev-mode port mapping override
-├── docker-compose.prod.yml            # Production scaled mode with NGINX
-└── nginx.conf                         # NGINX reverse proxy config
+Finding the right academic position (PhD, Postdoc, or Faculty) across European institutions is often fragmented across multiple national portals and languages. Academix automates the entire discovery, extraction, and matching workflow:
+
+1. **Multi-Portal Discovery & Sourcing**: Continuously crawls 6 major academic job boards across Europe (EURAXESS, AcademicTransfer, ABG, NatureCareers, ResearchGate, and EuroScienceJobs).
+2. **Multilingual NLP & Translation**: Paragraph-aware language detection (Lingua & OpenLID) and NLLB-200 translation for non-English academic vacancy listings.
+3. **Structured CV Parsing**: Asynchronously extracts degrees, institutions, specialized technical skills, and research domains from uploaded candidate CVs (PDF).
+4. **Hybrid Multi-Factor Matching**: Evaluates candidates using Nomic Embed v1.5 vector similarity, BM25 keyword matching, and prerequisite degree compatibility.
+5. **Interactive Telegram Assistant (`@AcadamixBot`)**: Full candidate interface for CV uploading, progress tracking, single-card carousel job browsing, and instant match alerts.
+6. **Unified Modular Architecture**: 20 decoupled microservices orchestrable via Docker Compose (CPU, GPU, or Postgres) or a single lightweight local runner.
+
+---
+
+## How It Works
+
+```mermaid
+graph TD
+    subgraph Delivery ["1. Delivery & Interfaces"]
+        API["FastAPI Gateway<br/>(REST API)"]
+        Bot["Telegram Bot<br/>(@AcadamixBot)"]
+        Crawlers["Job Crawlers<br/>(6 Portals)"]
+        Workers["Worker Agents<br/>(NLP & Matching)"]
+    end
+
+    subgraph UseCases ["2. Application Use Cases"]
+        IngestUC["IngestProfileUseCase"]
+        RefineUC["RefineJobUseCase"]
+        TransUC["TranslateJobUseCase"]
+        EmbedUC["GenerateEmbeddingUseCase"]
+        MatchUC["MatchCandidateUseCase"]
+    end
+
+    subgraph Domain ["3. Domain & Ports"]
+        Entities["Candidate & Job Entities"]
+        Scorer["Match Scorer & Heuristics"]
+        RepoPort["Database Repository Port"]
+        LLMPort["LLM Service Port"]
+        TransPort["Translator Service Port"]
+    end
+
+    subgraph Infrastructure ["4. Infrastructure & Adapters"]
+        DB["SQL Database<br/>(SQLite / PostgreSQL)"]
+        LLM["Ollama / OpenAI Client"]
+        NLLB["NLLB-200 CTranslate2"]
+        Nomic["Nomic Embeddings v1.5"]
+        Notifier["Telegram Notifier"]
+    end
+
+    API --> IngestUC
+    Bot --> IngestUC
+    Crawlers --> RefineUC
+    Workers --> TransUC
+    Workers --> EmbedUC
+    Workers --> MatchUC
+
+    UseCases --> Entities
+    MatchUC --> Scorer
+
+    UseCases --> RepoPort
+    UseCases --> LLMPort
+    UseCases --> TransPort
+
+    RepoPort --> DB
+    LLMPort --> LLM
+    TransPort --> NLLB
+    Scorer --> Nomic
+    MatchUC --> Notifier
 ```
 
 ---
 
-## 2. Requirements
+## Quick Start
 
-*   **Docker & Docker Compose** (recommended for unified execution)
-*   **Python**: `== 3.12.*` (if running locally without containers)
-*   **Environment Manager**: [uv](https://github.com/astral-sh/uv) (for local workspace CLI runs)
-*   **Hardware requirements**:
-    *   **LLM Service (Ollama)**: Centralized Ollama container running `gemma4` (or any model configured via `LLM_MODEL`).
-    *   **Translation Agent**: ~600MB RAM to load the quantized `NLLB-200-distilled-600M` model.
-    *   **Matching Agent**: Uses `nomic-embed-text-v1.5` for vector similarities and delegates structured reasoning to Ollama via `InstructorLlmClient`.
-*   **Database**: SQLite (default local file `jobs.db` mounted in containers) or PostgreSQL.
+### 1. Requirements
+* Python >= 3.12
+* [uv](https://github.com/astral-sh/uv) (recommended) or Docker & Docker Compose
+* Local or remote OpenAI-compatible LLM service (e.g., [Ollama](https://ollama.com))
 
----
-
-## 3. Quick Start with Docker Compose (Recommended)
-
-Running the entire stack (API server + crawlers + NLP workers + Ollama) takes a single command:
-
-### A. Configure Environment
-Create your local `.env` file from the template:
+### 2. Setup Environment
+Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
 
-### B. Boot the Stack
+Configure your `.env` variables:
+```ini
+PORT=8000
+API_SECRET_KEY=dev_secret_key
+DATABASE_URL=sqlite:///data/academix.db
+TELEGRAM_BOT_TOKEN=your_token_from_botfather
 
-#### 1. CPU Mode (Default - Works out-of-the-box on any machine)
-```bash
-docker compose up --build -d
+# LLM & Embedding Settings
+LLM_SERVICE_URL=http://localhost:11434/v1
+LLM_MODEL=hf.co/unsloth/gemma-4-E2B-it-GGUF:gemma-4-E2B-it-Q3_K_M.gguf
+EMBEDDING_MODEL=nomic-ai/nomic-embed-text-v1.5
+MATCH_THRESHOLD=0.75
+DEGREE_SIMILARITY_THRESHOLD=0.71
+ENABLE_MATCH_EXPLANATION=true
 ```
 
-#### 2. GPU Mode (NVIDIA Hardware Acceleration)
-If you have an NVIDIA GPU and NVIDIA Container Toolkit installed:
-```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
-```
-*Tip: Set `COMPOSE_FILE=docker-compose.yml:docker-compose.gpu.yml` in `.env` to enable GPU mode automatically with standard `docker compose up`.*
+> **Telegram Bot Ready**: Set `TELEGRAM_BOT_TOKEN` to enable real-time CV matching and instant vacancy alerts directly inside Telegram via `@AcadamixBot`.
 
-#### 3. Production Scaled Mode (Behind NGINX Load Balancer)
-```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d --scale api=3
-```
-
-### C. Graceful Terminations
-To stop the stack cleanly:
-```bash
-docker compose down
-```
-
----
-
-## 4. Running Locally with UV (Development Mode)
-
-Synchronize your workspace dependencies first:
+### 3. Install Dependencies
 ```bash
 uv sync --all-packages
 ```
 
-### A. Start API Server
-Run the FastAPI gateway server:
+### 4. Setup Database
+Run database schema migrations:
 ```bash
-uv run --package api fastapi run packages/api/src/api/main.py --port 8000
+uv run python -m core.infrastructure.db.run_migrations
+```
+*(Supports SQLite local file or PostgreSQL server)*
+
+### 5. Run the Project (Unified Local Server)
+```bash
+uv run python run_all.py
+```
+This starts the FastAPI gateway, Telegram bot, background NLP workers, and all crawler agents under a unified supervisor process.
+
+### 6. Run with Docker Compose (Alternative)
+
+* **Default CPU Stack** (Gateway + Workers + Crawlers):
+```bash
+docker compose up --build -d
 ```
 
-### B. Run Workspace Agents
-
-| Agent Package | Main Module | Agent Role |
-| :--- | :--- | :--- |
-| `euraxess-discovery` | `euraxess_discovery.main` | Full-scroll crawl discovery (EURAXESS) |
-| `euraxess-sourcing` | `euraxess_sourcing.main` | Page details fetcher (EURAXESS) |
-| `academictransfer-discovery` | `academictransfer_discovery.main` | XML sitemap & crawl discovery (AcademicTransfer) |
-| `academictransfer-sourcing` | `academictransfer_sourcing.main` | Page details fetcher (AcademicTransfer) |
-| `abg-discovery` | `abg_discovery.main` | Full-scroll crawl discovery (ABG) |
-| `abg-sourcing` | `abg_sourcing.main` | Page details fetcher (ABG) |
-| `naturecareers-discovery` | `naturecareers_discovery.main` | XML sitemap discovery (Nature Careers) |
-| `naturecareers-sourcing` | `naturecareers_sourcing.main` | Page details fetcher (Nature Careers) |
-| `researchgate-discovery` | `researchgate_discovery.main` | Full-scroll crawl discovery (ResearchGate) |
-| `researchgate-sourcing` | `researchgate_sourcing.main` | Page details fetcher (ResearchGate) |
-| `eurosciencejobs-discovery` | `eurosciencejobs_discovery.main` | XML sitemap & category discovery (EuroScienceJobs) |
-| `eurosciencejobs-sourcing` | `eurosciencejobs_sourcing.main` | Page details fetcher (EuroScienceJobs) |
-| `translation` | `agent_translation.main` | Paragraph-aware detection & NLLB-200 translation |
-| `refinement` | `agent_refinement.main` | Skills & metadata refinement worker (Instructor + Ollama) |
-| `embedding-worker` | `agent_embedding.main` | Local Nomic vector embeddings generator |
-| `matching` | `agent_matching.main` | Candidate CV matcher & LLM reasoning explainer |
-| `cv-parsing` | `agent_cv_parsing.main` | Background CV ingest and layout parsing |
-| `cleanup` | `agent_cleanup.main` | Expired listings cleanup worker |
-| `telegram-bot` | `telegram_bot.main` | Telegram Bot user interface agent |
-
-Run any agent using:
+* **GPU Mode** (Hardware accelerated inference):
 ```bash
-uv run --package <Agent Package> python -m <Main Module>
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+```
+
+* **Production Stack with PostgreSQL & NGINX**:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.prod.yml up --build -d
 ```
 
 ---
 
-## 5. Core API & Pipeline Workflow
+## Telegram Bot Usage (`@AcadamixBot`)
 
-### A. Ingest a Candidate CV
-Upload a candidate's CV (PDF format). The API saves the file and queues it for asynchronous parsing, translation, structured refinement, and vector embedding:
+* `/start` - Starts the assistant or opens the personal dashboard.
+* `/upload_cv` - Step-by-step prompt to upload your academic CV (PDF).
+* `/status` - Visual progress bar tracking CV extraction, translation, and matching.
+* `/profile` - View extracted skills, highest degree, and research domains.
+* `/edit` - Interactive button wizard to edit skills, research domains, or degree fields.
+* `/matches` - Single-card carousel to browse matched academic vacancies with direct links.
+* `/delete` - Reset and permanently delete your profile and CV document.
+* `/help` - Command guide and usage instructions.
+
+### Candidate Workflow
+1. Start a conversation with `@AcadamixBot` and tap **Upload CV** or send `/upload_cv`.
+2. Attach and send your CV as a `.pdf` file.
+3. The AI pipeline parses your qualifications and calculates semantic compatibility against open European vacancies.
+4. When matches are computed, receive instant notifications with match percentage, job details, and direct links to apply.
+
+---
+
+## API Endpoints
+
+### 1. Ingest Candidate CV
+`POST /profiles/upload-cv`
+* Uploads a candidate's CV document (PDF format) and queues asynchronous parsing.
 ```bash
 curl -X POST http://localhost:8000/profiles/upload-cv \
-  -H "Authorization: Bearer dev_secret_key" \
   -F "file=@/path/to/cv.pdf" \
-  -F "email=candidate@example.com" \
-  -F "name=John Doe"
+  -F "name=Marie Curie" \
+  -F "telegram_chat_id=123456789"
 ```
 
-### B. Retrieve Matched Jobs & Explanations
-Retrieve qualified academic positions for a candidate (evaluated with hierarchical degree filtering, semantic domain thresholds, and asymmetric max-dominance pooling):
+### 2. Retrieve Matched Vacancies
+`GET /profiles/{profile_id}/matches?limit=10`
+* Returns ranked academic positions meeting compatibility thresholds with optional LLM reasoning explanation.
+
+### 3. Retrieve Refined Jobs
+`GET /jobs/refined`
+* Returns structured academic vacancies enriched with prerequisite degree levels, fields, and deadlines.
+
+### 4. Health & Status Check
+`GET /status` or `GET /health`
+* Checks service health and database connectivity.
+
+---
+
+## Code Quality & Testing
+
+* **Lint with Ruff:**
 ```bash
-curl -X GET http://localhost:8000/profiles/1/matches?limit=10 \
-  -H "Authorization: Bearer dev_secret_key"
+uv run ruff check .
 ```
 
----
-
-## 6. Configuration Settings
-
-Key `.env` options:
-
-| Environment Variable | Default Value | Description |
-|---|---|---|
-| `API_URL` | `http://localhost:8000` | Target URL of the FastAPI gateway |
-| `API_SECRET_KEY` | *None* | Shared bearer credential and API validation key |
-| `DATABASE_URL` | `sqlite:///jobs.db` | SQL database connection string |
-| `LLM_SERVICE_URL` | `http://ollama:11434/v1` | OpenAI-compatible endpoint for Ollama service |
-| `LLM_MODEL` | `hf.co/unsloth/gemma-4-E2B-it-GGUF:gemma-4-E2B-it-Q3_K_M.gguf` | Target LLM model |
-| `EMBEDDING_MODEL` | `nomic-ai/nomic-embed-text-v1.5` | Target SentenceTransformer embedding model |
-| `MATCH_THRESHOLD` | `0.75` | Minimum composite score threshold for candidate-job match |
-| `DEGREE_SIMILARITY_THRESHOLD` | `0.71` | Minimum cosine similarity threshold for degree field match |
-| `ENABLE_MATCH_EXPLANATION` | `true` | Toggle LLM-powered explanation generation for matches |
-| `NLLB_MODEL_PATH` | `mijuanlo/nllb-200-distilled-600M-ct2-int8` | Quantized CTranslate2 translation model |
-| `STORAGE_PROVIDER` | `local` | Storage backend: `local` filesystem or `s3` |
-| `TELEGRAM_BOT_TOKEN` | *None* | Bot token for the Academix Telegram bot (@AcadamixBot) |
-
----
-
-## 7. System Architecture (Clean Architecture)
-
-```mermaid
-graph TD
-    subgraph Sourcing & Crawling Nodes
-        Sources["6 Job Boards<br/>(EURAXESS, AcademicTransfer, ABG,<br/>NatureCareers, ResearchGate, EuroScienceJobs)"]
-        Disc["Discovery Agents (*-discovery)"]
-        Sourc["Sourcing Agents (*-sourcing)"]
-    end
-
-    subgraph User & Ingestion Layer
-        TG[telegram-bot Agent]
-        CV[cv-parsing Agent]
-    end
-
-    subgraph Gateway & DB Layer
-        API[FastAPI Gateway /packages/api]
-        DB[(Database SQLite/PostgreSQL)]
-    end
-
-    subgraph Processing Pipeline
-        Trans["translation Agent<br/>(Lingua + CTranslate2 NLLB-200)"]
-        Refine["refinement Agent<br/>(Instructor + Ollama)"]
-        Embed["embedding-worker<br/>(nomic-embed-text-v1.5)"]
-        Match["matching Agent<br/>(MatchScorer + ExplainMatchUseCase)"]
-    end
-
-    Sources --> Disc
-    Disc -->|POST /jobs stubs| API
-    Sourc -->|GET /jobs/pending-details| API
-    Sourc -->|PUT /jobs/details| API
-
-    TG -->|POST /profiles/upload-cv| API
-    CV -->|Claim & parse PDF| API
-
-    API -->|Claim translate| Trans
-    Trans -->|Submit English| API
-
-    API -->|Claim refine| Refine
-    Refine -->|Submit structured metadata| API
-
-    API -->|Claim embed| Embed
-    Embed -->|Submit vector embeddings| API
-
-    API -->|Claim match| Match
-    Match -->|Save high-score matches & explanations| API
-
-    API <-->|SQLAlchemy ORM| DB
+* **Format code with Ruff:**
+```bash
+uv run ruff format .
 ```
 
----
-
-## 8. Code Quality & Automated Testing
-
-Ensure all tests, linting, and static type checks pass cleanly:
-
-### A. Run Automated Test Suite (Pytest)
-Run all 53 unit, integration, and E2E pipeline tests:
+* **Run complete test suite:**
 ```bash
 uv run pytest
 ```
 
-### B. Code Formatting & Linting (Ruff)
-```bash
-uv run ruff check .
-uv run ruff format .
-```
-
-### C. Static Type Checking (Pyright)
-```bash
-uv run pyright .
-```
-
-### D. Database Schema Migrations (Alembic)
-```bash
-uv run --package api alembic -c packages/api/alembic.ini revision --autogenerate -m "describe_your_change"
-```
-
 ---
 
-## 9. License
+## License
 
-Academix is licensed under the **Business Source License 1.1 (BSL 1.1)**.
+This project is licensed under the **Business Source License 1.1 (BSL 1.1)**.
 
-- **Personal & Educational Use**: Free for personal, educational, research, and non-commercial self-hosting.
-- **Commercial Restrictions**: You may not provide Academix as a hosted, managed, or paid commercial service to third parties without a commercial license from the author ([`drLacheheb`](https://github.com/drLacheheb)).
-- **Change to Open Source**: On **January 1, 2030**, the license automatically converts to the **GNU Affero General Public License, Version 3 (AGPL-3.0)**.
+* **Free for Personal & Educational Use**: You are free to view, study, modify, and run Academix for personal, academic, research, and non-commercial purposes.
+* **Commercial Protection**: Offering Academix as a commercial matching service or SaaS to third parties requires a commercial license.
+* **Conversion**: Automatically converts to open-source **GNU General Public License v3.0 (GPLv3)** after the change date.
 
-See the full terms in the [`LICENSE`](LICENSE) file.
+See the [LICENSE](LICENSE) file for complete legal terms.
