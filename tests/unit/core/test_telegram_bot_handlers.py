@@ -128,6 +128,30 @@ async def test_start_command_returning_user():
 
     await start_command(update, context)
 
+    update.message.reply_text.assert_awaited_once()
+    call_args = update.message.reply_text.call_args[0][0]
+    assert "Welcome back, <b>Marie</b>" in call_args
+
+
+async def test_start_command_deep_linking():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import start_command
+
+    update = MagicMock()
+    update.callback_query = None
+    update.effective_chat.id = 12345
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.args = ["help"]
+    context.bot_data = {}
+
+    await start_command(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "Academix Assistant - Command Guide" in update.message.reply_text.call_args[0][0]
+
+
 async def test_help_command_message():
     from unittest.mock import AsyncMock, MagicMock
 
@@ -428,6 +452,212 @@ async def test_navigation_callback_handler_routing():
     await navigation_callback_handler(update2, context2)
     update2.callback_query.edit_message_text.assert_awaited_once()
     assert "Job 2" in update2.callback_query.edit_message_text.call_args[0][0]
+
+
+async def test_start_command_unrecognized_deep_link():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import start_command
+
+    update = MagicMock()
+    update.effective_chat.id = 12345
+    update.effective_user.first_name = "Marie"
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.args = ["unknown_ref_12345"]
+    api_mock = MagicMock()
+    api_mock.get.return_value.status_code = 404
+    api_mock.get.return_value.json.return_value = []
+    context.bot_data = {"api": api_mock}
+
+    await start_command(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "Welcome <b>Marie</b> to Academix" in update.message.reply_text.call_args[0][0]
+
+
+async def test_start_command_api_error_fallback():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import start_command
+
+    update = MagicMock()
+    update.effective_chat.id = 12345
+    update.effective_user.first_name = "Marie"
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.args = []
+    api_mock = MagicMock()
+    api_mock.get.side_effect = Exception("API connection timed out")
+    context.bot_data = {"api": api_mock}
+
+    await start_command(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "Welcome <b>Marie</b> to Academix" in update.message.reply_text.call_args[0][0]
+
+
+async def test_status_command_api_error():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import status_command
+
+    update = MagicMock()
+    update.callback_query = None
+    update.effective_chat.id = 12345
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.bot.send_chat_action = AsyncMock()
+    api_mock = MagicMock()
+    api_mock.get.side_effect = Exception("Database lock error")
+    context.bot_data = {"api": api_mock}
+
+    await status_command(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "Failed to retrieve profile status" in update.message.reply_text.call_args[0][0]
+
+
+async def test_matches_command_api_error():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import matches_command
+
+    update = MagicMock()
+    update.callback_query = None
+    update.effective_chat.id = 12345
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.bot.send_chat_action = AsyncMock()
+    api_mock = MagicMock()
+    api_mock.get.side_effect = Exception("Service unavailable")
+    context.bot_data = {"api": api_mock}
+
+    await matches_command(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "Failed to fetch matches" in update.message.reply_text.call_args[0][0]
+
+
+async def test_matches_command_no_matches_found():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import matches_command
+
+    update = MagicMock()
+    update.callback_query = None
+    update.effective_chat.id = 12345
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.bot.send_chat_action = AsyncMock()
+    api_mock = MagicMock()
+    prof_resp = MagicMock()
+    prof_resp.status_code = 200
+    prof_resp.json.return_value = [{"id": 1}]
+    matches_resp = MagicMock()
+    matches_resp.status_code = 200
+    matches_resp.json.return_value = {"matches": []}
+    api_mock.get.side_effect = [prof_resp, matches_resp]
+    context.bot_data = {"api": api_mock}
+
+    await matches_command(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "No matches found yet" in update.message.reply_text.call_args[0][0]
+
+
+async def test_handle_document_api_failure():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import handle_document
+
+    update = MagicMock()
+    update.effective_chat.id = 12345
+    update.message.document.file_name = "cv.pdf"
+    update.message.document.file_id = "doc_error"
+    update.message.reply_text = AsyncMock()
+
+    tg_file_mock = MagicMock()
+    tg_file_mock.download_as_bytearray = AsyncMock(return_value=b"%PDF mock")
+
+    context = MagicMock()
+    context.bot.get_file = AsyncMock(return_value=tg_file_mock)
+    context.bot.send_chat_action = AsyncMock()
+
+    api_mock = MagicMock()
+    api_mock.post.side_effect = Exception("Upload pipeline failed")
+    context.bot_data = {"api": api_mock}
+
+    await handle_document(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "Failed to process your CV" in update.message.reply_text.call_args[0][0]
+
+
+async def test_delete_callback_confirm_404():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import delete_callback_handler
+
+    update = MagicMock()
+    update.effective_chat.id = 12345
+    update.callback_query.data = "delete_confirm"
+    update.callback_query.answer = AsyncMock()
+    update.callback_query.edit_message_text = AsyncMock()
+
+    context = MagicMock()
+    api_mock = MagicMock()
+    del_resp = MagicMock()
+    del_resp.status_code = 404
+    api_mock.delete.return_value = del_resp
+    context.bot_data = {"api": api_mock}
+
+    await delete_callback_handler(update, context)
+    update.callback_query.edit_message_text.assert_awaited_once()
+    assert "No active profile found" in update.callback_query.edit_message_text.call_args[0][0]
+
+
+async def test_navigation_callback_handler_uncached_fallback():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import navigation_callback_handler
+
+    update = MagicMock()
+    update.effective_chat.id = 12345
+    update.callback_query.data = "match_page_0"
+    update.callback_query.answer = AsyncMock()
+    update.callback_query.edit_message_text = AsyncMock()
+
+    context = MagicMock()
+    context.user_data = {}
+    api_mock = MagicMock()
+    prof_resp = MagicMock()
+    prof_resp.status_code = 200
+    prof_resp.json.return_value = [{"id": 10}]
+    matches_resp = MagicMock()
+    matches_resp.status_code = 200
+    matches_resp.json.return_value = {
+        "matches": [{"job_title": "Senior Researcher", "score": 0.92, "employer": "Max Planck"}]
+    }
+    api_mock.get.side_effect = [prof_resp, matches_resp]
+    context.bot_data = {"api": api_mock}
+
+    await navigation_callback_handler(update, context)
+    update.callback_query.edit_message_text.assert_awaited_once()
+    assert "Senior Researcher" in update.callback_query.edit_message_text.call_args[0][0]
+
+
+def test_render_match_page_out_of_bounds_clamping():
+    from telegram_bot.handlers import render_match_page
+
+    matches = [{"job_title": "Only Job", "score": 0.8, "employer": "Uni"}]
+    # Negative page clamps to 0
+    text_neg, _ = render_match_page(matches, -5)
+    assert "Match 1 of 1" in text_neg
+
+    # Page beyond bounds clamps to last page
+    text_pos, _ = render_match_page(matches, 50)
+    assert "Match 1 of 1" in text_pos
+
 
 
 

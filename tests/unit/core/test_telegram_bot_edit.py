@@ -130,3 +130,73 @@ async def test_global_error_handler():
     context = MagicMock()
     context.error = ValueError("Test error")
     await global_error_handler(None, context)
+
+
+async def test_edit_start_api_error():
+    update = MagicMock()
+    update.effective_chat.id = 12345
+    update.callback_query = None
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.user_data = {}
+    api_mock = MagicMock()
+    api_mock.get.side_effect = Exception("Service unavailable")
+    context.bot_data = {"api": api_mock}
+
+    state = await edit_start(update, context)
+    assert state == -1
+    update.message.reply_text.assert_awaited_once()
+    assert "Failed to load profile" in update.message.reply_text.call_args[0][0]
+
+
+async def test_field_chosen_invalid_choice():
+    update = MagicMock()
+    update.callback_query.data = "invalid_field_random"
+    update.callback_query.answer = AsyncMock()
+    update.callback_query.edit_message_text = AsyncMock()
+
+    context = MagicMock()
+    context.user_data = {}
+
+    state = await field_chosen(update, context)
+    assert state == -1
+    update.callback_query.edit_message_text.assert_awaited_once()
+    assert "Invalid selection" in update.callback_query.edit_message_text.call_args[0][0]
+
+
+async def test_value_received_session_expired():
+    update = MagicMock()
+    update.message.text = "New Value"
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.user_data = {}  # missing editing_field / profile_id
+    context.bot_data = {"api": MagicMock()}
+
+    state = await value_received(update, context)
+    assert state == -1
+    update.message.reply_text.assert_awaited_once()
+    assert "Session expired" in update.message.reply_text.call_args[0][0]
+
+
+async def test_value_received_api_patch_error():
+    update = MagicMock()
+    update.message.text = "Dr. Marie Curie"
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.user_data = {
+        "editing_field": "name",
+        "editing_profile_id": 1,
+        "editing_label": "Full Name",
+    }
+    api_mock = MagicMock()
+    api_mock.patch.side_effect = Exception("API 500 error")
+    context.bot_data = {"api": api_mock}
+
+    state = await value_received(update, context)
+    assert state == -1
+    update.message.reply_text.assert_awaited_once()
+    assert "Failed to update profile" in update.message.reply_text.call_args[0][0]
+
