@@ -90,6 +90,10 @@ def notify_telegram_on_matches_found(func):
         result = await func(*args, **kwargs)
 
         try:
+            from api.config import get_database_url
+            from core.infrastructure.db.pipeline_repository import PipelineJobRepository
+
+            repo = PipelineJobRepository(get_database_url())
             matches = []
             if isinstance(result, list):
                 matches = result
@@ -98,7 +102,7 @@ def notify_telegram_on_matches_found(func):
             elif isinstance(result, dict) and "match" in result:
                 matches = [result["match"]]
 
-            # If result only returned match_id (e.g. {"status": "completed", "match_id": 10})
+            # If result only returned match_id or task_id (e.g. {"status": "completed"})
             if not matches:
                 match_id = None
                 if isinstance(result, dict) and "match_id" in result:
@@ -107,12 +111,11 @@ def notify_telegram_on_matches_found(func):
                     match_id = kwargs["body"].match_id
 
                 if match_id:
-                    from api.config import get_database_url
-                    from core.infrastructure.db.pipeline_repository import PipelineJobRepository
-
-                    repo = PipelineJobRepository(get_database_url())
                     unnotified = repo.matches.get_unnotified_matches(limit=20)
                     matches = [m for m in unnotified if m.get("match_id") == int(match_id)]
+                else:
+                    # Called from /matches/complete (body has task_id and matches)
+                    matches = repo.matches.get_unnotified_matches(limit=20)
 
             for m in matches:
                 if not isinstance(m, dict):
@@ -124,10 +127,6 @@ def notify_telegram_on_matches_found(func):
                 msg = format_match_card(m)
                 if send_telegram_message(chat_id, msg):
                     if "match_id" in m:
-                        from api.config import get_database_url
-                        from core.infrastructure.db.pipeline_repository import PipelineJobRepository
-
-                        repo = PipelineJobRepository(get_database_url())
                         repo.matches.mark_as_notified([m["match_id"]])
         except Exception as e:
             logger.error(f"Error in notify_telegram_on_matches_found decorator: {e}")

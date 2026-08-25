@@ -54,6 +54,7 @@ async def claim_matching_task(
 
 @router.put("/matches/complete")
 @limiter.limit("60/minute")
+@notify_telegram_on_matches_found
 async def submit_task_matches(
     request: Request,
     body: MatchingTaskComplete,
