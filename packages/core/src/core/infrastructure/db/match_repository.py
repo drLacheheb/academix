@@ -12,6 +12,13 @@ class MatchRepository(BaseMatchRepository):
         self._SessionLocal = session_factory
 
     def save_matches(self, matches: list[Match]) -> None:
+        import os
+
+        enable_explanations = os.environ.get(
+            "ENABLE_MATCH_EXPLANATION", "true"
+        ).lower() in ("true", "1", "yes")
+        initial_status = "pending" if enable_explanations else "skipped"
+
         session = self._SessionLocal()
         try:
             for match in matches:
@@ -29,8 +36,8 @@ class MatchRepository(BaseMatchRepository):
                     existing.language_eligible = match.language_eligible
                     existing.skill_score = match.skill_score
                     existing.research_score = match.research_score
-                    existing.explanation = None
-                    existing.explanation_status = "pending"
+                    existing.explanation = match.explanation
+                    existing.explanation_status = initial_status
                     existing.explanation_claimed_by = None
                     existing.explanation_claimed_at = None
                 else:
@@ -42,8 +49,8 @@ class MatchRepository(BaseMatchRepository):
                         language_eligible=match.language_eligible,
                         skill_score=match.skill_score,
                         research_score=match.research_score,
-                        explanation=None,
-                        explanation_status="pending",
+                        explanation=match.explanation,
+                        explanation_status=initial_status,
                     )
                     session.add(model)
             session.commit()
@@ -98,52 +105,26 @@ class MatchRepository(BaseMatchRepository):
     ) -> Match | None:
         session = self._SessionLocal()
         try:
-            # Recover stale claims
-            session.execute(
-                update(MatchModel)
-                .where(
-                    MatchModel.explanation_status == "claimed",
-                    MatchModel.explanation_claimed_at < stale_cutoff,
-                )
-                .values(
-                    explanation_status="pending",
-                    explanation_claimed_by=None,
-                    explanation_claimed_at=None,
-                )
-            )
-
-            # Find next pending match that qualifies (score >= threshold)
-            candidate = (
+            match = (
                 session.query(MatchModel)
                 .filter(
-                    MatchModel.explanation_status == "pending",
                     MatchModel.score >= threshold,
+                    MatchModel.explanation_status == "pending",
+                    (MatchModel.explanation_claimed_at.is_(None))
+                    | (MatchModel.explanation_claimed_at < stale_cutoff),
                 )
                 .order_by(desc(MatchModel.score))
+                .with_for_update(skip_locked=True)
                 .first()
             )
-            if not candidate:
-                session.commit()
+
+            if not match:
                 return None
 
-            # Claim it
-            result = session.execute(
-                update(MatchModel)
-                .where(
-                    MatchModel.id == candidate.id,
-                    MatchModel.explanation_status == "pending",
-                )
-                .values(
-                    explanation_status="claimed",
-                    explanation_claimed_by=agent_name,
-                    explanation_claimed_at=datetime.now(UTC).replace(tzinfo=None),
-                )
-            )
+            match.explanation_claimed_by = agent_name
+            match.explanation_claimed_at = datetime.now(UTC).replace(tzinfo=None)
             session.commit()
-
-            if result.rowcount == 1:
-                return candidate.to_domain()
-            return None
+            return match.to_domain()
         except Exception:
             session.rollback()
             raise
@@ -153,17 +134,13 @@ class MatchRepository(BaseMatchRepository):
     def complete_explanation(self, match_id: int, explanation: str) -> None:
         session = self._SessionLocal()
         try:
-            session.execute(
-                update(MatchModel)
-                .where(MatchModel.id == match_id)
-                .values(
-                    explanation=explanation,
-                    explanation_status="completed",
-                    explanation_claimed_by=None,
-                    explanation_claimed_at=None,
-                )
-            )
-            session.commit()
+            match = session.query(MatchModel).filter(MatchModel.id == match_id).first()
+            if match:
+                match.explanation = explanation
+                match.explanation_status = "completed"
+                match.explanation_claimed_by = None
+                match.explanation_claimed_at = None
+                session.commit()
         except Exception:
             session.rollback()
             raise
@@ -173,16 +150,12 @@ class MatchRepository(BaseMatchRepository):
     def fail_explanation(self, match_id: int) -> None:
         session = self._SessionLocal()
         try:
-            session.execute(
-                update(MatchModel)
-                .where(MatchModel.id == match_id)
-                .values(
-                    explanation_status="failed",
-                    explanation_claimed_by=None,
-                    explanation_claimed_at=None,
-                )
-            )
-            session.commit()
+            match = session.query(MatchModel).filter(MatchModel.id == match_id).first()
+            if match:
+                match.explanation_status = "failed"
+                match.explanation_claimed_by = None
+                match.explanation_claimed_at = None
+                session.commit()
         except Exception:
             session.rollback()
             raise
@@ -223,9 +196,7 @@ class MatchRepository(BaseMatchRepository):
                 .join(CandidateProfileModel, MatchModel.candidate_id == CandidateProfileModel.id)
                 .filter(
                     MatchModel.telegram_notified == False,  # noqa: E712
-                    MatchModel.explanation_status == "completed",
-                    MatchModel.explanation.isnot(None),
-                    MatchModel.explanation != "",
+                    MatchModel.explanation_status.in_(["completed", "skipped"]),
                     CandidateProfileModel.telegram_chat_id.isnot(None),
                 )
                 .order_by(desc(MatchModel.score))
@@ -247,7 +218,7 @@ class MatchRepository(BaseMatchRepository):
                         "country": job.country,
                         "deadline": job.deadline,
                         "degree_fields": job.degree_fields,
-                        "explanation": match.explanation,
+                        "explanation": match.explanation or "Matching criteria satisfied.",
                     }
                 )
             return unnotified

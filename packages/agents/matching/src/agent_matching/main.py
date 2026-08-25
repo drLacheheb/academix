@@ -133,60 +133,68 @@ def run():
                     pass
             return True
 
-        # Polling for explanations
-        logger.info("Polling for pending match explanations...")
-        try:
-            explain_resp = api.post("/matches/claim-explain", json={"agent_name": agent_name})
-            explain_resp.raise_for_status()
-        except Exception as e:
-            logger.error(f"Error polling match explanations: {e}")
-            return False
+        # Check if match explanations are enabled
+        enable_explanations = os.environ.get(
+            "ENABLE_MATCH_EXPLANATION", "true"
+        ).lower() in ("true", "1", "yes")
 
-        match_data = explain_resp.json().get("match")
-        if match_data:
-            task_processed = True
-            match_id = match_data["id"]
-            candidate_id = match_data["candidate_id"]
-            job_url = match_data["job_url"]
-
-            logger.info(
-                f"Claimed match explanation {match_id} for candidate "
-                f"{candidate_id} and job {job_url}"
-            )
-
+        if enable_explanations:
+            # Polling for explanations
+            logger.info("Polling for pending match explanations...")
             try:
-                # Load candidate profile
-                profile_resp = api.get(f"/profiles/{candidate_id}")
-                profile_resp.raise_for_status()
-                candidate = CandidateProfile.from_dict(profile_resp.json())
-
-                # Load jobs list to find job details
-                jobs_resp = api.get("/jobs/refined")
-                jobs_resp.raise_for_status()
-                job_dict = next((j for j in jobs_resp.json() if j["url"] == job_url), None)
-                if not job_dict:
-                    raise ValueError(f"Job not found for explanation: {job_url}")
-                job = Job.from_dict(job_dict)
-
-                # Generate explanation using domain usecase
-                explanation = explainer.execute(candidate, job)
-                logger.info(f"Generated explanation: {explanation}")
-
-                # Submit explanation
-                submit_resp = api.put(
-                    "/matches/complete-explain",
-                    json={"match_id": match_id, "explanation": explanation},
+                explain_resp = api.post(
+                    "/matches/claim-explain", json={"agent_name": agent_name}
                 )
-                submit_resp.raise_for_status()
-                logger.info(f"Successfully submitted explanation for match {match_id}.")
-
+                explain_resp.raise_for_status()
             except Exception as e:
-                logger.error(f"Failed to generate/submit explanation for match {match_id}: {e}")
+                logger.error(f"Error polling match explanations: {e}")
+                return False
+
+            match_data = explain_resp.json().get("match")
+            if match_data:
+                task_processed = True
+                match_id = match_data["id"]
+                candidate_id = match_data["candidate_id"]
+                job_url = match_data["job_url"]
+
+                logger.info(
+                    f"Claimed match explanation {match_id} for candidate "
+                    f"{candidate_id} and job {job_url}"
+                )
+
                 try:
-                    api.put(f"/matches/fail-explain/{match_id}")
-                except Exception:
-                    pass
-            return True
+                    # Load candidate profile
+                    profile_resp = api.get(f"/profiles/{candidate_id}")
+                    profile_resp.raise_for_status()
+                    candidate = CandidateProfile.from_dict(profile_resp.json())
+
+                    # Load jobs list to find job details
+                    jobs_resp = api.get("/jobs/refined")
+                    jobs_resp.raise_for_status()
+                    job_dict = next((j for j in jobs_resp.json() if j["url"] == job_url), None)
+                    if not job_dict:
+                        raise ValueError(f"Job not found for explanation: {job_url}")
+                    job = Job.from_dict(job_dict)
+
+                    # Generate explanation using domain usecase
+                    explanation = explainer.execute(candidate, job)
+                    logger.info(f"Generated explanation: {explanation}")
+
+                    # Submit explanation
+                    submit_resp = api.put(
+                        "/matches/complete-explain",
+                        json={"match_id": match_id, "explanation": explanation},
+                    )
+                    submit_resp.raise_for_status()
+                    logger.info(f"Successfully submitted explanation for match {match_id}.")
+
+                except Exception as e:
+                    logger.error(f"Failed to generate/submit explanation for match {match_id}: {e}")
+                    try:
+                        api.put(f"/matches/fail-explain/{match_id}")
+                    except Exception:
+                        pass
+                return True
 
         # If no tasks or explanations were processed
         if not task_processed:
