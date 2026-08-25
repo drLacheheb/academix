@@ -72,3 +72,42 @@ def test_format_profile_card():
     assert "Computer Science, Informatics" in card
     assert "Python, FastAPI, Docker" in card
     assert "Machine Learning, Cloud Systems" in card
+
+
+def test_format_status_bar():
+    from core.utils.formatters import format_status_bar
+
+    res_ingest = format_status_bar("INGESTING")
+    assert "10%" in res_ingest
+    assert "Ingesting Document" in res_ingest
+
+    res_refine = format_status_bar("REFINEMENT_CLAIMED")
+    assert "70%" in res_refine
+    assert "Extracting Skills and Research" in res_refine
+
+    res_complete = format_status_bar("COMPLETED")
+    assert "100%" in res_complete
+    assert "Ready and Matched" in res_complete
+
+
+def test_format_single_match_card():
+    from core.utils.formatters import format_single_match_card
+
+    match_dict = {
+        "score": 0.88,
+        "job_title": "Tenure Track Assistant Professor in AI",
+        "employer": "Eindhoven University of Technology",
+        "city": "Eindhoven",
+        "country": "Netherlands",
+        "deadline": "2026-12-01",
+        "job_degree_fields": ["Computer Science", "AI"],
+        "explanation": "Exceptional fit with candidate machine learning background.",
+        "job_url": "https://example.com/job/999",
+    }
+    card = format_single_match_card(match_dict, current_idx=1, total=5)
+    assert "Match 1 of 5 (88% Match)" in card
+    assert "Tenure Track Assistant Professor in AI" in card
+    assert "Eindhoven University of Technology (Eindhoven, Netherlands)" in card
+    assert "Computer Science, AI" in card
+    assert "Exceptional fit with candidate machine learning background." in card
+

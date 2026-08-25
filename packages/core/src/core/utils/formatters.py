@@ -1,6 +1,28 @@
 import html
 
 
+def format_status_bar(status: str) -> str:
+    status_config = {
+        "INGESTING": (10, "Ingesting Document"),
+        "PENDING_DETECTION": (20, "Language Detection Queued"),
+        "DETECTION_CLAIMED": (30, "Detecting Language"),
+        "PENDING_TRANSLATION": (40, "Translation Queued"),
+        "TRANSLATION_CLAIMED": (50, "Translating Profile"),
+        "PENDING_REFINEMENT": (60, "Structuring Profile Queued"),
+        "REFINEMENT_CLAIMED": (70, "Extracting Skills and Research"),
+        "PENDING_EMBEDDING": (80, "Embedding Queued"),
+        "EMBEDDING_CLAIMED": (90, "Generating Vectors"),
+        "COMPLETED": (100, "Ready and Matched"),
+        "FAILED": (0, "Processing Failed"),
+    }
+    pct, label = status_config.get(status.upper(), (0, status))
+    total_blocks = 10
+    filled = int(round((pct / 100.0) * total_blocks))
+    unfilled = total_blocks - filled
+    bar = "=" * filled + "-" * unfilled
+    return f"[{bar}] {pct}%\nStage: {label}"
+
+
 def format_profile_card(p: dict) -> str:
     name = html.escape(p.get("name") or "Candidate")
     email = html.escape(p.get("email") or "Not specified")
@@ -8,7 +30,7 @@ def format_profile_card(p: dict) -> str:
 
     degree_fields_list = p.get("degree_fields") or []
     degree_fields_str = (
-        html.escape(", ".join(degree_fields_list)) if degree_fields_list else "None extracted"
+        html.escape(", ".join(degree_fields_list)) if degree_fields_list else "None specified"
     )
 
     skills_list = p.get("skills") or []
@@ -44,8 +66,48 @@ def format_profile_card(p: dict) -> str:
         f"<b>Key Skills:</b>\n{html.escape(skills)}\n\n"
         f"<b>Research Domains:</b>\n{html.escape(interests)}\n\n"
         f"<b>Spoken Languages:</b>\n{html.escape(lang_str)}\n\n"
-        f"<b>Preferred Locations:</b>\n{html.escape(locations)}\n\n"
-        f"<i>Use /edit to modify any of these fields!</i>"
+        f"<b>Preferred Locations:</b>\n{html.escape(locations)}"
+    )
+
+
+def format_single_match_card(m: dict, current_idx: int, total: int) -> str:
+    score = m.get("score", 0.0)
+    percentage = int(score * 100)
+    title = html.escape(m.get("job_title", "Academic Position"))
+    employer = html.escape(m.get("employer") or "Academic Institution")
+    city = html.escape(m.get("city") or "")
+    country = html.escape(m.get("country") or "")
+    loc_parts = [p for p in [city, country] if p]
+    location = ", ".join(loc_parts)
+    deadline = html.escape(m.get("deadline") or "Not specified")
+    explanation = html.escape(m.get("explanation") or "Matching requirements satisfied.")
+    raw_degrees = m.get("job_degree_fields") or m.get("degree_fields") or []
+    if isinstance(raw_degrees, str):
+        try:
+            import json
+
+            parsed = json.loads(raw_degrees)
+            degree_fields = parsed if isinstance(parsed, list) else [raw_degrees]
+        except Exception:
+            degree_fields = [raw_degrees]
+    elif isinstance(raw_degrees, list):
+        degree_fields = raw_degrees
+    else:
+        degree_fields = []
+
+    degree_str = (
+        f"\n<b>Degree Fields:</b> {html.escape(', '.join(str(d) for d in degree_fields))}"
+        if degree_fields
+        else ""
+    )
+    location_str = f" ({location})" if location else ""
+
+    return (
+        f"<b>Match {current_idx} of {total} ({percentage}% Match)</b>\n\n"
+        f"<b>{title}</b>\n"
+        f"<b>Institution:</b> {employer}{location_str}\n"
+        f"<b>Deadline:</b> {deadline}{degree_str}\n\n"
+        f"<b>Analysis:</b>\n<i>{explanation}</i>"
     )
 
 
