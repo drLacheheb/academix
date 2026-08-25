@@ -7,7 +7,7 @@ from core.infrastructure.logging.logger import get_logger
 from core.utils.api import make_api_client
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
-from telegram import BotCommand, Update
+from telegram import BotCommand, MenuButtonCommands, Update
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -26,6 +26,7 @@ from telegram_bot.handlers import (
     handle_document,
     help_command,
     matches_command,
+    navigation_callback_handler,
     profile_command,
     start_command,
     status_command,
@@ -38,17 +39,35 @@ bot_app = None
 
 
 async def post_init(application: Application) -> None:
-    commands = [
-        BotCommand("start", "Start the bot & view instructions"),
-        BotCommand("upload_cv", "Upload a new or updated CV document"),
-        BotCommand("status", "Track your CV pipeline processing progress"),
-        BotCommand("profile", "View your parsed skills, degree & interests"),
-        BotCommand("edit", "Edit profile skills, degree, or locations"),
-        BotCommand("matches", "Browse your top academic job matches"),
-        BotCommand("delete", "Permanently delete your profile & CV for a fresh start"),
-        BotCommand("help", "Show available commands & guide"),
-    ]
-    asyncio.create_task(application.bot.set_my_commands(commands))
+    logger = get_logger("telegram-bot-init")
+    try:
+        commands = [
+            BotCommand("start", "Start the bot and view menu"),
+            BotCommand("upload_cv", "Upload your CV (PDF)"),
+            BotCommand("status", "Track CV processing pipeline"),
+            BotCommand("profile", "View extracted profile and skills"),
+            BotCommand("edit", "Edit profile details"),
+            BotCommand("matches", "Browse top academic positions"),
+            BotCommand("delete", "Delete profile data"),
+            BotCommand("help", "Command guide and instructions"),
+        ]
+        await application.bot.set_my_commands(commands)
+
+        await application.bot.set_my_description(
+            "Academix connects researchers, postdocs, and PhD candidates with top "
+            "academic vacancies across Europe.\n\n"
+            "Upload your CV (PDF) to extract your skills, research domains, and qualifications, "
+            "and receive real-time match recommendations."
+        )
+
+        await application.bot.set_my_short_description(
+            "AI-powered academic job matching engine for researchers and scholars."
+        )
+
+        await application.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+        logger.info("Successfully synchronized bot commands, descriptions, and menu button.")
+    except Exception as e:
+        logger.error(f"Failed to synchronize bot metadata: {e}")
 
 
 async def global_error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -78,6 +97,12 @@ async def lifespan(app_fastapi: FastAPI):
     bot_app.add_handler(CommandHandler("matches", matches_command))
     bot_app.add_handler(CommandHandler(["upload_cv", "uploadcv", "newcv"], upload_cv_command))
     bot_app.add_handler(CommandHandler(["delete", "reset", "deleteprofile"], delete_command))
+    bot_app.add_handler(
+        CallbackQueryHandler(
+            navigation_callback_handler,
+            pattern="^(nav_|match_page_|refresh_status|delete_confirm_prompt|noop)",
+        )
+    )
     bot_app.add_handler(CallbackQueryHandler(delete_callback_handler, pattern="^delete_"))
     bot_app.add_handler(get_edit_handler())
     bot_app.add_handler(MessageHandler(filters.Document.PDF, handle_document))
@@ -154,6 +179,12 @@ def run_polling():
     application.add_handler(CommandHandler("matches", matches_command))
     application.add_handler(CommandHandler(["upload_cv", "uploadcv", "newcv"], upload_cv_command))
     application.add_handler(CommandHandler(["delete", "reset", "deleteprofile"], delete_command))
+    application.add_handler(
+        CallbackQueryHandler(
+            navigation_callback_handler,
+            pattern="^(nav_|match_page_|refresh_status|delete_confirm_prompt|noop)",
+        )
+    )
     application.add_handler(CallbackQueryHandler(delete_callback_handler, pattern="^delete_"))
     application.add_handler(get_edit_handler())
     application.add_handler(MessageHandler(filters.Document.PDF, handle_document))

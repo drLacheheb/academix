@@ -1,9 +1,12 @@
 import html
 import io
-import json
 
 from core.infrastructure.logging.logger import get_logger
-from core.utils.formatters import format_profile_card
+from core.utils.formatters import (
+    format_profile_card,
+    format_single_match_card,
+    format_status_bar,
+)
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
@@ -11,201 +14,384 @@ from telegram.ext import ContextTypes
 logger = get_logger("telegram-bot-handlers")
 
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_name = update.effective_user.first_name if update.effective_user else "Researcher"
-    welcome_text = (
-        f"Welcome <b>{html.escape(user_name)}</b> to Academic Career Engine!\n\n"
-        "I am your personal AI research career assistant.\n\n"
-        "<b>Available Commands:</b>\n"
-        "<b>/upload_cv</b> - Upload your CV (PDF document)\n"
-        "<b>/status</b> - Check your CV processing pipeline status\n"
-        "<b>/profile</b> - View your parsed skills, degree & research interests\n"
-        "<b>/edit</b> - Edit profile skills, degree, or locations\n"
-        "<b>/matches</b> - View your top academic job matches\n"
-        "<b>/help</b> - Show command guide"
+def render_match_page(matches: list[dict], page: int) -> tuple[str, InlineKeyboardMarkup]:
+    total = len(matches)
+    if total == 0:
+        text = "No matches found yet. We are actively crawling and matching vacancies for you."
+        keyboard = InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("Pipeline Status", callback_data="nav_status")],
+                [InlineKeyboardButton("My Profile", callback_data="nav_profile")],
+            ]
+        )
+        return text, keyboard
+
+    page = max(0, min(page, total - 1))
+    m = matches[page]
+    card_text = format_single_match_card(m, page + 1, total)
+
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton("< Prev", callback_data=f"match_page_{page - 1}"))
+    else:
+        nav_row.append(InlineKeyboardButton("< Prev", callback_data="noop"))
+
+    nav_row.append(InlineKeyboardButton(f"{page + 1} / {total}", callback_data="noop"))
+
+    if page < total - 1:
+        nav_row.append(InlineKeyboardButton("Next >", callback_data=f"match_page_{page + 1}"))
+    else:
+        nav_row.append(InlineKeyboardButton("Next >", callback_data="noop"))
+
+    keyboard_rows = [
+        nav_row,
+    ]
+    job_url = m.get("job_url")
+    if job_url:
+        keyboard_rows.append([InlineKeyboardButton("Open Vacancy Posting", url=job_url)])
+    keyboard_rows.append(
+        [
+            InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+            InlineKeyboardButton("Pipeline Status", callback_data="nav_status"),
+        ]
     )
-    if update.message:
-        await update.message.reply_text(welcome_text, parse_mode="HTML")
+    return card_text, InlineKeyboardMarkup(keyboard_rows)
+
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.effective_chat or not update.message:
+        return
+
+    user_name = update.effective_user.first_name if update.effective_user else "Researcher"
+    chat_id = str(update.effective_chat.id)
+
+    # Detect returning users for idempotent /start
+    api = context.bot_data.get("api")
+    is_returning = False
+    if api:
+        try:
+            resp = api.get(f"/profiles/by-chat-id/{chat_id}")
+            if resp.status_code == 200 and resp.json():
+                is_returning = True
+        except Exception:
+            pass
+
+    if is_returning:
+        welcome_text = (
+            f"Welcome back, <b>{html.escape(user_name)}</b>."
+        )
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+                    InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                ],
+                [
+                    InlineKeyboardButton("Pipeline Status", callback_data="nav_status"),
+                    InlineKeyboardButton("Upload New CV", callback_data="nav_upload"),
+                ],
+            ]
+        )
+    else:
+        welcome_text = (
+            f"Welcome <b>{html.escape(user_name)}</b> to Academix.\n\n"
+            "AI-powered academic job matching. Send your CV as a PDF to get started."
+        )
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Upload CV", callback_data="nav_upload"),
+                    InlineKeyboardButton("Help and Guide", callback_data="nav_help"),
+                ],
+            ]
+        )
+
+    await update.message.reply_text(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
-        "<b>Available Commands:</b>\n\n"
-        "<b>/upload_cv</b> (or /uploadcv) - Prompt to upload a CV document\n"
-        "<b>/status</b> - View pipeline stage for your uploaded CVs\n"
-        "<b>/profile</b> - See your parsed skills, research interests, and degree\n"
-        "<b>/edit</b> - Edit skills, research interests, degree, or locations\n"
-        "<b>/matches</b> - View your top matched academic vacancies\n"
-        "<b>/help</b> - Show this help message"
+        "<b>Academix Assistant - Command Guide</b>\n\n"
+        "<b>/upload_cv</b> - Upload a CV PDF document\n"
+        "<b>/status</b> - Track CV processing progress\n"
+        "<b>/profile</b> - View extracted skills, degree, and domains\n"
+        "<b>/edit</b> - Edit skills, degree fields, or preferred locations\n"
+        "<b>/matches</b> - Browse matched academic positions\n"
+        "<b>/delete</b> - Reset and delete all profile data\n"
+        "<b>/help</b> - Show this guide"
     )
-    if update.message:
-        await update.message.reply_text(help_text, parse_mode="HTML")
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Upload CV", callback_data="nav_upload"),
+                InlineKeyboardButton("Pipeline Status", callback_data="nav_status"),
+            ],
+            [
+                InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+            ],
+        ]
+    )
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(
+            help_text, parse_mode="HTML", reply_markup=keyboard
+        )
+    elif update.message:
+        await update.message.reply_text(help_text, parse_mode="HTML", reply_markup=keyboard)
 
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.effective_chat or not update.message:
+    if not update.effective_chat:
         return
 
     chat_id = str(update.effective_chat.id)
-    try:
-        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-    except Exception:
-        pass
+    if not update.callback_query:
+        try:
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        except Exception:
+            pass
     api = context.bot_data.get("api")
     if not api:
-        await update.message.reply_text("API service unavailable.")
+        msg = "API service unavailable."
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(msg)
+        elif update.message:
+            await update.message.reply_text(msg)
         return
 
     try:
         resp = api.get(f"/profiles/by-chat-id/{chat_id}")
         if resp.status_code != 200 or not resp.json():
-            await update.message.reply_text(
-                "No active CV profile found. Please send your CV as a PDF file to get started!"
+            keyboard = InlineKeyboardMarkup(
+                [[InlineKeyboardButton("Upload CV", callback_data="nav_upload")]]
             )
+            msg = "No active CV profile found. Please send your CV as a PDF file to get started."
+            if update.callback_query:
+                await update.callback_query.answer()
+                await update.callback_query.edit_message_text(
+                    msg, parse_mode="HTML", reply_markup=keyboard
+                )
+            elif update.message:
+                await update.message.reply_text(msg, parse_mode="HTML", reply_markup=keyboard)
             return
 
         profiles = resp.json()
         status_lines = ["<b>Your CV Processing Status:</b>\n"]
 
-        status_map = {
-            "INGESTING": "Ingesting CV...",
-            "PENDING_DETECTION": "Language Detection...",
-            "DETECTION_CLAIMED": "Detecting Language...",
-            "PENDING_TRANSLATION": "Translating Profile...",
-            "TRANSLATION_CLAIMED": "Translating Profile...",
-            "PENDING_REFINEMENT": "Structuring Profile...",
-            "REFINEMENT_CLAIMED": "Structuring Profile...",
-            "PENDING_EMBEDDING": "Generating Vector Embeddings...",
-            "EMBEDDING_CLAIMED": "Generating Vector Embeddings...",
-            "COMPLETED": "Ready & Matched!",
-            "FAILED": "Processing Failed",
-        }
-
         for idx, p in enumerate(profiles, start=1):
             filename = html.escape(p.get("cv_file_path") or "cv.pdf").split("/")[-1].split("\\")[-1]
             status = p.get("status", "UNKNOWN")
             msg = p.get("status_message") or ""
-            badge = status_map.get(status, status)
+            progress_bar = format_status_bar(status)
 
             status_lines.append(
                 f"<b>Profile #{idx}</b> (<i>{filename}</i>)\n"
-                f"Status: {badge}\n"
+                f"{progress_bar}\n"
                 f"Detail: {html.escape(msg)}\n"
             )
 
-        await update.message.reply_text("\n".join(status_lines), parse_mode="HTML")
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Refresh Status", callback_data="refresh_status"),
+                    InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+                ],
+                [
+                    InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                ],
+            ]
+        )
+        full_text = "\n".join(status_lines)
+
+        if update.callback_query:
+            await update.callback_query.answer("Status refreshed.")
+            await update.callback_query.edit_message_text(
+                full_text, parse_mode="HTML", reply_markup=keyboard
+            )
+        elif update.message:
+            await update.message.reply_text(
+                full_text, parse_mode="HTML", reply_markup=keyboard
+            )
 
     except Exception as e:
         logger.error(f"Error fetching status for chat_id {chat_id}: {e}")
-        await update.message.reply_text("Failed to retrieve profile status. Please try again.")
+        err_msg = "Failed to retrieve profile status. Please try again."
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(err_msg)
+        elif update.message:
+            await update.message.reply_text(err_msg)
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.effective_chat or not update.message:
+    if not update.effective_chat:
         return
 
     chat_id = str(update.effective_chat.id)
-    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    if not update.callback_query:
+        try:
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        except Exception:
+            pass
     api = context.bot_data.get("api")
     if not api:
-        await update.message.reply_text("API service unavailable.")
+        msg = "API service unavailable."
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(msg)
+        elif update.message:
+            await update.message.reply_text(msg)
         return
 
     try:
         resp = api.get(f"/profiles/by-chat-id/{chat_id}")
         if resp.status_code != 200 or not resp.json():
-            await update.message.reply_text("No CV profile found. Upload your CV PDF first!")
+            keyboard = InlineKeyboardMarkup(
+                [[InlineKeyboardButton("Upload CV", callback_data="nav_upload")]]
+            )
+            msg = "No CV profile found. Upload your CV PDF first."
+            if update.callback_query:
+                await update.callback_query.answer()
+                await update.callback_query.edit_message_text(
+                    msg, parse_mode="HTML", reply_markup=keyboard
+                )
+            elif update.message:
+                await update.message.reply_text(msg, parse_mode="HTML", reply_markup=keyboard)
             return
 
         profiles = resp.json()
         p = profiles[0]
         profile_text = format_profile_card(p)
-        await update.message.reply_text(profile_text, parse_mode="HTML")
+
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Edit Profile", callback_data="nav_edit"),
+                    InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+                ],
+                [
+                    InlineKeyboardButton("Delete Profile", callback_data="delete_confirm_prompt"),
+                ],
+            ]
+        )
+
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(
+                profile_text, parse_mode="HTML", reply_markup=keyboard
+            )
+        elif update.message:
+            await update.message.reply_text(
+                profile_text, parse_mode="HTML", reply_markup=keyboard
+            )
 
     except Exception as e:
         logger.error(f"Error in profile command for {chat_id}: {e}")
-        await update.message.reply_text("Failed to load profile details.")
+        err_msg = "Failed to load profile details."
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(err_msg)
+        elif update.message:
+            await update.message.reply_text(err_msg)
 
 
 async def matches_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.effective_chat or not update.message:
+    if not update.effective_chat:
         return
 
     chat_id = str(update.effective_chat.id)
-    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    if not update.callback_query:
+        try:
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        except Exception:
+            pass
     api = context.bot_data.get("api")
     if not api:
-        await update.message.reply_text("API service unavailable.")
+        msg = "API service unavailable."
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(msg)
+        elif update.message:
+            await update.message.reply_text(msg)
         return
 
     try:
         resp = api.get(f"/profiles/by-chat-id/{chat_id}")
         if resp.status_code != 200 or not resp.json():
-            await update.message.reply_text("Please upload a CV first to get matched jobs!")
+            keyboard = InlineKeyboardMarkup(
+                [[InlineKeyboardButton("Upload CV", callback_data="nav_upload")]]
+            )
+            msg = "Please upload a CV first to get matched jobs."
+            if update.callback_query:
+                await update.callback_query.answer()
+                await update.callback_query.edit_message_text(
+                    msg, parse_mode="HTML", reply_markup=keyboard
+                )
+            elif update.message:
+                await update.message.reply_text(msg, parse_mode="HTML", reply_markup=keyboard)
             return
 
         profiles = resp.json()
         p = profiles[0]
         profile_id = p["id"]
 
-        matches_resp = api.get(f"/profiles/{profile_id}/matches?limit=5")
+        matches_resp = api.get(f"/profiles/{profile_id}/matches?limit=20")
         if matches_resp.status_code != 200 or not matches_resp.json().get("matches"):
-            await update.message.reply_text(
-                "No matches found yet. We are actively crawling & matching vacancies for you!"
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("Pipeline Status", callback_data="nav_status")],
+                    [InlineKeyboardButton("My Profile", callback_data="nav_profile")],
+                ]
             )
+            msg = "No matches found yet. We are actively crawling and matching vacancies for you."
+            if update.callback_query:
+                await update.callback_query.answer()
+                await update.callback_query.edit_message_text(
+                    msg, parse_mode="HTML", reply_markup=keyboard
+                )
+            elif update.message:
+                await update.message.reply_text(msg, parse_mode="HTML", reply_markup=keyboard)
             return
 
         matches = matches_resp.json()["matches"]
-        msg_lines = ["<b>Top Vacancy Matches for You:</b>\n"]
+        if context.user_data is not None:
+            context.user_data["cached_matches"] = matches
 
-        for idx, m in enumerate(matches, start=1):
-            score_pct = int(m.get("score", 0.0) * 100)
-            url = m.get("job_url", "")
-            title = html.escape(m.get("job_title") or "Academic Position")
-            employer = html.escape(m.get("employer") or "Academic Institution")
-            location = html.escape(m.get("location") or "")
-            deadline = html.escape(m.get("deadline") or "Not specified")
-            explanation = html.escape(m.get("explanation") or "Matching criteria satisfied.")
-            raw_degrees = m.get("job_degree_fields") or m.get("degree_fields") or []
-            if isinstance(raw_degrees, str):
-                try:
-                    parsed = json.loads(raw_degrees)
-                    degree_fields = parsed if isinstance(parsed, list) else [raw_degrees]
-                except Exception:
-                    degree_fields = [raw_degrees]
-            elif isinstance(raw_degrees, list):
-                degree_fields = raw_degrees
-            else:
-                degree_fields = []
+        card_text, keyboard = render_match_page(matches, 0)
 
-            location_str = f" ({location})" if location else ""
-            degree_str = (
-                f"\nDegree: {html.escape(', '.join(str(d) for d in degree_fields))}"
-                if degree_fields
-                else ""
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(
+                card_text, parse_mode="HTML", reply_markup=keyboard, disable_web_page_preview=True
             )
-
-            msg_lines.append(
-                f"<b>{idx}. {title} ({score_pct}% Match)</b>\n"
-                f"{employer}{location_str}\n"
-                f"Deadline: {deadline}{degree_str}\n"
-                f"<i>{explanation}</i>\n"
-                f"<a href='{url}'>Open Vacancy Posting</a>\n"
+        elif update.message:
+            await update.message.reply_text(
+                card_text, parse_mode="HTML", reply_markup=keyboard, disable_web_page_preview=True
             )
-
-        await update.message.reply_text("\n".join(msg_lines), parse_mode="HTML")
 
     except Exception as e:
         logger.error(f"Error fetching matches for {chat_id}: {e}")
-        await update.message.reply_text("Failed to fetch matches.")
+        err_msg = "Failed to fetch matches."
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(err_msg)
+        elif update.message:
+            await update.message.reply_text(err_msg)
 
 
 async def upload_cv_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message:
-        await update.message.reply_text(
-            "Please send your CV as a <b>PDF document</b> in this chat.",
-            parse_mode="HTML",
-        )
+    prompt = (
+        "<b>Upload Your CV</b>\n\n"
+        "Send your CV as a <b>PDF file</b> in this chat.\n"
+        "The AI pipeline will extract your skills, degree, and research domains automatically."
+    )
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(prompt, parse_mode="HTML")
+    elif update.message:
+        await update.message.reply_text(prompt, parse_mode="HTML")
 
 
 async def newcv_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -227,7 +413,6 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user_name = update.effective_user.full_name if update.effective_user else None
 
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_DOCUMENT)
-    await update.message.reply_text("Receiving your CV... Uploading to pipeline...")
 
     try:
         tg_file = await context.bot.get_file(doc.file_id)
@@ -247,11 +432,20 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         profile_data = upload_resp.json()
         prof_id = profile_data.get("id")
 
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Check Pipeline Status", callback_data="nav_status"),
+                    InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                ]
+            ]
+        )
         await update.message.reply_text(
-            f"<b>CV Uploaded Successfully!</b> (Profile ID: #{prof_id})\n\n"
-            "The AI pipeline is now extracting, translating, and matching your profile.\n"
-            "Use <b>/status</b> anytime to view progress, or wait for instant match alerts!",
+            f"<b>CV Uploaded Successfully.</b> (Profile ID: #{prof_id})\n\n"
+            "The AI pipeline is extracting, translating, and matching your profile.\n"
+            "Use the button below to track progress or wait for instant match alerts.",
             parse_mode="HTML",
+            reply_markup=keyboard,
         )
         logger.info(f"Registered CV upload from Telegram user {chat_id} (profile #{prof_id})")
 
@@ -263,7 +457,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not update.message or not update.effective_chat:
+    if not update.effective_chat:
         return
 
     keyboard = InlineKeyboardMarkup(
@@ -274,17 +468,23 @@ async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             ]
         ]
     )
-
-    await update.message.reply_text(
+    msg = (
         "<b>Are you sure you want to delete your profile?</b>\n\n"
         "This action will permanently remove:\n"
-        "• Your candidate profile & CV document\n"
-        "• Your extracted skills & vector embeddings\n"
-        "• All calculated job matches & notification history\n\n"
-        "<i>This action cannot be undone.</i>",
-        parse_mode="HTML",
-        reply_markup=keyboard,
+        "- Your candidate profile & CV document\n"
+        "- Your extracted skills & vector embeddings\n"
+        "- All calculated job matches & notification history\n\n"
+        "<i>This action cannot be undone.</i>"
     )
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(
+            msg, parse_mode="HTML", reply_markup=keyboard
+        )
+    elif update.message:
+        await update.message.reply_text(
+            msg, parse_mode="HTML", reply_markup=keyboard
+        )
 
 
 async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -296,9 +496,18 @@ async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_
     chat_id = str(update.effective_chat.id)
 
     if query.data == "delete_cancel":
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                    InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+                ]
+            ]
+        )
         await query.edit_message_text(
             "<b>Deletion Cancelled.</b> Your profile and CV remain safe.",
             parse_mode="HTML",
+            reply_markup=keyboard,
         )
         return
 
@@ -315,11 +524,13 @@ async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_
                 return
             del_resp.raise_for_status()
 
+            keyboard = InlineKeyboardMarkup(
+                [[InlineKeyboardButton("Upload New CV", callback_data="nav_upload")]]
+            )
             await query.edit_message_text(
-                "<b>Your profile and CV data have been permanently deleted.</b>\n\n"
-                "You now have a clean start. You can upload a new CV anytime by sending a PDF file "
-                "or using <b>/upload_cv</b>.",
+                "<b>Profile deleted.</b> Upload a new CV to start fresh.",
                 parse_mode="HTML",
+                reply_markup=keyboard,
             )
             logger.info(f"Successfully deleted all profile data for Telegram user {chat_id}")
         except Exception as e:
@@ -327,3 +538,71 @@ async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             await query.edit_message_text(
                 "Failed to delete your profile data. Please try again later."
             )
+
+
+async def navigation_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query or not query.data:
+        return
+
+    data = query.data
+
+    if data == "noop":
+        await query.answer(text="")
+        return
+
+    if data in ("refresh_status", "nav_status"):
+        await status_command(update, context)
+        return
+
+    if data == "nav_profile":
+        await profile_command(update, context)
+        return
+
+    if data == "nav_matches":
+        await matches_command(update, context)
+        return
+
+    if data == "nav_upload":
+        await upload_cv_command(update, context)
+        return
+
+    if data == "nav_help":
+        await help_command(update, context)
+        return
+
+    if data == "delete_confirm_prompt":
+        await delete_command(update, context)
+        return
+
+    if data.startswith("match_page_"):
+        await query.answer()
+        try:
+            page = int(data.split("_")[-1])
+        except ValueError:
+            page = 0
+
+        matches = context.user_data.get("cached_matches") if context.user_data else None
+        if not matches:
+            chat_id = str(update.effective_chat.id)
+            api = context.bot_data.get("api")
+            if api:
+                resp = api.get(f"/profiles/by-chat-id/{chat_id}")
+                if resp.status_code == 200 and resp.json():
+                    prof_id = resp.json()[0]["id"]
+                    matches_resp = api.get(f"/profiles/{prof_id}/matches?limit=20")
+                    if matches_resp.status_code == 200:
+                        matches = matches_resp.json().get("matches", [])
+                        if context.user_data is not None:
+                            context.user_data["cached_matches"] = matches
+
+        if not matches:
+            await query.edit_message_text(
+                "No matches cached. Use /matches to refresh.", parse_mode="HTML"
+            )
+            return
+
+        card_text, keyboard = render_match_page(matches, page)
+        await query.edit_message_text(
+            card_text, parse_mode="HTML", reply_markup=keyboard, disable_web_page_preview=True
+        )

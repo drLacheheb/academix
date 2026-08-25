@@ -18,59 +18,79 @@ TYPING_VALUE = 1
 
 
 async def edit_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if not update.effective_chat or not update.message or context.user_data is None:
+    if not update.effective_chat or context.user_data is None:
         return ConversationHandler.END
 
     chat_id = str(update.effective_chat.id)
     api = context.bot_data.get("api")
     if not api:
-        await update.message.reply_text("❌ API service unavailable.")
+        msg = "API service unavailable."
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(msg)
+        elif update.message:
+            await update.message.reply_text(msg)
         return ConversationHandler.END
 
     try:
+        if update.callback_query:
+            await update.callback_query.answer()
+
         resp = api.get(f"/profiles/by-chat-id/{chat_id}")
         if resp.status_code != 200 or not resp.json():
-            await update.message.reply_text(
-                "ℹ️ No CV profile found to edit. Please upload your CV PDF first!"
-            )
+            msg = "No CV profile found to edit. Please upload your CV PDF first."
+            if update.callback_query:
+                await update.callback_query.edit_message_text(msg)
+            elif update.message:
+                await update.message.reply_text(msg)
             return ConversationHandler.END
 
         profiles = resp.json()
-        profile = profiles[0]  # Edit latest profile
+        profile = profiles[0]
         context.user_data["editing_profile_id"] = profile["id"]
         context.user_data["current_profile"] = profile
 
         keyboard = [
             [
-                InlineKeyboardButton("🛠️ Skills", callback_data="field_skills"),
+                InlineKeyboardButton("Skills", callback_data="field_skills"),
                 InlineKeyboardButton(
-                    "🔬 Research Interests", callback_data="field_research_interests"
+                    "Research Interests", callback_data="field_research_interests"
                 ),
             ],
             [
-                InlineKeyboardButton("🎓 Degree", callback_data="field_highest_degree"),
-                InlineKeyboardButton("🏛️ Degree Fields", callback_data="field_degree_fields"),
+                InlineKeyboardButton("Highest Degree", callback_data="field_highest_degree"),
+                InlineKeyboardButton("Degree Fields", callback_data="field_degree_fields"),
             ],
             [
-                InlineKeyboardButton("📍 Locations", callback_data="field_preferred_locations"),
-                InlineKeyboardButton("👤 Full Name", callback_data="field_name"),
+                InlineKeyboardButton(
+                    "Preferred Locations", callback_data="field_preferred_locations"
+                ),
+                InlineKeyboardButton("Full Name", callback_data="field_name"),
             ],
             [
-                InlineKeyboardButton("❌ Cancel", callback_data="cancel_edit"),
+                InlineKeyboardButton("Cancel", callback_data="cancel_edit"),
             ],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+        prompt = "<b>Select which profile field you want to edit:</b>"
 
-        await update.message.reply_text(
-            "✏️ <b>Select which profile field you want to edit:</b>",
-            reply_markup=reply_markup,
-            parse_mode="HTML",
-        )
+        if update.callback_query:
+            await update.callback_query.edit_message_text(
+                prompt, reply_markup=reply_markup, parse_mode="HTML"
+            )
+        elif update.message:
+            await update.message.reply_text(
+                prompt, reply_markup=reply_markup, parse_mode="HTML"
+            )
         return CHOOSING_FIELD
 
     except Exception as e:
         logger.error(f"Error starting edit for {chat_id}: {e}")
-        await update.message.reply_text("⚠️ Failed to load profile for editing.")
+        msg = "Failed to load profile for editing."
+        if update.callback_query:
+            await update.callback_query.edit_message_text(msg)
+        elif update.message:
+            await update.message.reply_text(msg)
         return ConversationHandler.END
 
 
@@ -82,33 +102,41 @@ async def field_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     await query.answer()
 
     if query.data == "cancel_edit":
-        await query.edit_message_text("❌ Profile editing cancelled.")
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                    InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+                ]
+            ]
+        )
+        await query.edit_message_text("Profile editing cancelled.", reply_markup=keyboard)
         return ConversationHandler.END
 
     field_map = {
-        "field_skills": ("skills", "🛠️ Skills (comma-separated)"),
+        "field_skills": ("skills", "Skills (comma-separated)"),
         "field_research_interests": (
             "research_interests",
-            "🔬 Research Interests (comma-separated)",
+            "Research Interests (comma-separated)",
         ),
         "field_highest_degree": (
             "highest_degree",
-            "🎓 Highest Degree (e.g. Master, PhD, Postdoc)",
+            "Highest Degree (e.g. Master, PhD, Postdoc)",
         ),
         "field_degree_fields": (
             "degree_fields",
-            "🏛️ Degree Fields (comma-separated, e.g. Computer Science, Molecular Biology)",
+            "Degree Fields (comma-separated, e.g. Computer Science, Molecular Biology)",
         ),
         "field_preferred_locations": (
             "preferred_locations",
-            "📍 Preferred Locations (comma-separated, e.g. Netherlands, Germany)",
+            "Preferred Locations (comma-separated, e.g. Netherlands, Germany)",
         ),
-        "field_name": ("name", "👤 Full Name"),
+        "field_name": ("name", "Full Name"),
     }
 
     choice = field_map.get(query.data or "")
     if not choice:
-        await query.edit_message_text("⚠️ Invalid selection.")
+        await query.edit_message_text("Invalid selection.")
         return ConversationHandler.END
 
     field_key, field_label = choice
@@ -141,7 +169,7 @@ async def value_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     api = context.bot_data.get("api")
 
     if not field_key or not profile_id or not api:
-        await update.message.reply_text("⚠️ Session expired. Please start over with /edit.")
+        await update.message.reply_text("Session expired. Please start over with /edit.")
         return ConversationHandler.END
 
     # Process value
@@ -155,33 +183,57 @@ async def value_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         patch_resp.raise_for_status()
 
         label = context.user_data.get("editing_label", field_key)
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                    InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+                ],
+                [
+                    InlineKeyboardButton("Edit Another Field", callback_data="nav_edit"),
+                ],
+            ]
+        )
         await update.message.reply_text(
-            f"✅ <b>{label} Updated Successfully!</b>\n\n"
-            "🔄 Re-matching has been enqueued against all academic vacancies.\n"
-            "You will be notified automatically when new matching results are ready!",
+            f"<b>{label} Updated Successfully.</b>\n\n"
+            "Re-matching has been enqueued against all academic vacancies.\n"
+            "You will be notified automatically when new matching results are ready.",
             parse_mode="HTML",
+            reply_markup=keyboard,
         )
         logger.info(f"Updated profile {profile_id} field {field_key} via Telegram edit")
 
     except Exception as e:
         logger.error(f"Error patching profile {profile_id}: {e}")
-        await update.message.reply_text("❌ Failed to update profile. Please try again.")
+        await update.message.reply_text("Failed to update profile. Please try again.")
 
     return ConversationHandler.END
 
 
 async def cancel_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.message:
-        await update.message.reply_text("❌ Profile edit cancelled.")
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("My Profile", callback_data="nav_profile"),
+                    InlineKeyboardButton("Browse Matches", callback_data="nav_matches"),
+                ]
+            ]
+        )
+        await update.message.reply_text("Profile edit cancelled.", reply_markup=keyboard)
     return ConversationHandler.END
 
 
 def get_edit_handler() -> ConversationHandler:
     return ConversationHandler(
-        entry_points=[CommandHandler("edit", edit_start)],
+        entry_points=[
+            CommandHandler("edit", edit_start),
+            CallbackQueryHandler(edit_start, pattern="^nav_edit$"),
+        ],
         states={
             CHOOSING_FIELD: [CallbackQueryHandler(field_chosen)],
             TYPING_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, value_received)],
         },
         fallbacks=[CommandHandler("cancel", cancel_edit)],
+        per_message=False,
     )
