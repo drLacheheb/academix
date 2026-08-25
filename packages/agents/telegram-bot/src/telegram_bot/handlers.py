@@ -197,7 +197,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await update.message.reply_text(msg, parse_mode="HTML", reply_markup=keyboard)
             return
 
-        profiles = resp.json()
+        profiles = resp.json()[:5]
         status_lines = ["<b>Your CV Processing Status:</b>\n"]
 
         for idx, p in enumerate(profiles, start=1):
@@ -428,6 +428,18 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not file_name.lower().endswith(".pdf"):
         await update.message.reply_text("Unsupported file format. Please upload a PDF file (.pdf).")
         return
+
+    if isinstance(doc.file_size, int):
+        if doc.file_size == 0:
+            await update.message.reply_text(
+                "The uploaded file is empty. Please upload a valid PDF CV."
+            )
+            return
+        if doc.file_size > 20 * 1024 * 1024:
+            await update.message.reply_text(
+                "The file exceeds the 20MB size limit. Please upload a smaller file."
+            )
+            return
 
     chat_id = str(update.effective_chat.id)
     user_name = update.effective_user.full_name if update.effective_user else None

@@ -326,12 +326,45 @@ async def test_handle_document_invalid_extension():
 
     update = MagicMock()
     update.message.document.file_name = "cv.docx"
+    update.message.document.file_size = 1024
     update.message.reply_text = AsyncMock()
     context = MagicMock()
 
     await handle_document(update, context)
     update.message.reply_text.assert_awaited_once()
     assert "Unsupported file format" in update.message.reply_text.call_args[0][0]
+
+
+async def test_handle_document_empty_file():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import handle_document
+
+    update = MagicMock()
+    update.message.document.file_name = "cv.pdf"
+    update.message.document.file_size = 0
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    await handle_document(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "uploaded file is empty" in update.message.reply_text.call_args[0][0]
+
+
+async def test_handle_document_oversized_file():
+    from unittest.mock import AsyncMock, MagicMock
+
+    from telegram_bot.handlers import handle_document
+
+    update = MagicMock()
+    update.message.document.file_name = "huge_cv.pdf"
+    update.message.document.file_size = 25 * 1024 * 1024
+    update.message.reply_text = AsyncMock()
+    context = MagicMock()
+
+    await handle_document(update, context)
+    update.message.reply_text.assert_awaited_once()
+    assert "exceeds the 20MB" in update.message.reply_text.call_args[0][0]
 
 
 async def test_handle_document_valid_pdf_success():
