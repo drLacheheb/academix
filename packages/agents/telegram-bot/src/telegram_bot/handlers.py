@@ -92,8 +92,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             resp = api.get(f"/profiles/by-chat-id/{chat_id}")
             if resp.status_code == 200 and resp.json():
                 is_returning = True
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not verify returning profile for chat_id {chat_id}: {e}")
 
     if is_returning:
         welcome_text = (
@@ -169,8 +169,8 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not update.callback_query:
         try:
             await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not send typing action for chat_id {chat_id}: {e}")
     api = context.bot_data.get("api")
     if not api:
         msg = "API service unavailable."
@@ -253,8 +253,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not update.callback_query:
         try:
             await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not send typing action for chat_id {chat_id}: {e}")
     api = context.bot_data.get("api")
     if not api:
         msg = "API service unavailable."
@@ -325,8 +325,8 @@ async def matches_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not update.callback_query:
         try:
             await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not send typing action for chat_id {chat_id}: {e}")
     api = context.bot_data.get("api")
     if not api:
         msg = "API service unavailable."

@@ -7,6 +7,9 @@ from sqlalchemy.orm import sessionmaker
 from core.domain.interfaces.db import BaseCandidateProfileRepository
 from core.domain.models.profile import CandidateProfile
 from core.infrastructure.db.models import CandidateProfileModel
+from core.infrastructure.logging.logger import get_logger
+
+logger = get_logger("profile-repository")
 
 
 class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
@@ -273,8 +276,10 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                         )
 
                         get_storage_service_from_env().delete(profile.cv_file_path)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(
+                            f"Could not delete storage file {profile.cv_file_path}: {e}"
+                        )
 
                 session.delete(profile)
 
@@ -314,8 +319,10 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
                     )
 
                     get_storage_service_from_env().delete(profile.cv_file_path)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(
+                        f"Could not delete storage file {profile.cv_file_path}: {e}"
+                    )
 
             session.delete(profile)
             session.commit()
