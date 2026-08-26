@@ -43,6 +43,9 @@ UPLOADS_DIR = os.path.abspath(
 )
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
+MAX_UPLOAD_SIZE_MB = int(os.environ.get("MAX_UPLOAD_SIZE_MB", "15"))
+MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
 router = APIRouter(dependencies=[Depends(verify_token)])
 
 
@@ -103,6 +106,25 @@ async def upload_cv(
         logger.error(f"Failed to read uploaded file: {e}")
         raise HTTPException(status_code=500, detail="Failed to read uploaded file.")
 
+    # Validate file size limits to prevent memory exhaustion
+    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File exceeds maximum allowed upload size of {MAX_UPLOAD_SIZE_MB}MB.",
+        )
+    if len(content) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is empty.",
+        )
+
+    # Validate PDF magic bytes header signature
+    if not content.startswith(b"%PDF-"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid PDF file. Missing valid PDF header signature.",
+        )
+
     # 2. Register placeholder profile and trigger ingestion task asynchronously
     try:
         saved_profile = usecase.execute(
@@ -114,9 +136,11 @@ async def upload_cv(
         )
         logger.info(f"Successfully registered CV ingestion for profile ID: {saved_profile.id}")
         return saved_profile.to_dict()
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Error registering CV ingestion", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to register CV ingestion task: {e!s}")
+        logger.error(f"Error registering CV ingestion: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to register CV ingestion task.")
 
 
 @router.post("/profiles/claim-ingest")
