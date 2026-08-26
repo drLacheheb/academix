@@ -8,8 +8,8 @@
   <a href="https://t.me/AcadamixBot"><img src="https://img.shields.io/badge/Telegram-@AcadamixBot-2CA5E0?style=flat&logo=telegram&logoColor=white" alt="Telegram Bot"></a>
   <a href="https://drlacheheb.github.io/academix"><img src="https://img.shields.io/badge/Website-drlacheheb.github.io-blue?style=flat" alt="Website"></a>
   <a href="https://ko-fi.com/drlacheheb"><img src="https://img.shields.io/badge/Support-Buy%20Me%20a%20Coffee-FF5E5B?style=flat&logo=kofi&logoColor=white" alt="Ko-fi"></a>
-  <a href="https://academix-production-1c37.up.railway.app/status"><img src="https://img.shields.io/badge/Sourced%20Vacancies-3%2C968%2B-0ea5e9?style=flat" alt="Sourced Vacancies"></a>
-  <a href="https://academix-production-1c37.up.railway.app/status"><img src="https://img.shields.io/badge/AI%20Refined-2%2C310%2B-10b981?style=flat" alt="AI Refined"></a>
+  <a href="https://academix-production-1c37.up.railway.app/status"><img src="https://img.shields.io/badge/dynamic/json?url=https://academix-production-1c37.up.railway.app/status&query=$.total_jobs&label=Sourced%20Vacancies&color=0ea5e9&style=flat" alt="Sourced Vacancies"></a>
+  <a href="https://academix-production-1c37.up.railway.app/status"><img src="https://img.shields.io/badge/dynamic/json?url=https://academix-production-1c37.up.railway.app/status&query=$.completed_refinement&label=AI%20Refined&color=10b981&style=flat" alt="AI Refined"></a>
 </p>
 
 <p align="center">
