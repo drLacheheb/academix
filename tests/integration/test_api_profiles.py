@@ -115,3 +115,67 @@ def test_api_upload_cv_oversized_payload(api_client: TestClient, monkeypatch):
     )
     assert resp.status_code == 413
     assert "maximum allowed upload size" in resp.json()["detail"]
+
+
+def test_api_patch_profile_fields(api_client: TestClient, memory_repo: PipelineJobRepository):
+    # 1. Create a base profile
+    saved = memory_repo.profiles.save(
+        CandidateProfile(
+            name="Nikola Tesla",
+            email="nikola@tesla.org",
+            highest_degree="Master",
+            skills=["Electricity", "Physics"],
+            status="REFINED",
+        )
+    )
+    profile_id = saved.id
+    assert profile_id is not None
+
+    # 2. Patch specific fields
+    patch_resp = api_client.patch(
+        f"/profiles/{profile_id}",
+        json={
+            "highest_degree": "PhD",
+            "skills": ["Electromagnetism", "AC Power", "Wireless Energy"],
+            "preferred_locations": ["New York", "Graz"],
+        },
+    )
+    assert patch_resp.status_code == 200
+    data = patch_resp.json()
+    assert data["highest_degree"] == "PhD"
+    assert "AC Power" in data["skills"]
+    assert "Graz" in data["preferred_locations"]
+
+
+def test_api_delete_profiles(api_client: TestClient, memory_repo: PipelineJobRepository):
+    # 1. Create profiles
+    p1 = memory_repo.profiles.save(
+        CandidateProfile(
+            name="Delete Candidate 1",
+            email="del1@test.com",
+            telegram_chat_id="chat_del_1",
+            status="REFINED",
+        )
+    )
+    p2 = memory_repo.profiles.save(
+        CandidateProfile(
+            name="Delete Candidate 2",
+            email="del2@test.com",
+            telegram_chat_id="chat_del_2",
+            status="REFINED",
+        )
+    )
+
+    # 2. Delete by ID
+    del_id_resp = api_client.delete(f"/profiles/{p1.id}")
+    assert del_id_resp.status_code == 200
+    assert del_id_resp.json()["status"] == "success"
+
+    # 3. Delete by Telegram chat ID
+    del_chat_resp = api_client.delete(f"/profiles/by-telegram-chat-id/{p2.telegram_chat_id}")
+    assert del_chat_resp.status_code == 200
+    assert del_chat_resp.json()["status"] == "success"
+
+    # 4. Verify 404 on subsequent deletes
+    not_found_resp = api_client.delete(f"/profiles/{p1.id}")
+    assert not_found_resp.status_code == 404
