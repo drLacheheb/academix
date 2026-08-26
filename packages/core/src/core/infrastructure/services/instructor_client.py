@@ -29,10 +29,14 @@ class InstructorLlmClient(LlmClient):
         self.base_url = url
         self.temperature = temperature
 
+        timeout_seconds = float(os.environ.get("LLM_TIMEOUT", "120.0"))
+        sdk_retries = int(os.environ.get("LLM_MAX_RETRIES", "3"))
+
         self._raw_client = OpenAI(
             base_url=self.base_url,
             api_key=os.environ.get("LLM_API_KEY", "ollama"),
-            timeout=120.0,
+            timeout=timeout_seconds,
+            max_retries=sdk_retries,
         )
         self._instructor_client = instructor.from_openai(
             self._raw_client,
