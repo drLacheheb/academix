@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1457.081 640" width="1457.081" height="640" style="--_text:var(--fg);--_text-sec:var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));--_text-muted:var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));--_text-faint:color-mix(in srgb, var(--fg) 25%, var(--bg));--_line:var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));--_arrow:var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));--_node-fill:var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));--_node-stroke:var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));--_group-fill:var(--bg);--_group-hdr:color-mix(in srgb, var(--fg) 5%, var(--bg));--_inner-stroke:color-mix(in srgb, var(--fg) 12%, var(--bg));--_key-badge:color-mix(in srgb, var(--fg) 10%, var(--bg));--bg:#1F1F1F;--fg:#CCCCCC;--line:#CCCCCC;--accent:#0078D4;--muted:#CCCCCCCC;--surface:#181818;--border:#CCCCCC;background:var(--bg)">
+  <style>
+    @import url(https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap);text{font-family:&quot;Inter&quot;,system-ui,sans-serif}
+  </style>
+  <defs>
+    <marker id="seq-arrow" markerWidth="8" markerHeight="5" refX="8" refY="2.5" orient="auto-start-reverse">
+      <path fill="var(--_arrow)" d="m0 0 8 2.5L0 5z"/>
+    </marker>
+    <marker id="seq-arrow-open" markerWidth="8" markerHeight="5" refX="8" refY="2.5" orient="auto-start-reverse">
+      <path fill="none" stroke="var(--_arrow)" d="m0 0 8 2.5L0 5"/>
+    </marker>
+  </defs>
+  <path class="lifeline" data-actor="Discovery" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M102.92 70v540"/>
+  <path class="lifeline" data-actor="Sourcing" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M286.538 70v540"/>
+  <path class="lifeline" data-actor="API" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M464.228 70v540"/>
+  <path class="lifeline" data-actor="DB" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M630.803 70v540"/>
+  <path class="lifeline" data-actor="Trans" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M805.159 70v540"/>
+  <path class="lifeline" data-actor="Refine" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M992.482 70v540"/>
+  <path class="lifeline" data-actor="Embed" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M1178.323 70v540"/>
+  <path class="lifeline" data-actor="Match" stroke="var(--_line)" stroke-width=".75" stroke-dasharray="6 4" d="M1359.347 70v540"/>
+  <g class="message" data-from="Discovery" data-to="API" data-label="POST /jobs (New Job Stubs)" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M102.92 90h361.308"/>
+    <text x="283.575" y="80" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">POST /jobs (New Job Stubs)</text>
+  </g>
+  <g class="message" data-from="API" data-to="DB" data-label="Save Stubs &amp; Init Orchestration" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M464.228 130h166.575"/>
+    <text x="547.516" y="120" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">Save Stubs &amp; Init Orchestration</text>
+  </g>
+  <g class="message" data-from="Sourcing" data-to="API" data-label="GET /jobs/pending-details" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M286.538 170h177.69"/>
+    <text x="375.384" y="160" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">GET /jobs/pending-details</text>
+  </g>
+  <g class="message" data-from="Sourcing" data-to="API" data-label="PUT /jobs/details (Raw HTML/MD)" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M286.538 210h177.69"/>
+    <text x="375.384" y="200" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">PUT /jobs/details (Raw HTML/MD)</text>
+  </g>
+  <g class="message" data-from="Trans" data-to="API" data-label="POST /jobs/claim-translate" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M805.159 250H464.228"/>
+    <text x="634.694" y="240" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">POST /jobs/claim-translate</text>
+  </g>
+  <g class="message" data-from="Trans" data-to="API" data-label="PUT /jobs/translate (English Details)" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M805.159 290H464.228"/>
+    <text x="634.694" y="280" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">PUT /jobs/translate (English Details)</text>
+  </g>
+  <g class="message" data-from="Refine" data-to="API" data-label="POST /jobs/claim-refine" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M992.482 330H464.228"/>
+    <text x="728.355" y="320" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">POST /jobs/claim-refine</text>
+  </g>
+  <g class="message" data-from="Refine" data-to="API" data-label="PUT /jobs/refine (Structured Skills/Degrees/Domains)" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M992.482 370H464.228"/>
+    <text x="728.355" y="360" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">PUT /jobs/refine (Structured Skills/Degrees/Domains)</text>
+  </g>
+  <g class="message" data-from="Embed" data-to="API" data-label="POST /jobs/claim-embed" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M1178.323 410H464.228"/>
+    <text x="821.276" y="400" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">POST /jobs/claim-embed</text>
+  </g>
+  <g class="message" data-from="Embed" data-to="API" data-label="PUT /jobs/embed (256d Vector Embeddings)" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M1178.323 450H464.228"/>
+    <text x="821.276" y="440" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">PUT /jobs/embed (256d Vector Embeddings)</text>
+  </g>
+  <g class="message" data-from="API" data-to="DB" data-label="Enqueue Matching Task (Entity: Job)" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M464.228 490h166.575"/>
+    <text x="547.516" y="480" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">Enqueue Matching Task (Entity: Job)</text>
+  </g>
+  <g class="message" data-from="Match" data-to="API" data-label="POST /matches/claim" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M1359.347 530H464.228"/>
+    <text x="911.788" y="520" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">POST /matches/claim</text>
+  </g>
+  <g class="message" data-from="Match" data-to="API" data-label="POST /matches/complete (Store Matches)" data-line-style="solid" data-arrow-head="filled" data-self="false">
+    <path stroke="var(--_line)" marker-end="url(#seq-arrow)" d="M1359.347 570H464.228"/>
+    <text x="911.788" y="560" font-size="11" text-anchor="middle" font-weight="400" fill="var(--_text-muted)" dy="3.85">POST /matches/complete (Store Matches)</text>
+  </g>
+  <g class="actor" data-id="Discovery" data-label="Discovery Crawler" data-type="participant">
+    <rect x="30" y="30" width="145.841" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="102.92" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Discovery Crawler</text>
+  </g>
+  <g class="actor" data-id="Sourcing" data-label="Sourcing Scraper" data-type="participant">
+    <rect x="215.841" y="30" width="141.395" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="286.538" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Sourcing Scraper</text>
+  </g>
+  <g class="actor" data-id="API" data-label="FastAPI Gateway" data-type="participant">
+    <rect x="397.236" y="30" width="133.985" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="464.228" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">FastAPI Gateway</text>
+  </g>
+  <g class="actor" data-id="DB" data-label="SQL Database" data-type="participant">
+    <rect x="571.221" y="30" width="119.165" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="630.803" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">SQL Database</text>
+  </g>
+  <g class="actor" data-id="Trans" data-label="Translation Worker" data-type="participant">
+    <rect x="730.386" y="30" width="149.546" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="805.159" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Translation Worker</text>
+  </g>
+  <g class="actor" data-id="Refine" data-label="Refinement Worker" data-type="participant">
+    <rect x="919.932" y="30" width="145.1" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="992.482" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Refinement Worker</text>
+  </g>
+  <g class="actor" data-id="Embed" data-label="Embedding Worker" data-type="participant">
+    <rect x="1105.032" y="30" width="146.582" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="1178.323" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Embedding Worker</text>
+  </g>
+  <g class="actor" data-id="Match" data-label="Matching Worker" data-type="participant">
+    <rect x="1291.614" y="30" width="135.467" height="40" rx="4" ry="4" fill="var(--_node-fill)" stroke="var(--_node-stroke)"/>
+    <text x="1359.347" y="50" font-size="13" text-anchor="middle" font-weight="500" fill="var(--_text)" dy="4.55">Matching Worker</text>
+  </g>
+</svg>

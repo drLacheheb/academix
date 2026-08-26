@@ -31,61 +31,25 @@ Finding the right academic position (PhD, Postdoc, or Faculty) across universiti
 
 ---
 
-## How It Works
+## System Architecture & Workflow
 
-```mermaid
-graph TD
-    subgraph Delivery ["1. Delivery & Interfaces"]
-        API["FastAPI Gateway<br/>(REST API)"]
-        Bot["Telegram Bot<br/>(@AcadamixBot)"]
-        Crawlers["Job Crawlers<br/>(6 Portals)"]
-        Workers["Worker Agents<br/>(NLP & Matching)"]
-    end
+### 1. High-Level Architecture
 
-    subgraph UseCases ["2. Application Use Cases"]
-        IngestUC["IngestProfileUseCase"]
-        RefineUC["RefineJobUseCase"]
-        TransUC["TranslateJobUseCase"]
-        EmbedUC["GenerateEmbeddingUseCase"]
-        MatchUC["MatchCandidateUseCase"]
-    end
+<p align="center">
+  <img src="docs/assets/architecture.svg" alt="Academix System Architecture" width="100%" />
+</p>
 
-    subgraph Domain ["3. Domain & Ports"]
-        Entities["Candidate & Job Entities"]
-        Scorer["Match Scorer & Heuristics"]
-        RepoPort["Database Repository Port"]
-        LLMPort["LLM Service Port"]
-        TransPort["Translator Service Port"]
-    end
+### 2. Job Sourcing & Refinement Pipeline
 
-    subgraph Infrastructure ["4. Infrastructure & Adapters"]
-        DB["SQL Database<br/>(SQLite / PostgreSQL)"]
-        LLM["Ollama / OpenAI Client"]
-        NLLB["NLLB-200 CTranslate2"]
-        Nomic["Nomic Embeddings v1.5"]
-        Notifier["Telegram Notifier"]
-    end
+<p align="center">
+  <img src="docs/assets/job-lifecycle.svg" alt="Job Sourcing and Refinement Lifecycle" width="100%" />
+</p>
 
-    API --> IngestUC
-    Bot --> IngestUC
-    Crawlers --> RefineUC
-    Workers --> TransUC
-    Workers --> EmbedUC
-    Workers --> MatchUC
+### 3. Candidate CV Processing & Alert Pipeline
 
-    UseCases --> Entities
-    MatchUC --> Scorer
-
-    UseCases --> RepoPort
-    UseCases --> LLMPort
-    UseCases --> TransPort
-
-    RepoPort --> DB
-    LLMPort --> LLM
-    TransPort --> NLLB
-    Scorer --> Nomic
-    MatchUC --> Notifier
-```
+<p align="center">
+  <img src="docs/assets/candidate-lifecycle.svg" alt="Candidate CV Processing and Alert Pipeline" width="100%" />
+</p>
 
 ---
 
