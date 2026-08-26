@@ -10,6 +10,24 @@ def test_api_status_endpoint(api_client: TestClient):
     assert "pending_refinement" in data
 
 
+def test_api_status_cors_headers(api_client: TestClient):
+    # Verify CORS headers for cross-origin requests from the landing page
+    resp = api_client.get("/status", headers={"Origin": "https://drlacheheb.github.io"})
+    assert resp.status_code == 200
+    assert resp.headers.get("access-control-allow-origin") in ["*", "https://drlacheheb.github.io"]
+
+
+def test_api_security_headers(api_client: TestClient):
+    # Verify standard security headers are attached
+    resp = api_client.get("/status")
+    assert resp.status_code == 200
+    assert resp.headers.get("x-content-type-options") == "nosniff"
+    assert resp.headers.get("x-frame-options") == "DENY"
+    assert resp.headers.get("x-xss-protection") == "1; mode=block"
+    assert "max-age=31536000" in resp.headers.get("strict-transport-security", "")
+    assert resp.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+
+
 def test_api_create_and_query_jobs(api_client: TestClient):
     # 1. Create discovery job stubs
     stubs = [

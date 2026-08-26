@@ -1,8 +1,10 @@
+import os
 from contextlib import asynccontextmanager
 from time import time
 
 from core.infrastructure.logging.logger import get_logger
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
@@ -49,6 +51,41 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Job Sourcing API", version="1.0.0", lifespan=lifespan)
+
+# Parse allowed CORS origins from environment with secure defaults
+raw_origins = os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "https://drlacheheb.github.io,http://localhost:8000,http://127.0.0.1:8000",
+)
+allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+
+# Setup CORS middleware with restricted origins, methods, and headers
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-API-Key",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
+)
+
+
+# Setup Security Response Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 
 # Setup HTTP Request Logging Middleware
