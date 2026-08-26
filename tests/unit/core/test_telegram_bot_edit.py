@@ -57,9 +57,7 @@ async def test_field_chosen_skills():
     update.callback_query.edit_message_text = AsyncMock()
 
     context = MagicMock()
-    context.user_data = {
-        "current_profile": {"skills": ["Physics", "Chemistry"]}
-    }
+    context.user_data = {"current_profile": {"skills": ["Physics", "Chemistry"]}}
 
     state = await field_chosen(update, context)
     assert state == TYPING_VALUE
@@ -199,4 +197,3 @@ async def test_value_received_api_patch_error():
     assert state == -1
     update.message.reply_text.assert_awaited_once()
     assert "Failed to update profile" in update.message.reply_text.call_args[0][0]
-

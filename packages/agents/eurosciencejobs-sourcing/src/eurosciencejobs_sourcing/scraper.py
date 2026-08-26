@@ -84,9 +84,7 @@ class EuroScienceJobsSourcing(ConcreteSourcing):
             r"job description (start|end)|share this job|"
             r"don't forget to mention eurosciencejobs"
         )
-        for unwanted in job_row_copy.find_all(
-            string=re.compile(unwanted_pattern, re.I)
-        ):
+        for unwanted in job_row_copy.find_all(string=re.compile(unwanted_pattern, re.I)):
             unwanted.extract()
 
         body_md = html_to_markdown(job_row_copy)

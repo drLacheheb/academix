@@ -134,17 +134,17 @@ def run():
             return True
 
         # Check if match explanations are enabled
-        enable_explanations = os.environ.get(
-            "ENABLE_MATCH_EXPLANATION", "true"
-        ).lower() in ("true", "1", "yes")
+        enable_explanations = os.environ.get("ENABLE_MATCH_EXPLANATION", "true").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
 
         if enable_explanations:
             # Polling for explanations
             logger.info("Polling for pending match explanations...")
             try:
-                explain_resp = api.post(
-                    "/matches/claim-explain", json={"agent_name": agent_name}
-                )
+                explain_resp = api.post("/matches/claim-explain", json={"agent_name": agent_name})
                 explain_resp.raise_for_status()
             except Exception as e:
                 logger.error(f"Error polling match explanations: {e}")

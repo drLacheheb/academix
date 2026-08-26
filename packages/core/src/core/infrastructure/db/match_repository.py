@@ -14,9 +14,11 @@ class MatchRepository(BaseMatchRepository):
     def save_matches(self, matches: list[Match]) -> None:
         import os
 
-        enable_explanations = os.environ.get(
-            "ENABLE_MATCH_EXPLANATION", "true"
-        ).lower() in ("true", "1", "yes")
+        enable_explanations = os.environ.get("ENABLE_MATCH_EXPLANATION", "true").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         initial_status = "pending" if enable_explanations else "skipped"
 
         session = self._SessionLocal()

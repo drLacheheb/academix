@@ -96,9 +96,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             logger.debug(f"Could not verify returning profile for chat_id {chat_id}: {e}")
 
     if is_returning:
-        welcome_text = (
-            f"Welcome back, <b>{html.escape(user_name)}</b>."
-        )
+        welcome_text = f"Welcome back, <b>{html.escape(user_name)}</b>."
         keyboard = InlineKeyboardMarkup(
             [
                 [
@@ -231,9 +229,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 full_text, parse_mode="HTML", reply_markup=keyboard
             )
         elif update.message:
-            await update.message.reply_text(
-                full_text, parse_mode="HTML", reply_markup=keyboard
-            )
+            await update.message.reply_text(full_text, parse_mode="HTML", reply_markup=keyboard)
 
     except Exception as e:
         logger.error(f"Error fetching status for chat_id {chat_id}: {e}")
@@ -303,9 +299,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 profile_text, parse_mode="HTML", reply_markup=keyboard
             )
         elif update.message:
-            await update.message.reply_text(
-                profile_text, parse_mode="HTML", reply_markup=keyboard
-            )
+            await update.message.reply_text(profile_text, parse_mode="HTML", reply_markup=keyboard)
 
     except Exception as e:
         logger.error(f"Error in profile command for {chat_id}: {e}")
@@ -510,13 +504,9 @@ async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(
-            msg, parse_mode="HTML", reply_markup=keyboard
-        )
+        await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=keyboard)
     elif update.message:
-        await update.message.reply_text(
-            msg, parse_mode="HTML", reply_markup=keyboard
-        )
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=keyboard)
 
 
 async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

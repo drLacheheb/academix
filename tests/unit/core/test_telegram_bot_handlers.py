@@ -690,7 +690,3 @@ def test_render_match_page_out_of_bounds_clamping():
     # Page beyond bounds clamps to last page
     text_pos, _ = render_match_page(matches, 50)
     assert "Match 1 of 1" in text_pos
-
-
-
-

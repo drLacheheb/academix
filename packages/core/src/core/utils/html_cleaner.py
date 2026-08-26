@@ -40,9 +40,7 @@ def normalize_markdown_separators(text: str) -> str:
     # 2. Normalize repeated separator characters (-, _, =, *, ~) to standard ---
     text = re.sub(r"^[ \t]*[-_=*~]{3,}[ \t]*$", "---", text, flags=re.MULTILINE)
     # 3. Collapse consecutive divider lines (including blank lines between them) into a single ---
-    text = re.sub(
-        r"(?:^[ \t]*---[ \t]*(?:\r?\n|$)\s*){2,}", "---\n\n", text, flags=re.MULTILINE
-    )
+    text = re.sub(r"(?:^[ \t]*---[ \t]*(?:\r?\n|$)\s*){2,}", "---\n\n", text, flags=re.MULTILINE)
 
     # 4. Strip redundant bold inside links: [**text**](url) -> [text](url)
     text = re.sub(r"\[\*\*([^\*\n]+?)\*\*\]\(", r"[\1](", text)

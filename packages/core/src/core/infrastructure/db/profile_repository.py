@@ -277,9 +277,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
 
                         get_storage_service_from_env().delete(profile.cv_file_path)
                     except Exception as e:
-                        logger.warning(
-                            f"Could not delete storage file {profile.cv_file_path}: {e}"
-                        )
+                        logger.warning(f"Could not delete storage file {profile.cv_file_path}: {e}")
 
                 session.delete(profile)
 
@@ -320,9 +318,7 @@ class DatabaseCandidateProfileRepository(BaseCandidateProfileRepository):
 
                     get_storage_service_from_env().delete(profile.cv_file_path)
                 except Exception as e:
-                    logger.warning(
-                        f"Could not delete storage file {profile.cv_file_path}: {e}"
-                    )
+                    logger.warning(f"Could not delete storage file {profile.cv_file_path}: {e}")
 
             session.delete(profile)
             session.commit()

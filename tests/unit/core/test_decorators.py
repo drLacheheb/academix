@@ -57,9 +57,10 @@ async def test_notify_telegram_on_cv_completion_with_profile():
 
 @pytest.mark.asyncio
 async def test_notify_telegram_on_matches_found_with_direct_matches():
-    with patch("core.utils.decorators.send_telegram_message") as mock_send, patch(
-        "core.infrastructure.db.pipeline_repository.PipelineJobRepository"
-    ) as mock_repo_cls:
+    with (
+        patch("core.utils.decorators.send_telegram_message") as mock_send,
+        patch("core.infrastructure.db.pipeline_repository.PipelineJobRepository") as mock_repo_cls,
+    ):
         mock_send.return_value = True
         mock_repo = MagicMock()
         mock_repo_cls.return_value = mock_repo

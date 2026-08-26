@@ -97,11 +97,7 @@ def test_normalize_markdown_separators():
     assert "--------------------------------" not in normalized
     assert "================================" not in normalized
     expected = (
-        "French summary paragraph.\n\n"
-        "---\n\n"
-        "English summary paragraph.\n\n"
-        "---\n\n"
-        "Final remarks."
+        "French summary paragraph.\n\n---\n\nEnglish summary paragraph.\n\n---\n\nFinal remarks."
     )
     assert normalized == expected
 
@@ -174,5 +170,3 @@ def test_alphabetical_and_parenthesized_list_collapsing():
         "(2) Second step"
     )
     assert normalized == expected
-
-

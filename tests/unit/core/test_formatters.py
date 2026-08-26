@@ -2,9 +2,7 @@ from core.utils.formatters import format_match_card, format_profile_card
 
 
 def test_format_match_card_with_json_string_degrees():
-    degrees_json = (
-        '["Computer Science", "Software Engineering", "Information Technology"]'
-    )
+    degrees_json = '["Computer Science", "Software Engineering", "Information Technology"]'
     match_dict = {
         "score": 0.7873,
         "job_title": "Software Engineer Open Source",
@@ -110,4 +108,3 @@ def test_format_single_match_card():
     assert "Eindhoven University of Technology (Eindhoven, Netherlands)" in card
     assert "Computer Science, AI" in card
     assert "Exceptional fit with candidate machine learning background." in card
-

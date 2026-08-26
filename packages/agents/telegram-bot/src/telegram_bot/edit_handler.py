@@ -79,9 +79,7 @@ async def edit_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 prompt, reply_markup=reply_markup, parse_mode="HTML"
             )
         elif update.message:
-            await update.message.reply_text(
-                prompt, reply_markup=reply_markup, parse_mode="HTML"
-            )
+            await update.message.reply_text(prompt, reply_markup=reply_markup, parse_mode="HTML")
         return CHOOSING_FIELD
 
     except Exception as e:
