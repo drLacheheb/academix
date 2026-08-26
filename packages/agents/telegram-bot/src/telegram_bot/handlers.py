@@ -2,6 +2,7 @@ import html
 import io
 
 from core.infrastructure.logging.logger import get_logger
+from core.utils.decorators import unblock_chat
 from core.utils.formatters import (
     format_profile_card,
     format_single_match_card,
@@ -64,6 +65,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     user_name = update.effective_user.first_name if update.effective_user else "Researcher"
     chat_id = str(update.effective_chat.id)
+    unblock_chat(chat_id)
 
     # Support deep-linking payloads (e.g., https://t.me/AcadamixBot?start=matches)
     if context.args:
@@ -564,7 +566,7 @@ async def delete_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
 async def navigation_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    if not query or not query.data:
+    if not query or not query.data or not update.effective_chat:
         return
 
     data = query.data

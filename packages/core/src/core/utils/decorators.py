@@ -1,5 +1,6 @@
 import functools
 import os
+import time
 
 import requests
 from core.infrastructure.logging.logger import get_logger
@@ -7,12 +8,61 @@ from core.utils.formatters import format_match_card, format_profile_card
 
 logger = get_logger("telegram-decorators")
 
+# In-memory TTL cache for blocked or invalid chat IDs: {chat_id: expiry_timestamp}
+_BLOCKED_CHAT_IDS: dict[str, float] = {}
+_DEFAULT_BLOCK_TTL_SECONDS: float = 3600.0
 
-def send_telegram_message(chat_id: int | str, text: str) -> bool:
+
+def _is_chat_blocked(chat_id: int | str) -> bool:
+    cid = str(chat_id)
+    expiry = _BLOCKED_CHAT_IDS.get(cid)
+    if expiry is None:
+        return False
+    if time.time() > expiry:
+        _BLOCKED_CHAT_IDS.pop(cid, None)
+        return False
+    return True
+
+
+def _mark_chat_blocked(chat_id: int | str, ttl_seconds: float = _DEFAULT_BLOCK_TTL_SECONDS) -> None:
+    _BLOCKED_CHAT_IDS[str(chat_id)] = time.time() + ttl_seconds
+
+
+def unblock_chat(chat_id: int | str) -> None:
+    _BLOCKED_CHAT_IDS.pop(str(chat_id), None)
+
+
+class TelegramSendResult:
+    def __init__(
+        self,
+        success: bool,
+        status_code: int | None = None,
+        error_message: str | None = None,
+    ):
+        self.success = success
+        self.status_code = status_code
+        self.error_message = error_message
+
+    @property
+    def is_permanent_failure(self) -> bool:
+        return self.status_code in (400, 403)
+
+    def __bool__(self) -> bool:
+        return self.success
+
+
+def send_telegram_message(chat_id: int | str, text: str) -> TelegramSendResult:
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not bot_token:
         logger.warning("TELEGRAM_BOT_TOKEN not set in environment. Skipping Telegram dispatch.")
-        return False
+        return TelegramSendResult(success=False, error_message="TELEGRAM_BOT_TOKEN missing")
+
+    if _is_chat_blocked(chat_id):
+        return TelegramSendResult(
+            success=False,
+            status_code=403,
+            error_message="Chat ID is cached as blocked/forbidden.",
+        )
 
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
@@ -26,16 +76,32 @@ def send_telegram_message(chat_id: int | str, text: str) -> bool:
         resp = requests.post(url, json=payload, timeout=10)
         if resp.status_code == 200:
             logger.info(f"Successfully sent Telegram notification to chat_id={chat_id}")
-            return True
-        else:
-            logger.error(
-                f"Failed to send Telegram message to chat_id={chat_id}: "
+            return TelegramSendResult(success=True, status_code=200)
+
+        if resp.status_code in (400, 403):
+            _mark_chat_blocked(chat_id)
+            logger.warning(
+                f"Telegram delivery permanently failed for chat_id={chat_id}: "
                 f"status={resp.status_code}, response={resp.text}"
             )
-            return False
+            return TelegramSendResult(
+                success=False,
+                status_code=resp.status_code,
+                error_message=resp.text,
+            )
+
+        logger.error(
+            f"Failed to send Telegram message to chat_id={chat_id}: "
+            f"status={resp.status_code}, response={resp.text}"
+        )
+        return TelegramSendResult(
+            success=False,
+            status_code=resp.status_code,
+            error_message=resp.text,
+        )
     except Exception as e:
         logger.error(f"Exception sending Telegram message to chat_id={chat_id}: {e}")
-        return False
+        return TelegramSendResult(success=False, error_message=str(e))
 
 
 def notify_telegram_on_cv_completion(func):
@@ -125,7 +191,10 @@ def notify_telegram_on_matches_found(func):
                     continue
 
                 msg = format_match_card(m)
-                if send_telegram_message(chat_id, msg):
+                res = send_telegram_message(chat_id, msg)
+                is_success = bool(res.success) if hasattr(res, "success") else bool(res)
+                is_perm = getattr(res, "is_permanent_failure", False)
+                if is_success or is_perm:
                     if "match_id" in m:
                         repo.matches.mark_as_notified([m["match_id"]])
         except Exception as e:
