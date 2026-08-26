@@ -1,3 +1,5 @@
+import secrets
+
 from core.domain.interfaces.services import BaseStorageService
 from core.infrastructure.db.pipeline_repository import PipelineJobRepository
 from core.usecases import (
@@ -148,7 +150,7 @@ async def verify_token(authorization: str | None = Header(None)):
     if not authorization:
         raise HTTPException(status_code=401, detail="Unauthorized")
     expected = f"Bearer {get_api_secret()}"
-    if authorization != expected:
+    if not secrets.compare_digest(authorization, expected):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
